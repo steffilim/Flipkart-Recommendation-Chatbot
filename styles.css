@@ -44,15 +44,16 @@ body {
 
 #chatbox {
     flex-grow: 1;
-    overflow-y: auto;
+    overflow-y: hidden; /* No scrolling here */
     padding: 10px;
     border-bottom: 1px solid #ddd;
+    max-height: 400px;
 }
 
-.chat-log {
-    display: flex;
-    flex-direction: column;
-    gap: 20px; 
+#chat-log {
+    max-height: 100%;
+    overflow-y: auto; /* Enable scrolling in this container */
+    padding-right: 10px;
 }
 
 .chat-log .message-container {

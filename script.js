@@ -1,4 +1,15 @@
 // script.js
+
+let loginStep = 0;  // Step to track login flow (0 - ask for userID, 1 - ask for password, 2 - logged in)
+let userID = '';
+let userPassword = '';
+let isLoggedIn = false;
+
+// Initialize the bot by asking for user ID
+window.onload = function() {
+    botSendMessage("Please enter your User ID to login:");
+}
+
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 document.getElementById('user-input').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
@@ -11,14 +22,37 @@ function sendMessage() {
     if (userInput === '') return;
 
     appendMessage(userInput, 'user-message', 'User');
-
-    // Fake bot response for demonstration
-    setTimeout(() => {
-        let botResponse = "Hello! How can I assist you in finding the right product?";
-        appendMessage(botResponse, 'bot-message', 'Bot');
-    }, 1000);
+    
+    if (!isLoggedIn) {
+        handleLoginFlow(userInput);
+    } else {
+        // Normal conversation with the bot after login
+        botSendMessage("Hello! How can I assist you in finding the right product?");
+    }
 
     document.getElementById('user-input').value = '';
+}
+
+function handleLoginFlow(userInput) {
+    if (loginStep === 0) {
+        userID = userInput;
+        botSendMessage("Please enter your password:");
+        loginStep = 1;
+    } else if (loginStep === 1) {
+        userPassword = userInput;
+        validateLogin(userID, userPassword);
+    }
+}
+
+function validateLogin(userID, password) {
+    // Simulate login validation
+    if (userID === 'user123' && password === 'pass123') {
+        isLoggedIn = true;
+        botSendMessage("Login successful! How can I assist you today?");
+    } else {
+        botSendMessage("Invalid login credentials. Please enter your User ID to try again:");
+        loginStep = 0; // Reset login process
+    }
 }
 
 function appendMessage(message, className, sender) {
@@ -46,11 +80,21 @@ function appendMessage(message, className, sender) {
     messageContainer.appendChild(messageElement);
 
     chatLog.appendChild(messageContainer);
-    chatLog.scrollTop = chatLog.scrollHeight;
+
+    // Ensure the chat scrolls to the bottom after appending a new message
+    setTimeout(() => {
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }, 100); // Small delay to ensure the DOM is updated
 }
 
-// Toggle Chat Functionality (without the +/- icon)
+function botSendMessage(message) {
+    appendMessage(message, 'bot-message', 'Bot');
+}
+
+// Toggle Chat Functionality
 document.getElementById('chat-header').addEventListener('click', function () {
     let chatContainer = document.getElementById('chat-container');
+    let toggleIcon = document.getElementById('toggle-chat');
+
     chatContainer.classList.toggle('folded');
 });
