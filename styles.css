@@ -1,13 +1,8 @@
 /* styles.css */
 body {
     font-family: Arial, sans-serif;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: #f4f4f9;
     margin: 0;
+    position: relative;
 }
 
 .chat-container {
@@ -16,22 +11,35 @@ body {
     background-color: white;
     border-radius: 10px;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    overflow: hidden; /* Ensures title background color fills frame */
+    transition: height 0.3s ease, width 0.3s ease;
+    overflow: hidden;
+}
+
+.chat-container.folded {
+    height: 50px; 
+    width: 300px;
 }
 
 .chat-header {
-    background-color: #007bff; /* Different background color for the title */
+    background-color: #20b2aa; 
     padding: 10px;
+    color: black; 
     text-align: center;
+    position: relative;
+    cursor: pointer;
 }
 
 .chat-header h1 {
-    color: white;
     margin: 0;
-    font-size: 18px;
+    font-size: 16px;
+    display: inline-block;
+    color: black;
 }
 
 #chatbox {
@@ -44,11 +52,17 @@ body {
 .chat-log {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 20px; 
+}
+
+.chat-log .message-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .chat-log p {
-    margin: 5px 0;
+    margin: 0;
     padding: 10px;
     border-radius: 8px;
     max-width: 80%;
@@ -57,10 +71,10 @@ body {
 }
 
 .user-message {
-    background-color: #007bff;
-    color: white;
+    background-color: #20b2aa; 
+    color: black; 
     text-align: right;
-    align-self: flex-end;
+    align-self: flex-end; 
 }
 
 .bot-message {
@@ -85,13 +99,24 @@ input[type="text"] {
 
 button {
     padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
+    background-color: #20b2aa; 
+    color: black; 
     border: none;
     border-radius: 5px;
     cursor: pointer;
 }
 
 button:hover {
-    background-color: #0056b3;
+    background-color: #1b9d95; 
+}
+
+/* Labels for user and bot */
+.label {
+    font-size: 12px;
+    color: grey;
+}
+
+/* Align user label to the right */
+.message-container.user-container .label {
+    text-align: right; 
 }
