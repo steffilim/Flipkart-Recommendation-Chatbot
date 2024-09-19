@@ -11,7 +11,7 @@ import pandas as pd
 # LLM INITIALISATION
 # authenticating model
 load_dotenv()
-google_api_key = os.getenv("GOOGLE_API_KEY2")
+google_api_key = os.getenv("GOOGLE_API_KEY")
 llm = ChatGoogleGenerativeAI(
         model="gemini-pro", 
         google_api_key=google_api_key,
