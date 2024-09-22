@@ -1,0 +1,49 @@
+import os
+import pandas as pd
+import numpy as np
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.decomposition import TruncatedSVD
+from sklearn.metrics.pairwise import cosine_similarity
+
+### content based rec sys aims to recommend items based on similarity between items
+df = pd.read_csv('/Users/User/Downloads/BT4103 - BZA Capstone Code/Flipkart-Recommendation-Chatbot/newData/flipkart_cleaned.csv')
+
+# print(df.columns.values)
+# ['uniq_id' 'product_name' 'product_category_tree' 'pid' 'retail_price'
+# 'discounted_price' 'discount' 'description' 'overall_rating' 'brand'
+# 'product_specifications']
+# print(df.dtypes)
+
+# Combining product_name and features into a single string
+df['content'] = df['product_name'].astype(str) + ' ' + df['product_category_tree'].astype(str) + ' ' + df['retail_price'].astype(str) + ' ' + df['discounted_price'].astype(str) + ' ' + df['discount'].astype(str) + ' ' + df['description'].astype(str) + ' ' + df['overall_rating'].astype(str) + ' ' + df['brand'].astype(str) + ' ' + df['product_specifications'].astype(str)
+
+df['content'] = df['content'].fillna('')
+
+# Create bag of words
+vectorizer = CountVectorizer()
+bow = vectorizer.fit_transform(df['content'])
+
+# Convert bag of words to TF-IDF
+tfidf_transformer = TfidfTransformer()
+tfidf = tfidf_transformer.fit_transform(bow)
+
+# Apply LSA or LSI
+lsa = TruncatedSVD(n_components=100, algorithm='arpack')
+lsa.fit(tfidf)
+
+# Get the user input
+user_product = input("Enter a product ")
+
+# Find the index of the user movie
+product_index = df[df['product_name'] == user_product].index[0]
+
+# Compute the cosine similarities 
+similarity_scores = cosine_similarity(tfidf[product_index], tfidf)
+
+# Get the top 10 most similar products
+similar_products = list(enumerate(similarity_scores[0]))
+sorted_similar_products = sorted(similar_products, key=lambda x: x[1], reverse=True)[1:20]
+
+# Print the top 10 similar products
+for i, score in sorted_similar_products:
+    print("{}: {}".format(i, df.loc[i, 'product_name']))
