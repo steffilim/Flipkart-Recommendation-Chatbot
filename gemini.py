@@ -6,7 +6,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.chains import SequentialChain, LLMChain
 
 import pandas as pd
-
+from convohistory import add_chat_history   
 
 # LLM INITIALISATION
 # authenticating model
@@ -109,6 +109,9 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
         print("NEED MORE INFORMATION")
         result = ssChain.invoke(input = prompt)
         print(result['refined'])
+        
+        # Store conversation history
+        add_chat_history(prompt, result['refined']) #Call the function to add convo history into database
         continue
     else:
         print("RECOMMENDATION FOUND")
@@ -120,6 +123,8 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
         # Assuming 'result' is a dictionary returned with refined recommendations
         #print(result['query'])
         #print(intermediate_results['text'])
+
+        add_chat_history(prompt, result['refined']) #Call the function to add convo history into database
         continue
 
 
