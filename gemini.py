@@ -7,8 +7,12 @@ from langchain.chains import SequentialChain, LLMChain
 
 import pandas as pd
 <<<<<<< HEAD
+<<<<<<< HEAD
 from convohistory import add_chat_history   
 from collections import Counter
+=======
+
+>>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
 =======
 
 >>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
@@ -150,6 +154,9 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
         print("NEED MORE INFORMATION")
         result = ssChain.invoke(input = prompt)
         print(result['refined'])
+<<<<<<< HEAD
+>>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
+=======
 >>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
         continue
     else:
