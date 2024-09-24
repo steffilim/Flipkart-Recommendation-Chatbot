@@ -14,6 +14,7 @@ product_data_file = 'newData/flipkart_cleaned.csv'
 
 
 ### content based rec sys aims to recommend items based on similarity between items
+# df = pd.read_csv('/Users/User/Downloads/BT4103 - BZA Capstone Code/Flipkart-Recommendation-Chatbot/newData/flipkart_cleaned.csv')
 df = pd.read_csv(product_data_file)
 
 # print(df.columns.values)
@@ -85,8 +86,12 @@ else:
     # find the index of the closes product
     product_index = df[df['product_name'] == closest_match].index[0]
 
-     # Compute the cosine similarities using the lsa_matrix
+    # Compute the cosine similarities using tfidf
+    # similarity_scores = cosine_similarity(tfidf[product_index], tfidf)
+
+     # Compute the cosine similarities using the lsa_matrix instead of tfidf
     similarity_scores = cosine_similarity(lsa_matrix[product_index].reshape(1, -1), lsa_matrix)
+
 
     # Get the top 10 most similar products
     similar_products = list(enumerate(similarity_scores[0]))
