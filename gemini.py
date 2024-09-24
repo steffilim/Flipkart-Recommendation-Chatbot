@@ -115,29 +115,25 @@ def to_list(text):
 
 
 
+# Asking for User ID first
+user_id = input("Please enter your User ID: ") 
+
 while (prompt := input("Enter a prompt (q to quit): ")) != "q":
-    user_id = input("Enter your User ID: ") # We need this for personalisation
     intermediate_results = chain1.invoke(input = prompt)
     results_ls = to_list(intermediate_results['query'])
     print(results_ls)
-    if len(results_ls) <= 1: # no recommendations found
-        print("NEED MORE INFORMATION")
+    
+    if len(results_ls) <= 1:  # no recommendations found
         result = ssChain.invoke(input = prompt)
-        print(result['refined'])
-        
+        print(result['refined'])       
         # Store conversation history
-        add_chat_history(prompt, result['refined']) #Call the function to add convo history into database
+        add_chat_history(prompt, result['refined'])  # Call the function to add convo history into database
         continue
     else:
-        print("RECOMMENDATION FOUND")
-        recommendations = get_recommendation(results_ls)
-
-    # Invoke the second chain for refining recommendations
+        recommendations = get_recommendation(user_id, results_ls)  # Pass user_id to get_recommendation
+        # Invoke the second chain for refining recommendations
         result = chain2.invoke(input=recommendations)
         print(result['refined'])
-        # Assuming 'result' is a dictionary returned with refined recommendations
-        #print(result['query'])
-        #print(intermediate_results['text'])
 
-        add_chat_history(prompt, result['refined']) #Call the function to add convo history into database
+        add_chat_history(prompt, result['refined'])  # Call the function to add convo history into database
         continue
