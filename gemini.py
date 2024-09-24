@@ -6,20 +6,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.chains import SequentialChain, LLMChain
 
 import pandas as pd
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 from convohistory import add_chat_history   
-from collections import Counter
-=======
-
->>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
-=======
-
->>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
-=======
-
->>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
 
 # LLM INITIALISATION
 # authenticating model
@@ -158,13 +145,9 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
         print("NEED MORE INFORMATION")
         result = ssChain.invoke(input = prompt)
         print(result['refined'])
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
-=======
->>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
-=======
->>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
+        
+        # Store conversation history
+        add_chat_history(prompt, result['refined']) #Call the function to add convo history into database
         continue
     else:
         # Get recommendations based on user's purchase history and the same product category tree
