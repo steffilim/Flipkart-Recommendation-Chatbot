@@ -1,7 +1,6 @@
 /* styles.css */
 body {
     font-family: Arial, sans-serif;
-    margin: 0;
     position: relative;
 }
 
@@ -75,7 +74,7 @@ body {
     background-color: #20b2aa; 
     color: black; 
     text-align: right;
-    align-self: flex-end; 
+    align-self: flex-end;
 }
 
 .bot-message {
@@ -105,19 +104,19 @@ button {
     border: none;
     border-radius: 5px;
     cursor: pointer;
-}
 
-button:hover {
-    background-color: #1b9d95; 
-}
-
-/* Labels for user and bot */
-.label {
-    font-size: 12px;
-    color: grey;
-}
-
-/* Align user label to the right */
-.message-container.user-container .label {
-    text-align: right; 
+    button:hover {
+        background-color: #1b9d95; 
+    }
+    
+    /* Labels for user and bot */
+    .label {
+        font-size: 12px;
+        color: grey;
+    }
+    
+    /* Align user label to the right */
+    .message-container.user-container .label {
+        text-align: right; 
+    }
 }
