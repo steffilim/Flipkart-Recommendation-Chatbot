@@ -6,8 +6,12 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.chains import SequentialChain, LLMChain
 
 import pandas as pd
+<<<<<<< HEAD
 from convohistory import add_chat_history   
 from collections import Counter
+=======
+
+>>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
 
 # LLM INITIALISATION
 # authenticating model
@@ -134,12 +138,19 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
     intermediate_results = chain1.invoke(input=prompt)
     results_ls = to_list(intermediate_results['query'])
     print(results_ls)
+<<<<<<< HEAD
     
     if len(results_ls) <= 1:  # no recommendations found
         result = ssChain.invoke(input=prompt)
         print(result['refined'])       
         # Store conversation history
         add_chat_history(prompt, result['refined'])  # Call the function to add convo history into database
+=======
+    if len(results_ls) <= 1: # no recommendations found
+        print("NEED MORE INFORMATION")
+        result = ssChain.invoke(input = prompt)
+        print(result['refined'])
+>>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
         continue
     else:
         # Get recommendations based on user's purchase history and the same product category tree
@@ -147,6 +158,17 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
         # Invoke the second chain for refining recommendations
         result = chain2.invoke(input=recommendations)
         print(result['refined'])
+<<<<<<< HEAD
+=======
+        # Assuming 'result' is a dictionary returned with refined recommendations
+        #print(result['query'])
+        #print(intermediate_results['text'])
+        continue
+
+
+   
+
+>>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
 
         add_chat_history(prompt, result['refined'])  # Call the function to add convo history into database
         continue
