@@ -98,7 +98,7 @@ def get_recommendation(user_id, keywords_list):
 
     # Format the output for the user
     return "\n".join(
-        f"**{idx + 1}. {row['uniq_id']}** - Discounted Price: {row['discounted_price']}, Description: {row['description']}"
+        f"**{idx + 1}. {row['product_name']}** - Discounted Price: {row['discounted_price']}, Description: {row['description']}"
         for idx, row in top_products.iterrows()
     )
 
