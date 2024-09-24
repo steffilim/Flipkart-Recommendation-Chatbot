@@ -17,20 +17,33 @@ document.getElementById('user-input').addEventListener('keypress', function (e) 
     }
 });
 
-function sendMessage() {
-    let userInput = document.getElementById('user-input').value;
-    if (userInput === '') return;
+    function sendMessage() {
+        let userInput = document.getElementById('user-input').value;
+        if (userInput === '') return;
 
-    appendMessage(userInput, 'user-message', 'User');
-    if (!isLoggedIn) {
-        handleLoginFlow(userInput);
-    } else {
-        // Normal conversation with the bot after login
-        botSendMessage("Hello! How can I assist you in finding the right product?");
+        appendMessage(userInput, 'user-message', 'User');
+
+        const userId = 'user123';  // Replace with the actual user ID logic
+
+        // Send the user input to the backend for processing
+        fetch('/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_id: userId, message: userInput }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            botSendMessage(data.response);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+
+        document.getElementById('user-input').value = '';
     }
 
-    document.getElementById('user-input').value = '';
-}
     function handleLoginFlow(userInput) {
         if (loginStep === 0) {
             userID = userInput;
