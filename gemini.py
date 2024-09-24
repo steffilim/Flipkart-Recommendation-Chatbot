@@ -59,12 +59,26 @@ You should ask the user if the provided recommendations suit their needs or if t
 # DATA INITIALISATION
 # initialising data
 catalouge = pd.read_csv('newData/flipkart_cleaned.csv')
+purchase_history = pd.read_csv('newData/synthetic_v2.csv')
 
 # creating a sample recommender system
 
 def get_recommendation(keywords_list): # getting the top 3 products based on keywords
     mask = catalouge['product_category_tree'].apply(lambda x: any(keyword in x for keyword in keywords_list))
     filtered = catalouge[mask]
+
+    # Get the user's purchase history
+    user_purchases = purchase_history[purchase_history['User ID'] == user_id]
+    user_interests = user_purchases['User Interests'].iloc[0]
+
+    # Filter out products that the user has already purchased
+    purchased_product_ids = user_purchases['Product ID'].unique()
+    filtered = filtered[~filtered['uniq_id'].isin(purchased_product_ids)]
+
+    if user_interests:
+        filtered['interest_match'] = filtered['product_category_tree'].apply(lambda x: any(interest in x for interest in user_interests.split(',')))
+        filtered = filtered.sort_values(by=['interest_match', 'overall_rating'], ascending=[False, False])
+
     top_products = filtered.sort_values(by='overall_rating', ascending=False).head(3)
 
     # Formatting the output more clearly
@@ -102,6 +116,7 @@ def to_list(text):
 
 
 while (prompt := input("Enter a prompt (q to quit): ")) != "q":
+    user_id = input("Enter your User ID: ") # We need this for personalisation
     intermediate_results = chain1.invoke(input = prompt)
     results_ls = to_list(intermediate_results['query'])
     print(results_ls)
@@ -126,8 +141,3 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
 
         add_chat_history(prompt, result['refined']) #Call the function to add convo history into database
         continue
-
-
-   
-
-
