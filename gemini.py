@@ -155,17 +155,12 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
         # Invoke the second chain for refining recommendations
         result = chain2.invoke(input=recommendations)
         print(result['refined'])
-<<<<<<< HEAD
 =======
         # Assuming 'result' is a dictionary returned with refined recommendations
         #print(result['query'])
         #print(intermediate_results['text'])
         continue
 
-
-   
-
->>>>>>> parent of 877bc8c (Merged changes from main branch of https://github.com/steffilim/Flipkart-Recommendation-Chatbot)
 
         add_chat_history(prompt, result['refined'])  # Call the function to add convo history into database
         continue
