@@ -43,8 +43,8 @@ If you have received a list with the word "None", you should tell the user that 
 
 
 Else:
-You have been given a list of recommendations with the following headers: `Product Name`, `Price`, `Description`.
-Extract the relevant information from the list and provide a response that is clear to the user in a form of a list. 
+You have been given a list of recommendations with the following headers: Product Name, Price, Description, User Interests.
+Make sure the recommendations align with the user's interests, if possible. 
 Summarise the product description. 
 Omit the product number and give it in the following format:
 1. **Product Name** : Price, 
