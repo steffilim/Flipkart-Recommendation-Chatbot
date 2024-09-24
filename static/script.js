@@ -27,7 +27,7 @@ function sendMessage() {
         handleLoginFlow(userInput);
     } else {
         // Normal conversation with the bot after login
-        botSendMessage("Hello! How can I assist you in finding the right product?");
+        chatWithBot(userInput);
     }
 
     document.getElementById('user-input').value = '';
@@ -53,6 +53,24 @@ function validateLogin(userID, password) {
         botSendMessage("Invalid login credentials. Please enter your User ID to try again:");
         loginStep = 0; // Reset login process
     }
+}
+
+function chatWithBot(message) {
+    fetch('http://127.0.0.1:8000/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: message })
+    })
+    .then(response => response.json())
+    .then(data => {
+        botSendMessage(data.response);  // Display the bot's response
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        botSendMessage('Sorry, there was an error processing your request.');
+    });
 }
 
 function appendMessage(message, className, sender) {

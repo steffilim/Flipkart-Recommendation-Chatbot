@@ -133,14 +133,13 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
     intermediate_results = chain1.invoke(input=prompt)
     results_ls = to_list(intermediate_results['query'])
     print(results_ls)
-<<<<<<< HEAD
     
     if len(results_ls) <= 1:  # no recommendations found
         result = ssChain.invoke(input=prompt)
         print(result['refined'])       
         # Store conversation history
         add_chat_history(prompt, result['refined'])  # Call the function to add convo history into database
-=======
+
     if len(results_ls) <= 1: # no recommendations found
         print("NEED MORE INFORMATION")
         result = ssChain.invoke(input = prompt)
@@ -152,7 +151,7 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
         # Invoke the second chain for refining recommendations
         result = chain2.invoke(input=recommendations)
         print(result['refined'])
-=======
+
         # Assuming 'result' is a dictionary returned with refined recommendations
         #print(result['query'])
         #print(intermediate_results['text'])
