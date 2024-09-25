@@ -73,6 +73,11 @@ document.getElementById('user-input').addEventListener('keypress', function (e) 
         let messageContainer = document.createElement('div');
         messageContainer.classList.add('message-container');
     
+        // Add the user-container class for user messages
+        if (sender === 'User') {
+            messageContainer.classList.add('user-container');
+        }
+    
         // Add the label (user or bot)
         let label = document.createElement('span');
         label.classList.add('label');
@@ -82,7 +87,7 @@ document.getElementById('user-input').addEventListener('keypress', function (e) 
         // Add the message bubble wrapped in a <p> tag
         let messageElement = document.createElement('p');
         messageElement.classList.add(className);
-        messageElement.textContent = message;  // Ensure newlines are part of the text
+        messageElement.textContent = message;
         messageContainer.appendChild(messageElement);
     
         chatLog.appendChild(messageContainer);
@@ -90,9 +95,8 @@ document.getElementById('user-input').addEventListener('keypress', function (e) 
         // Ensure the chat scrolls to the bottom after appending a new message
         setTimeout(() => {
             chatLog.scrollTop = chatLog.scrollHeight;
-        }, 100);  // Small delay to ensure the DOM is updated
-    }
-    
+        }, 100); // Small delay to ensure the DOM is updated
+    }    
 
     function botSendMessage(message) {
         appendMessage(message, 'bot-message', 'Bot');
