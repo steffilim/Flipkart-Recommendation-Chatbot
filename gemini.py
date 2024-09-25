@@ -6,7 +6,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.chains import SequentialChain, LLMChain
 
 import pandas as pd
-from convohistory import add_chat_history   
+from convohistory import add_chat_history, get_past_conversations 
 
 # LLM INITIALISATION
 # authenticating model
@@ -100,6 +100,27 @@ def to_list(text):
     return text.split(',')
 
 
+# Replace with retrieval of userid once login feature is up
+user_id = input("Please enter your name (temporary User ID): ")
+
+
+
+# FOR TESTING
+print(f"Retrieving conversation history for user {user_id}...")
+history = get_past_conversations(user_id) 
+
+# Display past conversations if any
+if history:
+    print("\n--- Past Conversations ---")
+    for user_input, bot_response in history:
+        print(f"User: {user_input}")
+        print(f"Bot: {bot_response}\n")
+else:
+    print("No past conversations found.")
+
+
+
+
 
 while (prompt := input("Enter a prompt (q to quit): ")) != "q":
     intermediate_results = chain1.invoke(input = prompt)
@@ -111,7 +132,7 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
         print(result['refined'])
         
         # Store conversation history
-        add_chat_history(prompt, result['refined']) #Call the function to add convo history into database
+        add_chat_history(user_id, prompt, result['refined']) # Call the function to add convo history into database
         continue
     else:
         print("RECOMMENDATION FOUND")
@@ -124,7 +145,7 @@ while (prompt := input("Enter a prompt (q to quit): ")) != "q":
         #print(result['query'])
         #print(intermediate_results['text'])
 
-        add_chat_history(prompt, result['refined']) #Call the function to add convo history into database
+        add_chat_history(user_id, prompt, result['refined']) # Call the function to add convo history into database
         continue
 
 
