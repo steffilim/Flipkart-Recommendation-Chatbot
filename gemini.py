@@ -7,6 +7,9 @@ from langchain.chains import SequentialChain, LLMChain
 import pandas as pd
 from collections import Counter
 
+# Import add_chat_history function
+from convohistory import add_chat_history, get_past_conversations
+
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -132,6 +135,7 @@ def to_list(text):
 def index():
     return render_template('index.html')
 
+
 @app.route('/chat', methods=['POST'])
 def chat():
     user_data = request.get_json()
@@ -159,12 +163,17 @@ def chat():
     
     if len(results_ls) <= 1:  # No recommendations found
         result = ssChain.invoke(input=user_input)
-        return jsonify({'response': result['refined']})
+        bot_response = result['refined']
     else:
         # Get recommendations based on user's purchase history and extracted keywords
         recommendations = get_recommendation(user_id, results_ls)
         result = chain2.invoke(input=recommendations)
-        return jsonify({'response': result['refined']})
+        bot_response = result['refined']
+
+    # Call the add_chat_history function to log the conversation
+    add_chat_history(user_id, user_input, bot_response)
+    
+    return jsonify({'response': bot_response})
 
 if __name__ == '__main__':
     app.run(debug=True)
