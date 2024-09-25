@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
-### Targeted at new customers
+### Targeted at new customers, built on demographic filtering to resolve the cold start problem
 
 # Loading the dataset
 df = pd.read_csv('newData/synthetic_v2.csv')
