@@ -49,19 +49,16 @@ If you have received a list with the word "None", you should tell the user that 
 Else:
 You have been given a list of recommendations with the following headers: Product Name, Price, Description, User Interests.
 Make sure the recommendations align with the user's interests, if possible. 
-Summarise the product description. 
-Omit the product number and give it in the following format:
+Summarise the product description.
 
-1. **Product Name**: Price
-Description
+For each product, follow this format:
+Product Name: <product_name>  
+Price: <price>  
+Description: <description>
 
-2. **Product Name**: Price
-Description
+Make sure to insert a blank line between each product to separate them properly.
 
-so on and so forth...
-
-Here is the user's question: {query}
-You should ask the user if the provided recommendations suit their needs or if they want another set of recommendations.
+Here is the user's query: {query}
 """
 
 # DATA INITIALISATION
@@ -107,9 +104,9 @@ def get_recommendation(user_id, keywords_list):
     formatted_output = []
     for idx, row in top_products.iterrows():
         formatted_output.append(
-            f"**{idx + 1}. {row['product_name']}**\n"
-            f"   - Price: £{row['discounted_price']}\n"
-            f"   - Description: {row['description']}\n"
+            f"- **{row['product_name']}**\n"
+            f"  - Price: £{row['discounted_price']}\n"
+            f"  - Description: {row['description']}\n\n"
         )
 
     return "\n".join(formatted_output)
