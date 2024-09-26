@@ -22,22 +22,28 @@ def connect_db():
         print(f"Error connecting to database: {e}")
         return None
 
-def add_chat_history(user_id, user_input, bot_response):
+
+
+
+def add_chat_history(user_id, user_input, bot_response, user_intention):
     conn = connect_db()
     if conn is not None:
         try:
             cursor = conn.cursor()
             insert_query = """
-            INSERT INTO chat_history (user_id, user_input, bot_response) 
-            VALUES (%s, %s, %s);
+            INSERT INTO chat_history (user_id, user_input, bot_response, intention) 
+            VALUES (%s, %s, %s, %s);
             """
-            cursor.execute(insert_query, (user_id, user_input, bot_response))
+            cursor.execute(insert_query, (user_id, user_input, bot_response, user_intention))
             conn.commit()
             cursor.close()
         except Exception as e:
             print(f"Error inserting chat history: {e}")
         finally:
             conn.close()
+
+
+
 
 
 def get_past_conversations(user_id):

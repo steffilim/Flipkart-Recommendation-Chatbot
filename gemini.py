@@ -32,6 +32,22 @@ llm = ChatGoogleGenerativeAI(
     )
 
 # Define templates
+intention_template = """
+You are a smart e-commerce chatbot. Based on the user's input, identify the intent behind their message.
+
+Here is the input that you have received: {user_input}
+
+Classify the intent and return a short phrase summarizing it. For example:
+- "Looking for product recommendations"
+- "Product inquiry"
+- "Customer support request"
+"""
+intention_prompt = PromptTemplate(input_variables=["user_input"], template=intention_template)
+
+# Create a new chain for intention extraction
+intention_chain = LLMChain(llm=llm, output_key="intention", prompt=intention_prompt)
+
+
 template1 = """
 You are a smart LLM for an e-commerce company.
 Imagine that you are selling the same products as Amazon.com.
@@ -158,6 +174,10 @@ def chat():
             return jsonify({'response': 'Invalid ID. Please enter a valid user ID.'})
 
     # Now that user ID is validated, expect further prompts
+    # Extract intention from the user input
+    intention_result = intention_chain.invoke(input=user_input)
+    user_intention = intention_result['intention']
+
     intermediate_results = chain1.invoke(input=user_input)
     results_ls = to_list(intermediate_results['query'])
     
@@ -170,10 +190,12 @@ def chat():
         result = chain2.invoke(input=recommendations)
         bot_response = result['refined']
 
-    # Call the add_chat_history function to log the conversation
-    add_chat_history(user_id, user_input, bot_response)
+    # Call the add_chat_history function to log the conversation including intention
+    add_chat_history(user_id, user_input, bot_response, user_intention)
     
     return jsonify({'response': bot_response})
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
