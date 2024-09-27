@@ -31,19 +31,20 @@ llm = ChatGoogleGenerativeAI(
         stream=True
     )
 
-# Define templates
+ 
 intention_template = """
-You are a smart e-commerce chatbot. Based on the user's input, identify the intent behind their message.
+You are a smart e-commerce chatbot. Based on the user's input, classify the intent with more specificity, identifying the context and product type if possible.
 
 Here is the input that you have received: {user_input}
 
-Classify the intent and return a short phrase summarizing it. For example:
-- "Looking for product recommendations"
-- "Product inquiry"
-- "Customer support request"
+For example:
+- If the user is looking for a product recommendation for a specific need (e.g., school, gaming, shirts), classify it as "Product recommendation for [specific need]."
+- If the user is inquiring about product features, classify it as "Product feature inquiry for [specific product]."
+- If the user is asking for customer support, classify it as "Customer support request."
+Return a short phrase summarizing the intent.
 """
-intention_prompt = PromptTemplate(input_variables=["user_input"], template=intention_template)
 
+intention_prompt = PromptTemplate(input_variables=["user_input"], template=intention_template)
 # Create a new chain for intention extraction
 intention_chain = LLMChain(llm=llm, output_key="intention", prompt=intention_prompt)
 
@@ -190,7 +191,7 @@ def chat():
         result = chain2.invoke(input=recommendations)
         bot_response = result['refined']
 
-    # Call the add_chat_history function to log the conversation including intention
+    # Call the add_chat_history function to save the convo
     add_chat_history(user_id, user_input, bot_response, user_intention)
     
     return jsonify({'response': bot_response})
