@@ -1,64 +1,25 @@
 import os
-import psycopg2
+#import psycopg2
 from dotenv import load_dotenv
- 
+from supabase import create_client, Client
+
 load_dotenv()
- 
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = "chatbot_history_db"  
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
 
-def connect_db():
-    try:
-        conn = psycopg2.connect(
-            host=DB_HOST,
-            database=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD
-        )
-        return conn
-    except Exception as e:
-        print(f"Error connecting to database: {e}")
-        return None
-
-
-
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
 def add_chat_history(user_id, user_input, bot_response, user_intention):
-    conn = connect_db()
-    if conn is not None:
-        try:
-            cursor = conn.cursor()
-            insert_query = """
-            INSERT INTO chat_history (user_id, user_input, bot_response, intention) 
-            VALUES (%s, %s, %s, %s);
-            """
-            cursor.execute(insert_query, (user_id, user_input, bot_response, user_intention))
-            conn.commit()
-            cursor.close()
-        except Exception as e:
-            print(f"Error inserting chat history: {e}")
-        finally:
-            conn.close()
-
-
-
-
+    data = {
+        "user_id": user_id,
+        "user_input": user_input,
+        "bot_response": bot_response,
+        "intention": user_intention
+    }
+    response = supabase.table("chat_history").insert(data).execute()
+    return response
 
 def get_past_conversations(user_id):
-    conn = connect_db()
-    if conn is not None:
-        try:
-            cursor = conn.cursor()
-            query = "SELECT user_input, bot_response FROM chat_history WHERE user_id = %s"
-            cursor.execute(query, (user_id,))
-            history = cursor.fetchall()
-            cursor.close()
-            return history
-        except Exception as e:
-            print(f"Error retrieving chat history: {e}")
-        finally:
-            conn.close()
-    return []
-
+    response = supabase.table("chat_history").select("*").eq("user_id", user_id).execute()
+    return response.data
+ 
