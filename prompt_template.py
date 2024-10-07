@@ -44,10 +44,3 @@ Price: <price>
 You should ask the user if the provided recommendations suit their needs or if they want another set of recommendations. 
 
 """
-
-convo_history_template = """
-You have been given a list of dictionaries containing the last 3 conversations that the user has had with the chatbot.
-The list contains the following headers: `User Input`, `Intention`.
-The list is sorted by the lastest interaction first.
-
-Based on the list, you are to provide a summary of the user's past interactions with the chatbot. """

@@ -10,7 +10,7 @@ from collections import Counter
 
 # Import add_chat_history function
 from convohistory import add_chat_history, get_past_conversations
-from prompt_template import intention_template, keywords_template, refine_template, convo_history_template
+from prompt_template import intention_template, keywords_template, refine_template
 
 # Initialize Flask app
 app = Flask(__name__)
