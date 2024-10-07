@@ -39,9 +39,7 @@ purchase_history = pd.read_csv('newData/synthetic_v2.csv')
 
  
 
-# Create a new chain for intention extraction
-intention_prompt = ChatPromptTemplate.from_template(intention_template)
-intention_chain = intention_prompt | llm | StrOutputParser()
+
 
 
 # Creating a sample recommender system
@@ -58,23 +56,19 @@ def get_recommendation(keywords_list): # getting the top 3 products based on key
 
 
 # CHAINING
-# Chaining the recommendation system
+
+# identifying keywords from the user's query
 keywords_template = ChatPromptTemplate.from_template(keywords_template)
 chain1 = keywords_template | llm | StrOutputParser()
 
-# passing keywords to the second chain to add context to the second LLM. 
+# refining the output based on the recommendations and keywords 
 refine_template = ChatPromptTemplate.from_template(refine_template)
 chain2 =  refine_template | llm | StrOutputParser()
 
-'''ssChain = SequentialChain(chains=[chain1, chain2],
-                          input_variables=["question"],
-                          output_variables=["refined"],
-                          verbose=True)'''
+# Create a new chain for intention extraction
+intention_prompt = ChatPromptTemplate.from_template(intention_template)
+intention_chain = intention_prompt | llm | StrOutputParser()
 
-# defining a function to interpret the convo history
-'''def update_llm(llm, convo_history):
-    convo_history_prompt = PromptTemplate(input_variables = ["convo_history"], template = convo_history_template, verbose = True)
-    convo_history_chain = LLMChain(llm) '''
 
 def to_list(text):
     return text.split(',')
@@ -107,19 +101,16 @@ def chat():
             return jsonify({'response': 'Invalid ID. Please enter a valid user ID.'})
 
     # Now that user ID is validated, expect further prompts
-    # Extract intention from the user input
-    # getting past conversation history
+
+    # Getting past conversation history 
     user_convo_history = get_past_conversations(user_id)
-    #print(user_convo_history) 
 
     # Get the user intention
     user_intention = intention_chain.invoke({"input": user_input})
 
+    # Getting the keywords from the user's query
+    query_keyword_ls = chain1.invoke({"question": user_input, "history": user_convo_history})    
     
-    query_keyword_ls = chain1.invoke({"question": user_input, "history": user_convo_history})
-    
-    print("Results list: ", query_keyword_ls)
-
     
 
     if query_keyword_ls[0] == "Greeting":
@@ -132,7 +123,7 @@ def chat():
         # Get recommendations based on user's purchase history and extracted keywords
         print("Getting recommendations")
         recommendations = get_recommendation(query_keyword_ls)
-        #print("Recommendations: ", recommendations)
+
         bot_response = chain2.invoke({"recommendations": recommendations, "keywords": query_keyword_ls})
 
     # Call the add_chat_history function to save the convo
