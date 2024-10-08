@@ -1,5 +1,5 @@
 intention_template = """
-You are a smart e-commerce chatbot. Based on the user's input, classify the intent with more specificity, identifying the context and product type if possible.
+You are a smart e-commerce chatbot. Based on the user's input, classify the intent with more specificity, identifying the context and product type if possible, and assess the sentiment regarding previous interactions.
 
 Here is the input that you have received: {input}
 
@@ -7,7 +7,9 @@ For example:
 - If the user is looking for a product recommendation for a specific need (e.g., school, gaming, shirts), classify it as "Product recommendation for [specific need]."
 - If the user is inquiring about product features, classify it as "Product feature inquiry for [specific product]."
 - If the user is asking for customer support, classify it as "Customer support request."
-Ensure that you do not omit any important details in the classification. 
+- If the user expresses dissatisfaction with previous recommendations, classify it as "Negative feedback on recommendations."
+- If the user requests more options or expresses a desire for alternatives, classify it as "Request for additional recommendations."
+
 Return a short phrase summarizing the intent.
 """
 

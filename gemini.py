@@ -1,15 +1,16 @@
 # current updated version of the gemini chatbot
 import os
-from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
-from langchain.chains import SequentialChain, LLMChain
-from langchain_core.output_parsers import StrOutputParser
 import pandas as pd
+from uuid import uuid4 
+from dotenv import load_dotenv
 from collections import Counter
+from langchain.chains import SequentialChain, LLMChain
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.output_parsers import StrOutputParser
+from flask import Flask, render_template, request, jsonify
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 
-# Import add_chat_history function
+
 from convohistory import add_chat_history, get_past_conversations
 from prompt_template import intention_template, keywords_template, refine_template
 
@@ -25,7 +26,7 @@ user_states = {}
 # INITIALISATION
 # Authenticating model
 load_dotenv()
-google_api_key = os.getenv("GOOGLE_API_KEY2")
+google_api_key = os.getenv("GOOGLE_API_KEY")
 llm = ChatGoogleGenerativeAI(
         model="gemini-pro", 
         google_api_key=google_api_key,
@@ -93,6 +94,7 @@ def chat():
 
         if user_id in valid_user_ids:
             user_states["user_id"] = user_id  # Save the user ID
+            user_states["session_id"] = str(uuid4())  # Generate a unique session ID; for each new convo, it should have an unique session ID 
             return jsonify({'response': 'User ID validated. Please enter your query.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid user ID.'})
@@ -123,8 +125,9 @@ def chat():
 
         bot_response = chain2.invoke({"recommendations": recommendations, "keywords": query_keyword_ls})
 
+    session_id = user_states.get("session_id")
     # Call the add_chat_history function to save the convo
-    add_chat_history(user_id, user_input, bot_response, user_intention)
+    add_chat_history(user_id, session_id, user_input, bot_response, user_intention)
     
     return jsonify({'response': bot_response})
 
