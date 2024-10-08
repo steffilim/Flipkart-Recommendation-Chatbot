@@ -1,15 +1,17 @@
+# current updated version of the gemini chatbot
 import os
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.chains import SequentialChain, LLMChain
+from langchain_core.output_parsers import StrOutputParser
 import pandas as pd
 from collections import Counter
 
 # Import add_chat_history function
 from convohistory import add_chat_history, get_past_conversations
-from prompt_template import intention_template, template1, template2, convo_history_template
+from prompt_template import intention_template, keywords_template, refine_template
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -36,12 +38,6 @@ llm = ChatGoogleGenerativeAI(
 catalouge = pd.read_csv('newData/flipkart_cleaned.csv')
 purchase_history = pd.read_csv('newData/synthetic_v2.csv')
 
- 
-
-# Create a new chain for intention extraction
-intention_prompt = PromptTemplate(input_variables=["user_input"], template=intention_template)
-intention_chain = LLMChain(llm=llm, output_key="intention", prompt=intention_prompt)
-
 
 # Creating a sample recommender system
 def get_recommendation(keywords_list): # getting the top 3 products based on keywords
@@ -57,22 +53,19 @@ def get_recommendation(keywords_list): # getting the top 3 products based on key
 
 
 # CHAINING
-# Chaining the recommendation system
-promt_template_1 = PromptTemplate(input_variables=["question"], template=template1, verbose=True)
-chain1 = LLMChain(llm=llm, output_key="query", prompt=promt_template_1)
 
-prompt_template_2 = PromptTemplate(input_variables=["query"], template=template2)
-chain2 = LLMChain(llm=llm, output_key="refined", prompt=prompt_template_2, verbose=True)
+# identifying keywords from the user's query
+keywords_template = ChatPromptTemplate.from_template(keywords_template)
+chain1 = keywords_template | llm | StrOutputParser()
 
-ssChain = SequentialChain(chains=[chain1, chain2],
-                          input_variables=["question"],
-                          output_variables=["refined"],
-                          verbose=True)
+# refining the output based on the recommendations and keywords 
+refine_template = ChatPromptTemplate.from_template(refine_template)
+chain2 =  refine_template | llm | StrOutputParser()
 
-# defining a function to interpret the convo history
-def update_llm(llm, convo_history):
-    convo_history_prompt = PromptTemplate(input_variables = ["convo_history"], template = convo_history_template, verbose = True)
-    convo_history_chain = LLMChain(llm) 
+# Create a new chain for intention extraction
+intention_prompt = ChatPromptTemplate.from_template(intention_template)
+intention_chain = intention_prompt | llm | StrOutputParser()
+
 
 def to_list(text):
     return text.split(',')
@@ -105,40 +98,34 @@ def chat():
             return jsonify({'response': 'Invalid ID. Please enter a valid user ID.'})
 
     # Now that user ID is validated, expect further prompts
-    # Extract intention from the user input
-    intention_result = intention_chain.invoke(input=user_input)
-    user_intention = intention_result['intention']
 
+    # Getting past conversation history 
+    user_convo_history = get_past_conversations(user_id)
 
-    intermediate_results = chain1.invoke(input=user_input)
-    results_ls = to_list(intermediate_results['query'])
-    print("Results list: ", results_ls)
+    # Get the user intention
+    user_intention = intention_chain.invoke({"input": user_input})
 
+    # Getting the keywords from the user's query
+    query_keyword_ls = chain1.invoke({"question": user_input, "history": user_convo_history})    
+    
     
 
-    if results_ls[0] == "Greeting":
+    if query_keyword_ls[0] == "Greeting":
         bot_response = "Hello! How can I help you today?"
 
-    elif results_ls[0] == "None":
-        #result = ssChain.invoke(input=user_input)
-        #bot_response = result['refined']
+    elif query_keyword_ls[0] == "None":
         bot_response = "I'm sorry, I'm not able to help you with that. Would you like to search for something else? If not, please try searching for something else or contact customer service for assistance."
 
     else:
         # Get recommendations based on user's purchase history and extracted keywords
         print("Getting recommendations")
-        recommendations = get_recommendation(results_ls)
-        print("Recommendations: ", recommendations)
-        result = chain2.invoke(input=recommendations)
-        print(result)
-        bot_response = result['refined']
+        recommendations = get_recommendation(query_keyword_ls)
+
+        bot_response = chain2.invoke({"recommendations": recommendations, "keywords": query_keyword_ls})
 
     # Call the add_chat_history function to save the convo
     add_chat_history(user_id, user_input, bot_response, user_intention)
-
-    # getting past conversation history from the database. 
-    print(get_past_conversations(user_id)) 
-
+    
     return jsonify({'response': bot_response})
 
 
