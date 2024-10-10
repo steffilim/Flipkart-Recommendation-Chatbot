@@ -21,7 +21,7 @@ def add_chat_history(user_id, session_id, user_input, bot_response, user_intenti
 
 def get_past_conversations(user_id, session_id):
     response = (supabase.table("chat_history")
-                .select("user_input")
+                .select("intention")
                 .eq("user_id", user_id)
                 .eq("session_id", session_id)
                 .order("created_at", desc=True) # sorting the conversations by the most recent interaction

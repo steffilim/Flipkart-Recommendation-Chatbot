@@ -114,16 +114,22 @@ def chat():
 
     # Getting past conversation history 
     user_convo_history = get_past_conversations(user_id, session_id)
-    #print(user_convo_history)
+    user_convo_history_string = " ".join(d['intention'] for d in user_convo_history)
+    print("User convo history: ", user_convo_history_string)
+
+    previous_intention = ""
+    if user_convo_history_string != "":
+        previous_intention_match = re.search(r'Actionable Goal \+ Specific Details: ([^.\n]+)', user_convo_history_string)
+        previous_intention = previous_intention_match.group(1) 
+        print("Previous intention:", previous_intention)
 
     # Get the user current intention
-    user_intention = intention_chain.invoke({"input": user_input, "previous_intention": user_convo_history})
+    user_intention = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention})
     print("User intention: ", user_intention)
 
     # Getting item status
     match = re.search(r'Available in Store:\s*(.+)', user_intention)
     available_in_store = match.group(1)
-    print(available_in_store)
 
     
 
@@ -152,6 +158,7 @@ def chat():
 
     
     # Call the add_chat_history function to save the convo
+
     add_chat_history(user_id, session_id, user_input, bot_response, user_intention)
     
     return jsonify({'response': bot_response})

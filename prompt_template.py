@@ -9,7 +9,7 @@ Instructions:
 
 User Query: {input}
 Previous Intention: {previous_intention}
-Using the provided user query and any previous intention, determine the user's current needs and prepare a response according to the following format:
+Using the provided user query and any previous intention, determine the user's current needs. Copy the user query and previous intention into the appropriate sections of the response template.:
 
 Actionable Goal + Specific Details: Define the user's immediate goal and include detailed specifications of the intended item or action (e.g., Laptop priced at $500 with a 15-inch screen, 8GB RAM, and 512GB SSD).
 Available in Store: Based on the actionable goal in point 1, state whether the item is available ('Yes' or 'No'). Provide a clear, concise response without additional details or explanations. Do not say NO unless the item clearly does not exist in an e-commerce store.
