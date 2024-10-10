@@ -9,7 +9,10 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from flask import Flask, render_template, request, jsonify
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
-
+import nltk
+from rake_nltk import Rake
+nltk.download('stopwords')
+nltk.download('punkt_tab')
 
 from convohistory import add_chat_history, get_past_conversations
 from prompt_template import intention_template, keywords_template, refine_template
@@ -26,7 +29,7 @@ user_states = {}
 # INITIALISATION
 # Authenticating model
 load_dotenv()
-google_api_key = os.getenv("GOOGLE_API_KEY")
+google_api_key = os.getenv("GOOGLE_API_KEY2")
 llm = ChatGoogleGenerativeAI(
         model="gemini-pro", 
         google_api_key=google_api_key,
@@ -85,6 +88,8 @@ def chat():
     # Get user state to check if ID has already been provided
     user_id = user_states.get("user_id")
 
+   
+
     # If user ID is not set, expect user to input the ID first
     if not user_id:
         try:
@@ -101,18 +106,33 @@ def chat():
 
     # Now that user ID is validated, expect further prompts
 
-    # Getting past conversation history 
-    user_convo_history = get_past_conversations(user_id)
 
-    # Get the user intention
-    user_intention = intention_chain.invoke({"input": user_input})
+    # Initialising a new session ID
+    session_id = user_states.get("session_id")
+
+
+    # Getting past conversation history 
+    user_convo_history = get_past_conversations(user_id, session_id)
+    #print(user_convo_history)
+
+    # Get the user current intention
+    user_intention = intention_chain.invoke({"input": user_input, "previous_intention": user_convo_history})
+    print("User intention: ", user_intention)
 
     # Getting the keywords from the user's query
-    query_keyword_ls = chain1.invoke({"question": user_input, "history": user_convo_history})    
-    
+    '''query_keyword_ls = to_list(chain1.invoke({"question": user_input, "history": user_convo_history}))
+    print("Keywords: ", query_keyword_ls)'''
+
+    # getting keywords using RAKE
+    r = Rake()
+    r.extract_keywords_from_text(user_intention)
+    query_keyword = r.get_ranked_phrases_with_scores()
+    query_keyword_ls = [keyword[1] for keyword in query_keyword]
+    #query_keyword_ls = to_list(keywords)
+    print("keywords: ", query_keyword_ls)
     
 
-    if query_keyword_ls[0] == "Greeting":
+    if query_keyword_ls[0] == "greeting":
         bot_response = "Hello! How can I help you today?"
 
     elif query_keyword_ls[0] == "None":
@@ -122,10 +142,10 @@ def chat():
         # Get recommendations based on user's purchase history and extracted keywords
         print("Getting recommendations")
         recommendations = get_recommendation(query_keyword_ls)
-
         bot_response = chain2.invoke({"recommendations": recommendations, "keywords": query_keyword_ls})
+        
 
-    session_id = user_states.get("session_id")
+    
     # Call the add_chat_history function to save the convo
     add_chat_history(user_id, session_id, user_input, bot_response, user_intention)
     

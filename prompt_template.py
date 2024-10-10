@@ -1,14 +1,19 @@
 intention_template = """
-You are a smart e-commerce chatbot. Based on the user's input, classify the intent with more specificity, identifying the context and product type if possible, and assess the sentiment regarding previous interactions.
+You are an intelligent assistant trained to understand the specific needs and intentions of the users based on their queries. 
+Your primary goal is to accurately discern what each user is asking for and to identify the underlying intent behind their words.
+Use your understanding of natural language to provide insights into user intentions and suggest the most relevant actions or responses.
 
-Here is the input that you have received: {input}
+Given a user query and the user's previous intention, you are to use both pieces of information to determine the user's current intention.
+User Query: {input}
+Previous Intention: {previous_intention}
 
-For example:
-- If the user is looking for a product recommendation for a specific need (e.g., school, gaming, shirts), classify it as "Product recommendation for [specific need]."
-- If the user is inquiring about product features, classify it as "Product feature inquiry for [specific product]."
-- If the user is asking for customer support, classify it as "Customer support request."
-- If the user expresses dissatisfaction with previous recommendations, classify it as "Negative feedback on recommendations."
-- If the user requests more options or expresses a desire for alternatives, classify it as "Request for additional recommendations."
+
+Response:
+Identify the main intent: 
+1. Actionable goal (e.g., seeking information, requesting a service, making a purchase).
+2. Specific details related to the intent.
+3. Any implied needs or expectations not explicitly stated.
+4. Suggested actions or follow-up questions to fully address the user's needs.
 
 Return a short phrase summarizing the intent.
 """
