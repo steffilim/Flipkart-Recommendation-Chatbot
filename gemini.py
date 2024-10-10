@@ -4,18 +4,23 @@ import pandas as pd
 from uuid import uuid4 
 from dotenv import load_dotenv
 from collections import Counter
+import re
+
+# for LLM
 from langchain.chains import SequentialChain, LLMChain
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from flask import Flask, render_template, request, jsonify
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+
+# for keyword extraction
 import nltk
 from rake_nltk import Rake
 nltk.download('stopwords')
 nltk.download('punkt_tab')
 
 from convohistory import add_chat_history, get_past_conversations
-from prompt_template import intention_template, keywords_template, refine_template
+from prompt_template import intention_template, refine_template
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -33,7 +38,7 @@ google_api_key = os.getenv("GOOGLE_API_KEY2")
 llm = ChatGoogleGenerativeAI(
         model="gemini-pro", 
         google_api_key=google_api_key,
-        temperature=0.2, 
+        temperature=0.1, 
         verbose=True, 
         stream=True
     )
@@ -57,10 +62,6 @@ def get_recommendation(keywords_list): # getting the top 3 products based on key
 
 
 # CHAINING
-
-# identifying keywords from the user's query
-keywords_template = ChatPromptTemplate.from_template(keywords_template)
-chain1 = keywords_template | llm | StrOutputParser()
 
 # refining the output based on the recommendations and keywords 
 refine_template = ChatPromptTemplate.from_template(refine_template)
@@ -119,28 +120,32 @@ def chat():
     user_intention = intention_chain.invoke({"input": user_input, "previous_intention": user_convo_history})
     print("User intention: ", user_intention)
 
-    # Getting the keywords from the user's query
-    '''query_keyword_ls = to_list(chain1.invoke({"question": user_input, "history": user_convo_history}))
-    print("Keywords: ", query_keyword_ls)'''
+    # Getting item status
+    match = re.search(r'Available in Store:\s*(.+)', user_intention)
+    available_in_store = match.group(1)
+    print(available_in_store)
 
-    # getting keywords using RAKE
-    r = Rake()
-    r.extract_keywords_from_text(user_intention)
-    query_keyword = r.get_ranked_phrases_with_scores()
-    query_keyword_ls = [keyword[1] for keyword in query_keyword]
-    #query_keyword_ls = to_list(keywords)
-    print("keywords: ", query_keyword_ls)
     
 
-    if query_keyword_ls[0] == "greeting":
-        bot_response = "Hello! How can I help you today?"
+    if available_in_store != "Yes." :
 
-    elif query_keyword_ls[0] == "None":
-        bot_response = "I'm sorry, I'm not able to help you with that. Would you like to search for something else? If not, please try searching for something else or contact customer service for assistance."
+        # Getting suggested response/ follow up action if item is not found in the store
+        response = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
+        bot_response = response.group(1).strip()
+
+
 
     else:
-        # Get recommendations based on user's purchase history and extracted keywords
-        print("Getting recommendations")
+        # Getting item of interest
+        match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
+        item = match.group(1)
+
+        # Getting recommendations from available products
+        r = Rake()
+        r.extract_keywords_from_text(item)
+        query_keyword = r.get_ranked_phrases_with_scores()
+        query_keyword_ls = [keyword[1] for keyword in query_keyword]
+        print("keywords: ", query_keyword_ls)
         recommendations = get_recommendation(query_keyword_ls)
         bot_response = chain2.invoke({"recommendations": recommendations, "keywords": query_keyword_ls})
         
