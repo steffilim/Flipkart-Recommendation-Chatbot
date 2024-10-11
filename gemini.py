@@ -5,13 +5,13 @@ from uuid import uuid4
 from dotenv import load_dotenv
 from collections import Counter
 import re
+import time
 
 # for LLM
-from langchain.chains import SequentialChain, LLMChain
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from flask import Flask, render_template, request, jsonify
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 
 # for keyword extraction
 import nltk
@@ -145,12 +145,13 @@ def chat():
         # Getting item of interest
         match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
         item = match.group(1)
-
+        start_time = time.time()
         # Getting recommendations from available products
         r = Rake()
         r.extract_keywords_from_text(item)
         query_keyword = r.get_ranked_phrases_with_scores()
         query_keyword_ls = [keyword[1] for keyword in query_keyword]
+        print("Time taken: ", time.time() - start_time)
         print("keywords: ", query_keyword_ls)
         recommendations = get_recommendation(query_keyword_ls)
         bot_response = chain2.invoke({"recommendations": recommendations, "keywords": query_keyword_ls})
