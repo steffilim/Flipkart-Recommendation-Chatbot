@@ -151,8 +151,8 @@ def chat():
         r.extract_keywords_from_text(item)
         query_keyword = r.get_ranked_phrases_with_scores()
         query_keyword_ls = [keyword[1] for keyword in query_keyword]
-        print("Time taken: ", time.time() - start_time)
         print("keywords: ", query_keyword_ls)
+        print("Time taken: ", time.time() - start_time)
         recommendations = get_recommendation(query_keyword_ls)
         bot_response = chain2.invoke({"recommendations": recommendations, "keywords": query_keyword_ls})
         
