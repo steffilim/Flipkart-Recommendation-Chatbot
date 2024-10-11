@@ -22,6 +22,11 @@ nltk.download('punkt_tab')
 from convohistory import add_chat_history, get_past_conversations
 from prompt_template import intention_template, refine_template
 
+# for valid words detection
+from nltk.corpus import words
+nltk.download('words')
+
+
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -46,6 +51,15 @@ llm = ChatGoogleGenerativeAI(
 # Initializing data
 catalouge = pd.read_csv('newData/flipkart_cleaned.csv')
 purchase_history = pd.read_csv('newData/synthetic_v2.csv')
+
+
+# Function to check if the user's input is valid
+def is_valid_input(user_input):
+    word_list = set(words.words())
+    tokens = nltk.word_tokenize(user_input)
+
+    valid_tokens = [word for word in tokens if word.lower() in word_list] 
+    return len(valid_tokens) > 0
 
 
 # Creating a sample recommender system
@@ -89,8 +103,6 @@ def chat():
     # Get user state to check if ID has already been provided
     user_id = user_states.get("user_id")
 
-   
-
     # If user ID is not set, expect user to input the ID first
     if not user_id:
         try:
@@ -100,17 +112,19 @@ def chat():
 
         if user_id in valid_user_ids:
             user_states["user_id"] = user_id  # Save the user ID
-            user_states["session_id"] = str(uuid4())  # Generate a unique session ID; for each new convo, it should have an unique session ID 
+            user_states["session_id"] = str(uuid4())  # Generate a unique session ID; for each new convo, it should have a unique session ID 
             return jsonify({'response': 'User ID validated. Please enter your query.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid user ID.'})
 
     # Now that user ID is validated, expect further prompts
 
-
     # Initialising a new session ID
     session_id = user_states.get("session_id")
 
+    # Check if the user input is valid
+    if not is_valid_input(user_input):
+        return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
 
     # Getting past conversation history 
     user_convo_history = get_past_conversations(user_id, session_id)
@@ -131,16 +145,10 @@ def chat():
     match = re.search(r'Available in Store:\s*(.+)', user_intention)
     available_in_store = match.group(1)
 
-    
-
     if available_in_store != "Yes." :
-
         # Getting suggested response/ follow up action if item is not found in the store
         response = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
         bot_response = response.group(1).strip()
-
-
-
     else:
         # Getting item of interest
         match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
@@ -155,16 +163,11 @@ def chat():
         print("Time taken: ", time.time() - start_time)
         recommendations = get_recommendation(query_keyword_ls)
         bot_response = chain2.invoke({"recommendations": recommendations, "keywords": query_keyword_ls})
-        
 
-    
     # Call the add_chat_history function to save the convo
-
     add_chat_history(user_id, session_id, user_input, bot_response, user_intention)
     
     return jsonify({'response': bot_response})
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)
