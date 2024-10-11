@@ -153,8 +153,12 @@ def chat():
         query_keyword_ls = [keyword[1] for keyword in query_keyword]
         print("keywords: ", query_keyword_ls)
         print("Time taken: ", time.time() - start_time)
+
+        # Getting the follow-up questions from the previous LLM
+        questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
+        questions = questions_match.group(1).strip()
         recommendations = get_recommendation(query_keyword_ls)
-        bot_response = chain2.invoke({"recommendations": recommendations, "keywords": query_keyword_ls})
+        bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
         
 
     
