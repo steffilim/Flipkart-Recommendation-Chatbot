@@ -1,6 +1,6 @@
 # current updated version of the gemini chatbot
 import os
-import pandas as pd
+
 from uuid import uuid4 
 from dotenv import load_dotenv
 from collections import Counter
@@ -13,18 +13,13 @@ from langchain_core.output_parsers import StrOutputParser
 from flask import Flask, render_template, request, jsonify
 from langchain_core.prompts import ChatPromptTemplate
 
-# for keyword extraction
-import nltk
-from rake_nltk import Rake
-nltk.download('stopwords')
-nltk.download('punkt_tab')
+
 
 from convohistory import add_chat_history, get_past_conversations
 from prompt_template import intention_template, refine_template
+from functions import is_valid_input, get_recommendation, extract_keywords
 
-# for valid words detection
-from nltk.corpus import words
-nltk.download('words')
+
 
 
 # Initialize Flask app
@@ -48,32 +43,6 @@ llm = ChatGoogleGenerativeAI(
         stream=True
     )
 
-# Initializing data
-catalouge = pd.read_csv('newData/flipkart_cleaned.csv')
-purchase_history = pd.read_csv('newData/synthetic_v2.csv')
-
-
-# Function to check if the user's input is valid
-def is_valid_input(user_input):
-    word_list = set(words.words())
-    tokens = nltk.word_tokenize(user_input)
-
-    valid_tokens = [word for word in tokens if word.lower() in word_list] 
-    return len(valid_tokens) > 0
-
-
-# Creating a sample recommender system
-def get_recommendation(keywords_list): # getting the top 3 products based on keywords
-    mask = catalouge['product_category_tree'].apply(lambda x: any(keyword in x for keyword in keywords_list))
-    filtered = catalouge[mask]
-    top_products = filtered.sort_values(by='overall_rating', ascending=False).head(3)
-
-    # Formatting the output more clearly
-    return "\n".join(
-        f"**{idx + 1}. {row['product_name']}** - Discounted Price: {row['discounted_price']}, Description: {row['description']}"
-        for idx, row in top_products.iterrows()
-    )
-
 
 # CHAINING
 
@@ -85,9 +54,6 @@ chain2 =  refine_template | llm | StrOutputParser()
 intention_prompt = ChatPromptTemplate.from_template(intention_template)
 intention_chain = intention_prompt | llm | StrOutputParser()
 
-
-def to_list(text):
-    return text.split(',')
 
 # Flask routes
 @app.route('/')
@@ -153,14 +119,11 @@ def chat():
         # Getting item of interest
         match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
         item = match.group(1)
-        start_time = time.time()
+        #start_time = time.time()
         # Getting recommendations from available products
-        r = Rake()
-        r.extract_keywords_from_text(item)
-        query_keyword = r.get_ranked_phrases_with_scores()
-        query_keyword_ls = [keyword[1] for keyword in query_keyword]
+        query_keyword_ls = extract_keywords(item)
         print("keywords: ", query_keyword_ls)
-        print("Time taken: ", time.time() - start_time)
+        #print("Time taken: ", time.time() - start_time)
 
         # Getting the follow-up questions from the previous LLM
         questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
