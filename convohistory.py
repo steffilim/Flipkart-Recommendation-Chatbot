@@ -27,6 +27,9 @@ def get_past_conversations(user_id, session_id):
                 .order("created_at", desc=True) # sorting the conversations by the most recent interaction
                 .limit(1) # getting the most recent interaction
                 .execute())
-    return response.data
+    past_convo = response.data
+    string = " ".join(d['intention'] for d in past_convo)
+
+    return string
 
  

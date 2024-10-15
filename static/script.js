@@ -7,7 +7,7 @@ let isLoggedIn = false;
 
 // Initialize the bot by asking for user ID
 window.onload = function() {
-    botSendMessage("Please enter your User ID to login:");
+    botSendMessage("Please enter your User ID to login or type GUEST to continue as a guest:");
 }
 
 document.getElementById('send-btn').addEventListener('click', sendMessage);
