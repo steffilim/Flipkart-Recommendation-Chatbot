@@ -52,22 +52,33 @@ previous_ratings = {user_id: {} for user_id in user_ids}
 
 
 # Function to generate user ratings with patterns
-def generate_user_rating(user_id, product, previous_ratings):
+def generate_user_rating(user_id, product, previous_ratings, user_bias=None):
     brand = product['brand']
-    base_rating = np.random.uniform(0, 5)
+    base_rating = np.random.normal(3, 1)  # Start with a normal distribution around 3
     if brand in previous_ratings[user_id]:
+        # Favor brands the user has rated before
         base_rating = np.mean(previous_ratings[user_id][brand]) + np.random.uniform(-0.5, 0.5)
-
+    
     overall_rating = product['overall_rating']
     if overall_rating != 'No rating available':
         try:
             overall_rating_value = float(overall_rating)
-            base_rating = (base_rating + overall_rating_value) / 2
+            # Weigh user's base rating with the product's overall rating
+            base_rating = (0.7 * base_rating + 0.3 * overall_rating_value)
         except ValueError:
             pass
+    
+    # Add some user-specific bias (e.g., lenient or harsh rater)
+    if user_bias:
+        base_rating += user_bias
 
+    # Bound the rating between 0 and 5
     rating = min(max(base_rating, 0), 5)
     return round(rating, 1)
+
+# Example: Assigning user bias to favor high or low ratings
+user_biases = np.random.normal(0, 0.5, size=num_users)  # Some users are stricter (-ve bias), some lenient (+ve bias)
+
 
 
 order_id_counter = 1
