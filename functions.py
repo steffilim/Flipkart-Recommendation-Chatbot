@@ -3,14 +3,14 @@
 
 import nltk
 from rake_nltk import Rake
-from nltk.corpus import words
+from nltk.corpus import words, wordnet
 nltk.download('words')
 nltk.download('stopwords')
 nltk.download('punkt_tab')
-
+nltk.download('wordnet')
 # Function to check if the user's input is valid
 def is_valid_input(user_input):
-    word_list = set(words.words())
+    word_list = set(wordnet.words())
     tokens = nltk.word_tokenize(user_input)
 
     valid_tokens = [word for word in tokens if word.lower() in word_list] 
