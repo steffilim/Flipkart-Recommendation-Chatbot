@@ -4,15 +4,28 @@ import pandas as pd
 from uuid import uuid4 
 from dotenv import load_dotenv
 from collections import Counter
-from langchain.chains import SequentialChain, LLMChain
+import re
+import time
+
+# for LLM
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from flask import Flask, render_template, request, jsonify
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 
+# for keyword extraction
+import nltk
+from rake_nltk import Rake
+nltk.download('stopwords')
+nltk.download('punkt_tab')
 
 from convohistory import add_chat_history, get_past_conversations
-from prompt_template import intention_template, keywords_template, refine_template
+from prompt_template import intention_template, refine_template
+
+# for valid words detection
+from nltk.corpus import words
+nltk.download('words')
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -30,7 +43,7 @@ google_api_key = os.getenv("GOOGLE_API_KEY")
 llm = ChatGoogleGenerativeAI(
         model="gemini-pro", 
         google_api_key=google_api_key,
-        temperature=0.2, 
+        temperature=0.1, 
         verbose=True, 
         stream=True
     )
@@ -38,6 +51,15 @@ llm = ChatGoogleGenerativeAI(
 # Initializing data
 catalouge = pd.read_csv('newData/flipkart_cleaned.csv')
 purchase_history = pd.read_csv('newData/synthetic_v2.csv')
+
+
+# Function to check if the user's input is valid
+def is_valid_input(user_input):
+    word_list = set(words.words())
+    tokens = nltk.word_tokenize(user_input)
+
+    valid_tokens = [word for word in tokens if word.lower() in word_list] 
+    return len(valid_tokens) > 0
 
 
 # Creating a sample recommender system
@@ -54,10 +76,6 @@ def get_recommendation(keywords_list): # getting the top 3 products based on key
 
 
 # CHAINING
-
-# identifying keywords from the user's query
-keywords_template = ChatPromptTemplate.from_template(keywords_template)
-chain1 = keywords_template | llm | StrOutputParser()
 
 # refining the output based on the recommendations and keywords 
 refine_template = ChatPromptTemplate.from_template(refine_template)
@@ -94,44 +112,67 @@ def chat():
 
         if user_id in valid_user_ids:
             user_states["user_id"] = user_id  # Save the user ID
-            user_states["session_id"] = str(uuid4())  # Generate a unique session ID; for each new convo, it should have an unique session ID 
+            user_states["session_id"] = str(uuid4())  # Generate a unique session ID; for each new convo, it should have a unique session ID 
             return jsonify({'response': 'User ID validated. Please enter your query.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid user ID.'})
 
     # Now that user ID is validated, expect further prompts
 
-    # Getting past conversation history 
-    user_convo_history = get_past_conversations(user_id)
-
-    # Get the user intention
-    user_intention = intention_chain.invoke({"input": user_input})
-
-    # Getting the keywords from the user's query
-    query_keyword_ls = chain1.invoke({"question": user_input, "history": user_convo_history})    
-    
-    
-
-    if query_keyword_ls[0] == "Greeting":
-        bot_response = "Hello! How can I help you today?"
-
-    elif query_keyword_ls[0] == "None":
-        bot_response = "I'm sorry, I'm not able to help you with that. Would you like to search for something else? If not, please try searching for something else or contact customer service for assistance."
-
-    else:
-        # Get recommendations based on user's purchase history and extracted keywords
-        print("Getting recommendations")
-        recommendations = get_recommendation(query_keyword_ls)
-
-        bot_response = chain2.invoke({"recommendations": recommendations, "keywords": query_keyword_ls})
-
+    # Initialising a new session ID
     session_id = user_states.get("session_id")
+
+    # Check if the user input is valid
+    if not is_valid_input(user_input):
+        return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
+
+    # Getting past conversation history 
+    user_convo_history = get_past_conversations(user_id, session_id)
+    user_convo_history_string = " ".join(d['intention'] for d in user_convo_history)
+    print("User convo history: ", user_convo_history_string)
+
+    previous_intention = ""
+    if user_convo_history_string != "":
+        previous_intention_match = re.search(r'Actionable Goal \+ Specific Details: ([^.\n]+)', user_convo_history_string)
+        previous_intention = previous_intention_match.group(1) 
+        print("Previous intention:", previous_intention)
+
+    # Get the user current intention
+    user_intention = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention})
+    print("User intention: ", user_intention)
+
+    # Getting item status
+    match = re.search(r'Available in Store:\s*(.+)', user_intention)
+    available_in_store = match.group(1)
+
+    if available_in_store != "Yes." :
+        # Getting suggested response/ follow up action if item is not found in the store
+        response = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
+        bot_response = response.group(1).strip()
+    else:
+        # Getting item of interest
+        match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
+        item = match.group(1)
+        start_time = time.time()
+        # Getting recommendations from available products
+        r = Rake()
+        r.extract_keywords_from_text(item)
+        query_keyword = r.get_ranked_phrases_with_scores()
+        query_keyword_ls = [keyword[1] for keyword in query_keyword]
+        print("keywords: ", query_keyword_ls)
+        print("Time taken: ", time.time() - start_time)
+
+        # Getting the follow-up questions from the previous LLM
+        questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
+        questions = questions_match.group(1).strip()
+        recommendations = get_recommendation(query_keyword_ls)
+        bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+
+
     # Call the add_chat_history function to save the convo
     add_chat_history(user_id, session_id, user_input, bot_response, user_intention)
     
     return jsonify({'response': bot_response})
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -19,12 +19,13 @@ def add_chat_history(user_id, session_id, user_input, bot_response, user_intenti
     response = supabase.table("chat_history").insert(data).execute()
     return response
 
-def get_past_conversations(user_id):
+def get_past_conversations(user_id, session_id):
     response = (supabase.table("chat_history")
-                .select("user_input, intention")
+                .select("intention")
                 .eq("user_id", user_id)
+                .eq("session_id", session_id)
                 .order("created_at", desc=True) # sorting the conversations by the most recent interaction
-                .limit(3) # limit the number of past conversations to 3. 
+                .limit(1) # getting the most recent interaction
                 .execute())
     return response.data
 
