@@ -29,7 +29,7 @@ def get_lsa_matrix(df, lsa_matrix_file):
         lsa_matrix_mtime = os.path.getmtime(lsa_matrix_file)
         product_data_mtime = os.path.getmtime(product_data_file)
         if product_data_mtime > lsa_matrix_mtime:
-            print("product databased changed... recalculating lsa matrix")
+            print("product database changed... recalculating lsa matrix")
             recalculate_lsa = True
     else:
         print("no lsa matrix found... calculating lsa matrix")
