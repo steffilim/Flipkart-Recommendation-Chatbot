@@ -66,25 +66,37 @@ def chat():
     user_data = request.get_json()
     user_input = user_data.get('message')
 
+    # To check if the user is in guest mode
+    if user_states.get("guest_mode"):
+        return handle_guest_mode(user_input)
+    
     # Get user state to check if ID has already been provided
     user_id = user_states.get("user_id")
 
-    # If user ID is not set, expect user to input the ID first
+    # If user ID is not set, expect user to input the ID or choose guest mode
     if not user_id:
+        if user_input == "guest" or user_input == "Guest":
+            # If the user opts for guest mode
+            user_states["guest_mode"] = True  # Set guest mode flag
+            return jsonify({'response': 'You are in guest mode now! What would you like to enquire?'})
+
         try:
+            # Try to interpret the input as an ID
             user_id = int(user_input)
         except ValueError:
-            return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
+            # If input is not a valid numeric ID, proceed in guest mode
+            return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
 
         if user_id in valid_user_ids:
+            # Valid user ID, store it and initialize a session
             user_states["user_id"] = user_id  # Save the user ID
-            user_states["session_id"] = str(uuid4())  # Generate a unique session ID; for each new convo, it should have a unique session ID 
+            user_states["session_id"] = str(uuid4())  # Generate a unique session ID
+            user_states.pop("guest_mode", None)  # Ensure guest mode flag is removed
             return jsonify({'response': 'User ID validated. Please enter your query.'})
         else:
-            return jsonify({'response': 'Invalid ID. Please enter a valid user ID.'})
+            return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
 
     # Now that user ID is validated, expect further prompts
-
     # Initialising a new session ID
     session_id = user_states.get("session_id")
 
@@ -135,6 +147,45 @@ def chat():
     # Call the add_chat_history function to save the convo
     add_chat_history(user_id, session_id, user_input, bot_response, user_intention)
     
+    return jsonify({'response': bot_response})
+
+def handle_guest_mode(user_input):
+    """Handle guest mode where no user ID is stored or conversation history saved."""
+    print("Guest mode activated.")
+    
+    # Process the user input like a normal conversation without storing history
+    if not is_valid_input(user_input):
+        return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
+
+    # Get the user intention without storing any session info
+    # Set previous_intention as an empty string for guest mode
+    user_intention = intention_chain.invoke({"input": user_input, "previous_intention": ""})
+    print("Guest user intention: ", user_intention)
+
+    # Getting item status
+    match = re.search(r'Available in Store:\s*(.+)', user_intention)
+    available_in_store = match.group(1)
+
+    if available_in_store != "Yes.":
+        # Getting suggested response/follow-up action if the item is not found in the store
+        response = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
+        bot_response = response.group(1).strip()
+    else:
+        # Getting item of interest
+        match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
+        item = match.group(1)
+
+        # Getting recommendations from available products
+        query_keyword_ls = extract_keywords(item)
+        print("keywords: ", query_keyword_ls)
+
+        # Getting the follow-up questions from the previous LLM
+        questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
+        questions = questions_match.group(1).strip()
+        recommendations = get_recommendation(query_keyword_ls)
+        bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+
+    # Respond to guest user without saving anything
     return jsonify({'response': bot_response})
 
 if __name__ == '__main__':
