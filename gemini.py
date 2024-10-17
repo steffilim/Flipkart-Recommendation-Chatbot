@@ -1,5 +1,6 @@
 # current updated version of the gemini chatbot
 import os
+import pandas as pd
 
 from uuid import uuid4 
 from dotenv import load_dotenv
@@ -12,14 +13,14 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from flask import Flask, render_template, request, jsonify
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.memory import ConversationBufferMemory
-from langchain.chains import ConversationChain
 
 
 
-from convohistory import add_chat_history, get_past_conversations
+
+
+from convohistory import add_chat_history_user, get_past_conversations_users
 from prompt_template import intention_template, refine_template
-from functions import is_valid_input, get_recommendation, extract_keywords, getting_bot_response, get_popular_items
+from functions import is_valid_input, getting_bot_response, get_popular_items
 
 
 
@@ -57,9 +58,6 @@ intention_prompt = ChatPromptTemplate.from_template(intention_template)
 intention_chain = intention_prompt | llm | StrOutputParser()
 
 # initialising memory
-memory = ConversationBufferMemory()
-chain1 = ConversationChain(llm = llm, memory = memory, verbose = True)
-
 
 # Flask routes
 @app.route('/')
@@ -82,6 +80,7 @@ def chat():
     if user_input.upper() == "GUEST":
         user_id = "GUEST"
         user_states["user_id"] = user_id  # Save the user ID
+        user_states["session_id"] = str(uuid4()) # generate a unique session ID
         return jsonify({'response': popular_items_recommendation})
     
     else: 
@@ -109,7 +108,7 @@ def chat():
     if user_id == "GUEST":
         user_convo_history = ""
     else:
-        user_convo_history = get_past_conversations(user_id, session_id) # return type is string
+        user_convo_history = get_past_conversations_users(user_id, session_id) # return type is string
 
 
 
@@ -129,9 +128,8 @@ def chat():
     # Getting bot response
     bot_response = getting_bot_response(available_in_store, user_intention, chain2)
 
-
     # Call the add_chat_history function to save the convo
-    #add_chat_history(user_id, session_id, user_input, bot_response, user_intention)
+    #add_chat_history_user(user_id, session_id, user_input, bot_response, user_intention)
     
     return jsonify({'response': bot_response})
 

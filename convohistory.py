@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from typing import List, Tuple
 
 load_dotenv()
 
@@ -19,7 +20,7 @@ def add_chat_history(user_id, session_id, user_input, bot_response, user_intenti
     response = supabase.table("chat_history").insert(data).execute()
     return response
 
-def get_past_conversations(user_id, session_id):
+def get_past_conversations_users(user_id, session_id):
     response = (supabase.table("chat_history")
                 .select("intention")
                 .eq("user_id", user_id)
@@ -32,4 +33,7 @@ def get_past_conversations(user_id, session_id):
 
     return string
 
+def get_past_conversations_guest(session_id, memory) -> List[Tuple[str,str]]:
+    convo_history = [(msg.type, msg.content) for msg in memory if msg.session_id == session_id]
+    return convo_history
  
