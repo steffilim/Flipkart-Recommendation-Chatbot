@@ -2,7 +2,7 @@
 
 // Initialize the bot by prompting for user input
 window.onload = function() {
-    botSendMessage("Welcome! Please enter your User ID or ask your query directly to enter guest mode.");
+    botSendMessage("Welcome! Please enter your User ID or enter 'guest' to enable guest mode.");
 }
 
 document.getElementById('send-btn').addEventListener('click', sendMessage);

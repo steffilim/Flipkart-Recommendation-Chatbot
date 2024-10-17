@@ -60,16 +60,46 @@ intention_chain = intention_prompt | llm | StrOutputParser()
 def index():
     return render_template('index.html')
 
-
 @app.route('/chat', methods=['POST'])
 def chat():
     user_data = request.get_json()
     user_input = user_data.get('message')
 
+    # Check if the user is logged in and wants to log out
+    if user_states.get("user_id") and user_input == "/logout":
+        # Log the user out and switch to guest mode
+        user_states.pop("user_id", None)  # Remove user ID
+        user_states.pop("session_id", None)  # Remove session ID
+        user_states["guest_mode"] = True  # Set guest mode flag
+        return jsonify({'response': 'You have logged out and are now in guest mode. You may enter /login to log in again.'})
+
     # To check if the user is in guest mode
     if user_states.get("guest_mode"):
+        if user_input == "/login":
+            # If the user enters "/login", switch from guest mode to login prompt
+            user_states.pop("guest_mode", None)  # Remove guest mode flag
+            user_states["login_mode"] = True     # Set login mode flag
+            return jsonify({'response': 'Please enter your user ID to log in.'})
         return handle_guest_mode(user_input)
     
+    # If the user is prompted to enter user ID (after /login)
+    if user_states.get("login_mode"):
+        try:
+            # Try to interpret the input as an ID
+            user_id = int(user_input)
+        except ValueError:
+            # If input is not a valid numeric ID, prompt for valid ID again
+            return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
+
+        if user_id in valid_user_ids:
+            # Valid user ID, store it and initialize a session
+            user_states["user_id"] = user_id  # Save the user ID
+            user_states["session_id"] = str(uuid4())  # Generate a unique session ID
+            user_states.pop("login_mode", None)  # Remove login mode flag
+            return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
+        else:
+            return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
+        
     # Get user state to check if ID has already been provided
     user_id = user_states.get("user_id")
 
@@ -78,7 +108,7 @@ def chat():
         if user_input == "guest" or user_input == "Guest":
             # If the user opts for guest mode
             user_states["guest_mode"] = True  # Set guest mode flag
-            return jsonify({'response': 'You are in guest mode now! What would you like to enquire?'})
+            return jsonify({'response': 'You are in guest mode now! You may enter /login to exit guest mode. What would you like to enquire?'})
 
         try:
             # Try to interpret the input as an ID
@@ -92,7 +122,7 @@ def chat():
             user_states["user_id"] = user_id  # Save the user ID
             user_states["session_id"] = str(uuid4())  # Generate a unique session ID
             user_states.pop("guest_mode", None)  # Ensure guest mode flag is removed
-            return jsonify({'response': 'User ID validated. Please enter your query.'})
+            return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
 
