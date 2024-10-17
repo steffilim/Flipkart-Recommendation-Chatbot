@@ -39,9 +39,9 @@ def svd_recommend_surprise(user_id, orderdata, n_recommendations=20):
     recommendations['predicted_rating'] = recommendations['uniq_id'].apply(
         lambda x: next(pred[1] for pred in predictions if pred[0] == x)
     )
-    return recommendations[['uniq_id', 'product_name', 'description', 'product_category_tree', 'predicted_rating']]
+    return recommendations[['uniq_id', 'product_name', 'description', 'product_category_tree', 'predicted_rating', 'retail_price']]
 
 # To test
-# user_id = 'U06610'
-# recommendations = svd_recommend_surprise(user_id, orderdata)
-# print(recommendations)
+user_id = 'U06610'
+recommendations = svd_recommend_surprise(user_id, orderdata)
+print(recommendations)
