@@ -1,4 +1,3 @@
-
 """ KEYWORD DETECTION FUNCTION """
 
 import nltk
@@ -29,6 +28,7 @@ def extract_keywords(item):
 import pandas as pd
 catalouge = pd.read_csv('newData/flipkart_cleaned.csv')
 purchase_history = pd.read_csv('newData/synthetic_v2.csv')
+purchase_history = purchase_history.rename(columns={'Product ID': 'uniq_id'})
 
 def get_recommendation(keywords_list): # getting the top 3 products based on keywords
     mask = catalouge['product_category_tree'].apply(lambda x: any(keyword in x for keyword in keywords_list))
@@ -61,27 +61,38 @@ def get_popular_items():
 """ CHAT BOT FUNCTION"""
 
 import re
+from recSys.weighted import hybrid_recommendations, lsa_matrix   
 
-# Getting bot response
-def getting_bot_response(item_availability, user_intention, chain2 ):
-
+def getting_bot_response(item_availability, user_intention, chain2, user_id=None):
     if item_availability != "Yes.":
         response = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
         bot_response = response.group(1).strip()
-        
     else:
         match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
         item = match.group(1)
 
-        # Getting recommendations from available products
-        query_keyword_ls = extract_keywords(item)
-        recommendations = get_recommendation(query_keyword_ls)
-        #print("keywords: ", query_keyword_ls)
-        #print("Time taken: ", time.time() - start_time)
+        # calling hybrid_recommendations function 
+        n_recommendations = 5  # number of recommendations to output (adjustable later)
+
+        recommendations = hybrid_recommendations(
+            user_product = item, 
+            user_id = user_id, 
+            df = catalouge,   
+            lsa_matrix = lsa_matrix,   
+            orderdata = purchase_history, 
+            n_recommendations = n_recommendations, 
+            content_weight = 0.6, 
+            collaborative_weight = 0.4
+        )
+
+        recommendations_text = "\n".join(
+            f"**{idx + 1}. {rec['product_name']}** - Score: {rec['score']:.2f}"
+            for idx, rec in enumerate(recommendations)
+        )
 
         # Getting follow-up questions from previous LLM
         questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
         questions = questions_match.group(1).strip()
-        bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+        bot_response = chain2.invoke({"recommendations": recommendations_text, "questions": questions})
 
     return bot_response
