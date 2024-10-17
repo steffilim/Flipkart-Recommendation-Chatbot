@@ -79,7 +79,7 @@ def getting_user_intention(user_input, intention_chain, previous_intention):
     return user_intention
 
 # Getting bot response
-def getting_bot_response(user_intention, chain2):
+def getting_bot_response(user_intention, chain2,user_id=None):
     """
     previous intention is derived from the past conversation. 
     """
@@ -108,7 +108,7 @@ def getting_bot_response(user_intention, chain2):
         )
 
         recommendations_text = "\n".join(
-            f"**{idx + 1}. {rec['product_name']}** - Score: {rec['score']:.2f}"
+            f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
             for idx, rec in enumerate(recommendations)
         )
 
