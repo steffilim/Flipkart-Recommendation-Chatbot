@@ -18,7 +18,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 
-from convohistory import add_chat_history_user, get_past_conversations_users
+from convohistory import add_chat_history_user, get_past_conversations_users, add_chat_history_guest, get_past_conversation_guest
 from prompt_template import intention_template, refine_template
 from functions import is_valid_input, getting_bot_response, get_popular_items
 
@@ -81,6 +81,7 @@ def chat():
         user_id = "GUEST"
         user_states["user_id"] = user_id  # Save the user ID
         user_states["session_id"] = str(uuid4()) # generate a unique session ID
+        user_convo_history_list = [] # initialise an empty list for guest
         return jsonify({'response': popular_items_recommendation})
     
     else: 
@@ -106,16 +107,20 @@ def chat():
 
     # Getting past conversation history 
     if user_id == "GUEST":
-        user_convo_history = ""
+        print(user_convo_history_list)
+        if user_convo_history_list is not None: # if it is not the first message sent by the guest
+            user_convo_history = get_past_conversation_guest(session_id, user_convo_history_list)
+           
+            previous_intention_match = re.search(r'Actionable Goal \+ Specific Details: ([^.\n]+)', user_convo_history)
+            previous_intention = previous_intention_match.group(1)
+            
+
     else:
-        user_convo_history = get_past_conversations_users(user_id, session_id) # return type is string
+        if user_convo_history != "": # if it is not the first message sent by the user
+            previous_intention_match = re.search(r'Actionable Goal \+ Specific Details: ([^.\n]+)', user_convo_history)
+            previous_intention = previous_intention_match.group(1) 
+       
 
-
-
-    previous_intention = ""
-    if user_convo_history != "":
-        previous_intention_match = re.search(r'Actionable Goal \+ Specific Details: ([^.\n]+)', user_convo_history)
-        previous_intention = previous_intention_match.group(1) 
 
     # Get the user current intention
     user_intention = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention})
@@ -128,8 +133,15 @@ def chat():
     # Getting bot response
     bot_response = getting_bot_response(available_in_store, user_intention, chain2)
 
-    # Call the add_chat_history function to save the convo
-    #add_chat_history_user(user_id, session_id, user_input, bot_response, user_intention)
+    # adding to chat history
+
+    if user_id == "GUEST":
+        add_chat_history_guest(user_states["session_id"], user_input, bot_response, user_convo_history) # for guest
+
+    else: 
+        add_chat_history_user(user_id, session_id, user_input, bot_response, user_intention) # for logged in users
+        
+
     
     return jsonify({'response': bot_response})
 
