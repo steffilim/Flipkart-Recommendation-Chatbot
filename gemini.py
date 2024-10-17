@@ -58,7 +58,19 @@ intention_chain = intention_prompt | llm | StrOutputParser()
 # Flask routes
 @app.route('/')
 def index():
-    return render_template('index.html')
+    user_id = user_states.get("user_id")  # Check if user is logged in
+    guest_mode = user_states.get("guest_mode")  # Check if guest mode is active
+
+    # Determine what message to display on page load
+    if user_states:
+        if guest_mode:
+            welcome_message = "Welcome back! You are currently in Guest Mode."
+        else:
+            welcome_message = f"Welcome back! You are logged in as User ID: {user_id}."
+    else:
+        welcome_message = "Welcome! Please enter your User ID or enter guest to enable guest mode."
+
+    return render_template('index.html', welcome_message=welcome_message)
 
 @app.route('/chat', methods=['POST'])
 def chat():

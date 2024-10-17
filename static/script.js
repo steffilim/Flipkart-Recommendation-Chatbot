@@ -1,10 +1,5 @@
 // script.js
 
-// Initialize the bot by prompting for user input
-window.onload = function() {
-    botSendMessage("Welcome! Please enter your User ID or enter 'guest' to enable guest mode.");
-}
-
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 document.getElementById('user-input').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
