@@ -73,15 +73,17 @@ def get_recommendations(user_product, df, lsa_matrix):
         # recommendations.append(df.loc[i, 'product_name'])
         product_name = df.loc[i, 'product_name']
         retail_price = df.loc[i, 'retail_price']
+        description = df.loc[i, 'description']
         overall_rating = df.loc[i, 'overall_rating']
         recommendations.append({
             'product_name': product_name,
             'retail_price': retail_price,
+            'description': description,
             'overall_rating': overall_rating,
             'similarity_score': score
         })
     
-    print(recommendations)
+    # print(recommendations)
     return recommendations
 
 product_data = load_product_data(product_data_file)
