@@ -1,5 +1,6 @@
 # current updated version of the gemini chatbot
 import os
+import pandas as pd
 
 from uuid import uuid4 
 from dotenv import load_dotenv
@@ -15,9 +16,11 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 
-from convohistory import add_chat_history, get_past_conversations
+
+
+from convohistory import add_chat_history_user, get_past_conversations_users, add_chat_history_guest, get_past_conversation_guest
 from prompt_template import intention_template, refine_template
-from functions import is_valid_input, get_recommendation, extract_keywords
+from functions import is_valid_input, getting_bot_response, get_popular_items
 
 
 
@@ -54,6 +57,7 @@ chain2 =  refine_template | llm | StrOutputParser()
 intention_prompt = ChatPromptTemplate.from_template(intention_template)
 intention_chain = intention_prompt | llm | StrOutputParser()
 
+# initialising memory
 
 # Flask routes
 @app.route('/')
@@ -114,6 +118,9 @@ def chat():
         
     # Get user state to check if ID has already been provided
     user_id = user_states.get("user_id")
+    session_id = user_states.get("session_id")
+    popular_items_recommendation = get_popular_items()
+
 
     # If user ID is not set, expect user to input the ID or choose guest mode
     if not user_id:
@@ -147,47 +154,42 @@ def chat():
         return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
 
     # Getting past conversation history 
-    user_convo_history = get_past_conversations(user_id, session_id)
-    user_convo_history_string = " ".join(d['intention'] for d in user_convo_history)
-    print("User convo history: ", user_convo_history_string)
+    if user_id == "GUEST":
+        print(user_convo_history_list)
+        if user_convo_history_list is not None: # if it is not the first message sent by the guest
+            user_convo_history = get_past_conversation_guest(session_id, user_convo_history_list)
+           
+            previous_intention_match = re.search(r'Actionable Goal \+ Specific Details: ([^.\n]+)', user_convo_history)
+            previous_intention = previous_intention_match.group(1)
+            
 
-    previous_intention = ""
-    if user_convo_history_string != "":
-        previous_intention_match = re.search(r'Actionable Goal \+ Specific Details: ([^.\n]+)', user_convo_history_string)
-        previous_intention = previous_intention_match.group(1) 
-        print("Previous intention:", previous_intention)
+    else:
+        if user_convo_history != "": # if it is not the first message sent by the user
+            previous_intention_match = re.search(r'Actionable Goal \+ Specific Details: ([^.\n]+)', user_convo_history)
+            previous_intention = previous_intention_match.group(1) 
+       
+
 
     # Get the user current intention
     user_intention = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention})
-    print("User intention: ", user_intention)
+
 
     # Getting item status
     match = re.search(r'Available in Store:\s*(.+)', user_intention)
     available_in_store = match.group(1)
 
-    if available_in_store != "Yes." :
-        # Getting suggested response/ follow up action if item is not found in the store
-        response = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
-        bot_response = response.group(1).strip()
-    else:
-        # Getting item of interest
-        match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
-        item = match.group(1)
-        #start_time = time.time()
-        # Getting recommendations from available products
-        query_keyword_ls = extract_keywords(item)
-        print("keywords: ", query_keyword_ls)
-        #print("Time taken: ", time.time() - start_time)
+    # Getting bot response
+    bot_response = getting_bot_response(available_in_store, user_intention, chain2)
 
-        # Getting the follow-up questions from the previous LLM
-        questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
-        questions = questions_match.group(1).strip()
-        recommendations = get_recommendation(query_keyword_ls)
-        bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+    # adding to chat history
 
+    if user_id == "GUEST":
+        add_chat_history_guest(user_states["session_id"], user_input, bot_response, user_convo_history) # for guest
 
-    # Call the add_chat_history function to save the convo
-    add_chat_history(user_id, session_id, user_input, bot_response, user_intention)
+    else: 
+        add_chat_history_user(user_id, session_id, user_input, bot_response, user_intention) # for logged in users
+        
+
     
     return jsonify({'response': bot_response})
 
