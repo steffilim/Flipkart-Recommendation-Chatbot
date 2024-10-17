@@ -20,7 +20,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from convohistory import add_chat_history_user, get_past_conversations_users, add_chat_history_guest, get_past_conversation_guest
 from prompt_template import intention_template, refine_template
-from functions import is_valid_input, getting_bot_response, get_popular_items
+from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention
 
 
 
@@ -30,9 +30,12 @@ app = Flask(__name__)
 
 # Dummy user IDs for validation
 valid_user_ids = [78126, 65710, 58029, 48007, 158347]
+keywords = ["/logout", "/login", "guest", "Guest"]
 
-# To store the user state (whether the user has provided a valid ID)
-user_states = {}
+# Initialisation
+user_states = {} # user states
+convo_history_list_guest = [] # convo history list for guest users
+previous_intention = "" # user intention
 
 # INITIALISATION
 # Authenticating model
@@ -81,12 +84,17 @@ def chat():
     user_data = request.get_json()
     user_input = user_data.get('message')
 
+    if not is_valid_input(user_input, valid_user_ids, keywords):
+        return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
+
+
     # Check if the user is logged in and wants to log out
     if user_states.get("user_id") and user_input == "/logout":
         # Log the user out and switch to guest mode
         user_states.pop("user_id", None)  # Remove user ID
         user_states.pop("session_id", None)  # Remove session ID
         user_states["guest_mode"] = True  # Set guest mode flag
+        
         return jsonify({'response': 'You have logged out and are now in guest mode. You may enter /login to log in again.'})
 
     # To check if the user is in guest mode
@@ -96,7 +104,15 @@ def chat():
             user_states.pop("guest_mode", None)  # Remove guest mode flag
             user_states["login_mode"] = True     # Set login mode flag
             return jsonify({'response': 'Please enter your user ID to log in.'})
-        return handle_guest_mode(user_input)
+        
+        previous_intention = get_past_conversation_guest(convo_history_list_guest)
+        user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
+
+        bot_response = getting_bot_response(user_intention, chain2)
+        add_chat_history_guest(user_input, bot_response, convo_history_list_guest)
+        print(convo_history_list_guest)
+
+        return jsonify({'response': bot_response}) # TO BE UPDATED WITH STREAMLINE CODE
     
     # If the user is prompted to enter user ID (after /login)
     if user_states.get("login_mode"):
@@ -118,16 +134,15 @@ def chat():
         
     # Get user state to check if ID has already been provided
     user_id = user_states.get("user_id")
-    session_id = user_states.get("session_id")
-    popular_items_recommendation = get_popular_items()
-
 
     # If user ID is not set, expect user to input the ID or choose guest mode
     if not user_id:
+        popular_items_recommendation = get_popular_items()
         if user_input == "guest" or user_input == "Guest":
             # If the user opts for guest mode
             user_states["guest_mode"] = True  # Set guest mode flag
-            return jsonify({'response': 'You are in guest mode now! You may enter /login to exit guest mode. What would you like to enquire?'})
+
+            return jsonify({'response': popular_items_recommendation})
 
         try:
             # Try to interpret the input as an ID
@@ -145,92 +160,16 @@ def chat():
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
 
-    # Now that user ID is validated, expect further prompts
-    # Initialising a new session ID
-    session_id = user_states.get("session_id")
+    # Getting information from the user
+    previous_intention = get_past_conversations_users(user_id, user_states["session_id"])
+    user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
 
-    # Check if the user input is valid
-    if not is_valid_input(user_input):
-        return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
-
-    # Getting past conversation history 
-    if user_id == "GUEST":
-        print(user_convo_history_list)
-        if user_convo_history_list is not None: # if it is not the first message sent by the guest
-            user_convo_history = get_past_conversation_guest(session_id, user_convo_history_list)
-           
-            previous_intention_match = re.search(r'Actionable Goal \+ Specific Details: ([^.\n]+)', user_convo_history)
-            previous_intention = previous_intention_match.group(1)
-            
-
-    else:
-        if user_convo_history != "": # if it is not the first message sent by the user
-            previous_intention_match = re.search(r'Actionable Goal \+ Specific Details: ([^.\n]+)', user_convo_history)
-            previous_intention = previous_intention_match.group(1) 
-       
-
-
-    # Get the user current intention
-    user_intention = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention})
-
-
-    # Getting item status
-    match = re.search(r'Available in Store:\s*(.+)', user_intention)
-    available_in_store = match.group(1)
-
-    # Getting bot response
-    bot_response = getting_bot_response(available_in_store, user_intention, chain2)
-
-    # adding to chat history
-
-    if user_id == "GUEST":
-        add_chat_history_guest(user_states["session_id"], user_input, bot_response, user_convo_history) # for guest
-
-    else: 
-        add_chat_history_user(user_id, session_id, user_input, bot_response, user_intention) # for logged in users
-        
-
+    # Getting the bot response
+    bot_response = getting_bot_response(user_intention, chain2)
+    add_chat_history_user(user_id, user_states["session_id"], user_input, bot_response, user_intention)
     
     return jsonify({'response': bot_response})
 
-def handle_guest_mode(user_input):
-    """Handle guest mode where no user ID is stored or conversation history saved."""
-    print("Guest mode activated.")
-    
-    # Process the user input like a normal conversation without storing history
-    if not is_valid_input(user_input):
-        return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
-
-    # Get the user intention without storing any session info
-    # Set previous_intention as an empty string for guest mode
-    user_intention = intention_chain.invoke({"input": user_input, "previous_intention": ""})
-    print("Guest user intention: ", user_intention)
-
-    # Getting item status
-    match = re.search(r'Available in Store:\s*(.+)', user_intention)
-    available_in_store = match.group(1)
-
-    if available_in_store != "Yes.":
-        # Getting suggested response/follow-up action if the item is not found in the store
-        response = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
-        bot_response = response.group(1).strip()
-    else:
-        # Getting item of interest
-        match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
-        item = match.group(1)
-
-        # Getting recommendations from available products
-        query_keyword_ls = extract_keywords(item)
-        print("keywords: ", query_keyword_ls)
-
-        # Getting the follow-up questions from the previous LLM
-        questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
-        questions = questions_match.group(1).strip()
-        recommendations = get_recommendation(query_keyword_ls)
-        bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
-
-    # Respond to guest user without saving anything
-    return jsonify({'response': bot_response})
 
 if __name__ == '__main__':
     app.run(debug=True)

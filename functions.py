@@ -9,11 +9,21 @@ nltk.download('stopwords')
 nltk.download('punkt_tab')
 nltk.download('wordnet')
 # Function to check if the user's input is valid
-def is_valid_input(user_input):
-    word_list = set(wordnet.words())
+def is_valid_input(user_input, valid_user_ids, keywords):
+    # Convert both user IDs and keywords to set for fast membership checking
+    valid_user_ids = set(valid_user_ids)
+    keywords = set(word.lower() for word in keywords)  # Ensure keywords are lowercase for comparison
+
+    # Split the input into words
     tokens = nltk.word_tokenize(user_input)
 
-    valid_tokens = [word for word in tokens if word.lower() in word_list] 
+    # Check each token if it's a word in WordNet, a valid numeric user ID, or a recognized keyword
+    valid_tokens = [word for word in tokens 
+                    if word.lower() in wordnet.words() or 
+                       (word.isdigit() and int(word) in valid_user_ids) or 
+                       word.lower() in keywords]
+
+    # Return True if there are any valid tokens, otherwise False
     return len(valid_tokens) > 0
 
 def extract_keywords(item):
@@ -62,8 +72,18 @@ def get_popular_items():
 
 import re
 
+# Getting user intention
+def getting_user_intention(user_input, intention_chain, previous_intention):
+    user_intention = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention})
+    return user_intention
+
 # Getting bot response
-def getting_bot_response(item_availability, user_intention, chain2 ):
+def getting_bot_response(user_intention, chain2):
+    """
+    previous intention is derived from the past conversation. 
+    """
+    item_availability_match = re.search(r'Available in Store:\s*(.+)', user_intention)
+    item_availability = item_availability_match.group(1)
 
     if item_availability != "Yes.":
         response = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
@@ -85,3 +105,4 @@ def getting_bot_response(item_availability, user_intention, chain2 ):
         bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
 
     return bot_response
+

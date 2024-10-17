@@ -37,23 +37,14 @@ def get_past_conversations_users(user_id, session_id):
 
 """CONVERSATION HISTORY FOR GUEST USERS """
 # function to update the chat history (which is stored in a list)
-def add_chat_history_guest(session_id, user_input, bot_response, conversation_history):
+def add_chat_history_guest(user_input, bot_response, convo_history_list_guest):
     # Append the current user query and bot response as a tuple to the conversation history
-    conversation_history.append((user_input, bot_response))
+    convo_history_list_guest.append((user_input, bot_response))
 
 
 # function to get the past intention of the user
-def get_past_conversation_guest(session_id, memory) -> List[Tuple[str, str]]:
-    filtered_messages = [msg.content for msg in memory if msg.session_id == session_id]
+def get_past_conversation_guest(memory) -> List[str]:
+    # Extract the last element from each tuple in the memory list
+    last_elements = [msg[0] for msg in memory]  # msg[0] accesses the first element of each tuple
     
-    # Assume messages are strictly alternating between user query and bot response
-    # Zip the messages pairwise: (query1, response1), (query2, response2), ...
-    conversation_pairs = list(zip(filtered_messages[0::2], filtered_messages[1::2]))
-    
-    # Check if there is at least one pair and return the second item of the last pair
-    if conversation_pairs:
-        # Return the bot response of the last conversation pair
-        return conversation_pairs[-1][1]
-    else:
-        # Return None if there are no conversation pairs
-        return None
+    return last_elements
