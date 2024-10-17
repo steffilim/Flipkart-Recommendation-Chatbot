@@ -64,9 +64,9 @@ def index():
     # Determine what message to display on page load
     if user_states:
         if guest_mode:
-            welcome_message = "Welcome back! You are currently in Guest Mode."
+            welcome_message = "Welcome back! You are currently in Guest Mode. You may enter /login to exit Guest Mode."
         else:
-            welcome_message = f"Welcome back! You are logged in as User ID: {user_id}."
+            welcome_message = f"Welcome back! You are logged in as User ID: {user_id}. You may enter /logout to log out."
     else:
         welcome_message = "Welcome! Please enter your User ID or enter guest to enable guest mode."
 
