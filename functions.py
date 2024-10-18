@@ -67,11 +67,7 @@ def getting_user_intention(user_input, intention_chain, previous_intention):
     user_intention = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention})
     return user_intention
 
-# Getting bot response
-def getting_bot_response(user_intention, chain2,user_id=None):
-    """
-    previous intention is derived from the past conversation. 
-    """
+def getting_bot_response(user_intention, chain2, user_id=None):
     item_availability_match = re.search(r'Available in Store:\s*(.+)', user_intention)
     item_availability = item_availability_match.group(1)
 
@@ -81,31 +77,32 @@ def getting_bot_response(user_intention, chain2,user_id=None):
     else:
         match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
         item = match.group(1)
+        item_keyword = extract_keywords(item)
+ 
+        if item_keyword:  # check for non-empty keyword list
+            user_product = " ".join(item_keyword)
+            recommendations = hybrid_recommendations(
+                user_product = user_product,  
+                user_id = user_id,
+                df = catalouge,
+                lsa_matrix = lsa_matrix,
+                orderdata = purchase_history,
+                n_recommendations = 5,  
+                content_weight = 0.6,
+                collaborative_weight = 0.4
+            )
+
+            recommendations_text = "\n".join(
+                f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f} - Price: {int(rec['price'])} - Description: {rec['description']}"
+                for idx, rec in enumerate(recommendations)
+            )
 
 
-        # calling hybrid_recommendations function 
-        n_recommendations = 5  # number of recommendations to output (adjustable later)
-
-        recommendations = hybrid_recommendations(
-            user_product = item, 
-            user_id = user_id, 
-            df = catalouge,   
-            lsa_matrix = lsa_matrix,   
-            orderdata = purchase_history, 
-            n_recommendations = n_recommendations, 
-            content_weight = 0.6, 
-            collaborative_weight = 0.4
-        )
-
-        recommendations_text = "\n".join(
-            f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
-            for idx, rec in enumerate(recommendations)
-        )
-
-        # Getting follow-up questions from previous LLM
-        questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
-        questions = questions_match.group(1).strip()
-        bot_response = chain2.invoke({"recommendations": recommendations_text, "questions": questions})
+            questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
+            questions = questions_match.group(1).strip()
+            bot_response = chain2.invoke({"recommendations": recommendations_text, "questions": questions})
+        else:
+            bot_response = "No valid keywords found. Please specify the product you're interested in."
 
     return bot_response
 

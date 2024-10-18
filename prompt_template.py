@@ -52,7 +52,7 @@ Omit the product number and give it in the following format:
 For each product, follow the following format. DO NOT BOLD THE HEADERS:
 Product Name: <product_name>  
 Price: <price>  
-<description>
+Description: <description>
 
 Always include the follow up question at the end of the response. DO NOT PRINT THE FOLLOW UP QUESTION HEADER.
 <Follow up question>
