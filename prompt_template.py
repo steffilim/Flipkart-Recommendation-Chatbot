@@ -48,28 +48,25 @@ Extract the relevant information from the list and provide a response that is cl
 
 Instructions:
 Summarise the each of the product descriptions. 
-Omit the product number and give it in the following format:
+Omit the product number and give it in the following format. Number the products sequentially starting from 1:
 For each product, follow the following format. DO NOT BOLD THE HEADERS:
-Product Name: <product_name>  
-Price: <price>  
-Description: <description>
+1. Product Name: <product_name>  
+   Price: <price>  
+   Description: <description>
 
 Always include the follow up question at the end of the response. DO NOT PRINT THE FOLLOW UP QUESTION HEADER.
 <Follow up question>
 
 Example Response:
-Product Name: Laptop
-Price: $500
-Description: 15-inch screen, 8GB RAM, 512GB SSD
+1. Product Name: Laptop
+   Price: $500
+   Description: 15-inch screen, 8GB RAM, 512GB SSD
 
-Product Name: Tablet
-Price: $300
-Description: 10-inch screen, 4GB RAM, 256GB SSD
+2. Product Name: Tablet
+   Price: $300
+   Description: 10-inch screen, 4GB RAM, 256GB SSD
 
 Would you like to explore similar models with different specifications?
-
-
-
 """
 
 keywords_template = """
