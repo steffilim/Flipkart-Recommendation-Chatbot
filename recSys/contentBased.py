@@ -89,5 +89,5 @@ def get_recommendations(user_product, df, lsa_matrix):
 product_data = load_product_data(product_data_file)
 lsa_matrix = get_lsa_matrix(product_data, lsa_matrix_file)
 
-user_product = 'socks'
-recommendations = get_recommendations(user_product, product_data, lsa_matrix)
+#user_product = 'socks'
+#recommendations = get_recommendations(user_product, product_data, lsa_matrix)

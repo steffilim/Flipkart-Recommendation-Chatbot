@@ -40,17 +40,6 @@ catalouge = pd.read_csv('newData/flipkart_cleaned.csv')
 purchase_history = pd.read_csv('newData/synthetic_v2.csv')
 purchase_history = purchase_history.rename(columns={'Product ID': 'uniq_id'})
 
-def get_recommendation(keywords_list): # getting the top 3 products based on keywords
-    mask = catalouge['product_category_tree'].apply(lambda x: any(keyword in x for keyword in keywords_list))
-    filtered = catalouge[mask]
-    top_products = filtered.sort_values(by='overall_rating', ascending=False).head(3)
-
-    # Formatting the output more clearly
-    return "\n".join(
-        f"**{idx + 1}. {row['product_name']}** - Discounted Price: {row['discounted_price']}, Description: {row['description']}"
-        for idx, row in top_products.iterrows()
-    )
-
 def get_popular_items():
    
     # Load the dataset
@@ -92,6 +81,7 @@ def getting_bot_response(user_intention, chain2,user_id=None):
     else:
         match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
         item = match.group(1)
+
 
         # calling hybrid_recommendations function 
         n_recommendations = 5  # number of recommendations to output (adjustable later)

@@ -64,6 +64,7 @@ def hybrid_recommendations(user_product, user_id, df, lsa_matrix, orderdata, con
         })
     return final_output
 
+"""
 user_id = 'U06610'
 user_product = 'pants'
 n_recommendations = 20
@@ -74,6 +75,8 @@ recommendations = hybrid_recommendations(user_product, user_id, df, lsa_matrix, 
 
 for recommendation in recommendations:
     print(f"Product Name: {recommendation['product_name']}, Predicted Rating: {recommendation['predicted_rating']}")
+
+"""
 
 # content_weights = np.linspace(0, 1, 11)  # [0, 0.1, 0.2, ..., 1]
 # collaborative_weights = np.linspace(0, 1, 11)

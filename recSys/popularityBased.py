@@ -25,7 +25,7 @@ top_5_most_popular = popular_products.sort_values('User rating for the product',
 detailed_top_products = pd.merge(top_5_most_popular, catalog, on='Product ID', how='left')
 detailed_top_products = detailed_top_products[['product_name', 'discounted_price', 'description', 'User rating for the product']]
 
-print(detailed_top_products.columns)
+#print(detailed_top_products.columns)
 
 # saving to dataframe for easy retrieval
 detailed_top_products.to_csv('newData/top_5_most_popular.csv', index=False)
