@@ -66,7 +66,7 @@ function appendMessage(message, className, sender) {
 }
 
 function botSendMessage(message) {
-    appendMessage(message, 'bot-message', 'Bot');
+    appendMessage(message, 'bot-message', 'Flippey');
 }
 
 // Toggle Chat Functionality
