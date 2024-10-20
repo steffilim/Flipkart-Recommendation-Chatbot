@@ -18,9 +18,10 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 
-from convohistory import add_chat_history_user, get_past_conversations_users, add_chat_history_guest, get_past_conversation_guest
+from convohistory import get_database, add_chat_history_guest, get_past_conversation_guest
 from prompt_template import intention_template, refine_template
 from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention
+
 
 
 
@@ -63,6 +64,11 @@ intention_chain = intention_prompt | llm | StrOutputParser()
 # initialising memory
 
 # Flask routes
+@app.before_first_request
+def initialise_database():
+    global db
+    db = get_database()
+
 @app.route('/')
 def index():
     user_id = user_states.get("user_id")  # Check if user is logged in
@@ -83,6 +89,7 @@ def index():
 def chat():
     user_data = request.get_json()
     user_input = user_data.get('message')
+    
 
     if not is_valid_input(user_input, valid_user_ids, keywords):
         return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})

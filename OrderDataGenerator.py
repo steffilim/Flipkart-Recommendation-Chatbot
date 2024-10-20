@@ -35,10 +35,12 @@ interests = ["Electronics", "Fashion", "Books", "Sports", "Music", "Travel", "Co
 user_interests = [random.sample(interests, k=random.randint(1, 3)) for _ in range(num_users)]
 ethnicities = ["Asian", "Caucasian", "Hispanic", "African American", "Other"]
 user_ethnicities = np.random.choice(ethnicities, size=num_users)
+passwords = [''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()', k=12)) for _ in range(num_users)]
 
 # Create a DataFrame for users
 users_df = pd.DataFrame({
     "User ID": user_ids,
+    "User Password": passwords,
     "User Age": user_ages,
     "User Occupation": user_occupations,
     "User Income": user_incomes,

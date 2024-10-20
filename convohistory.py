@@ -1,10 +1,13 @@
 import os
 from dotenv import load_dotenv
-from supabase import create_client, Client
+#from supabase import create_client, Client
+from pymongo import MongoClient
+from gemini import app
 from typing import List, Tuple
 
 load_dotenv()
 
+"""
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
@@ -32,7 +35,16 @@ def get_past_conversations_users(user_id, session_id):
     string = " ".join(d['intention'] for d in past_convo)
 
     return string
+    
+"""
+ATLAS_URI = os.getenv("ATLAS_URI")
+DB_NAME = os.getenv("DB_NAME")
 
+def get_database():
+    """Create a database connection and return the database client."""
+    mongo_uri = os.getenv(ATLAS_URI)  # Ensure you have MONGO_URI in your .env file
+    client = MongoClient(mongo_uri)
+    return client[DB_NAME]
 
 
 """CONVERSATION HISTORY FOR GUEST USERS """
