@@ -74,7 +74,7 @@ body {
 .user-message {
     background-color: #20b2aa;
     color: black;
-    text-align: right;
+    text-align: left;
     align-self: flex-end;
     border-radius: 8px;
     padding: 10px;
