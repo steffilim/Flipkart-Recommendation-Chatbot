@@ -40,7 +40,6 @@ passwords = [''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ
 # Create a DataFrame for users
 users_df = pd.DataFrame({
     "User ID": user_ids,
-    "User Password": passwords,
     "User Age": user_ages,
     "User Occupation": user_occupations,
     "User Income": user_incomes,
@@ -93,7 +92,7 @@ for _ in range(num_orders):
 
     order_total = (products['discounted_price'] * np.random.randint(1, 4, size=num_products)).sum()
     order_date = pd.to_datetime('2023-01-01') + pd.to_timedelta(np.random.randint(1, 365), unit='d')
-    purchase_address = f"{random.randint(100, 999)} {random.choice(['Elm St.', 'Main St.', 'Oak St.', 'Pine St.'])}, {random.choice(['New York', 'Los Angeles', 'Chicago', 'Houston'])}"
+    purchase_address = f"{random.randint(100, 999)} {random.choice(['Elm St.', 'Main St.', 'Oak St.', 'Pine St.'])}{random.choice(['New York', 'Los Angeles', 'Chicago', 'Houston'])}"
 
     for _, product in products.iterrows():
         rating = generate_user_rating(user_id, product, previous_ratings)
