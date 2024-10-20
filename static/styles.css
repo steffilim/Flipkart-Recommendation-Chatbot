@@ -58,7 +58,8 @@ body {
 .chat-log .message-container {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 8px; 
+    margin-bottom: 10px;
 }
 
 .chat-log p {
@@ -84,6 +85,9 @@ body {
     background-color: #f1f0f0;
     color: #333;
     align-self: flex-start;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
 }
 
 .input-container {
@@ -96,7 +100,9 @@ body {
 .message-container.user-container {
     display: flex;
     flex-direction: column;
-    align-items: flex-end; /* Align the entire message container to the right */
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 10px;  
 }
 
 input[type="text"], input[type="password"] {
