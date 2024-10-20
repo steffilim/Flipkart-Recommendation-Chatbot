@@ -1,9 +1,10 @@
 import os
 from dotenv import load_dotenv
-#from supabase import create_client, Client
+
 from pymongo import MongoClient
 from gemini import app
 from typing import List, Tuple
+import datetime
 
 load_dotenv()
 
@@ -37,14 +38,42 @@ def get_past_conversations_users(user_id, session_id):
     return string
     
 """
+
+""" CONVERSATION HISTORY FOR REGISTERED USERS """
 ATLAS_URI = os.getenv("ATLAS_URI")
 DB_NAME = os.getenv("DB_NAME")
+
+client = MongoClient(ATLAS_URI)
+DB_NAME = client[DB_NAME]
+collection = DB_NAME["chatSession"]
 
 def get_database():
     """Create a database connection and return the database client."""
     mongo_uri = os.getenv(ATLAS_URI)  # Ensure you have MONGO_URI in your .env file
     client = MongoClient(mongo_uri)
     return client[DB_NAME]
+
+def start_new_session(user_id, session_id):
+    document = {
+        "user_id": user_id,
+        "session_id": session_id,
+        "created_at": datetime.datetime.now(),
+        "message_list": []
+    }
+    collection.insert_one(document)
+    
+def add_chat_history_user(session_id, user_input, bot_response):
+    dict = {"user_input": user_input, "bot_response": bot_response}
+    collection.update_one({"session_id": session_id}, {"$push": {"message_list": dict}})
+    print("Chat history updated successfully")
+
+def get_past_conversations_users(session_id):
+    response = collection.find_one({"session_id": session_id})
+    past_convo = response["message_list"]
+    string = " ".join(d['user_input'] for d in past_convo)
+
+    return string
+
 
 
 """CONVERSATION HISTORY FOR GUEST USERS """

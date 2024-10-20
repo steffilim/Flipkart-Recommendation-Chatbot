@@ -88,7 +88,7 @@ def getting_bot_response(user_intention, chain2,user_id=None):
 
         recommendations = hybrid_recommendations(
             user_product = item, 
-            user_id = user_id, 
+            user_id = user_id,  
             df = catalouge,   
             lsa_matrix = lsa_matrix,   
             orderdata = purchase_history, 

@@ -18,7 +18,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 
-from convohistory import get_database, add_chat_history_guest, get_past_conversation_guest
+from convohistory import get_database, add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user
 from prompt_template import intention_template, refine_template
 from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention
 
