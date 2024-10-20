@@ -1,3 +1,45 @@
+""" DATABASE FUNCTION"""
+
+# Initializing data
+import pandas as pd
+from pymongo import MongoClient
+import pymongo
+import os
+from dotenv import load_dotenv
+
+def initialising_mongoDB():
+    load_dotenv()
+    MONGODB_URI = os.getenv("MONGODB_URI")
+    DB_NAME = os.getenv("DB_NAME")
+    client = pymongo.MongoClient(MONGODB_URI)
+    mydb = client[DB_NAME]
+    return mydb
+
+
+def get_popular_items():
+   
+    # Load the dataset
+    db = initialising_mongoDB()
+    top5 = db.Top5Products
+
+    # retrieving the top5 products
+    popular_items = []
+    top_products = top5.find().sort("User rating for the product", -1)
+
+    for product in top_products:
+        item_details = f"- {product['product_name']} priced at Rs.{product['discounted_price']} (Rating: {product['User rating for the product']})"
+        popular_items.append(item_details)
+
+    
+    # Join all item details into a single string
+    response_text = "Here are these week's popular items:\n" + "\n".join(popular_items)
+    response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for."
+
+    return response_text
+
+
+
+
 """ KEYWORD DETECTION FUNCTION """
 
 import nltk
@@ -34,27 +76,12 @@ def extract_keywords(item):
 
 
 """ RECOMMENDATION FUNCTIONS """
-# Initializing data
-import pandas as pd
+
+
 catalouge = pd.read_csv('newData/flipkart_cleaned.csv')
 purchase_history = pd.read_csv('newData/synthetic_v2.csv')
 purchase_history = purchase_history.rename(columns={'Product ID': 'uniq_id'})
 
-def get_popular_items():
-   
-    # Load the dataset
-    df = pd.read_csv("newData/top_5_most_popular.csv")
-
-    popular_items_details = []
-    for index, row in df.iterrows():
-        item_details = f"- {row['product_name']} priced at Rs.{row['discounted_price']} (Rating: {row['User rating for the product']}/10)\n  Description: {row['description']}"
-        popular_items_details.append(item_details)
-
-    # Join all item details into a single string
-    response_text = "Here are these week's popular items:\n" + "\n".join(popular_items_details)
-    response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for."
-
-    return response_text
 
 
 """ CHAT BOT FUNCTION"""

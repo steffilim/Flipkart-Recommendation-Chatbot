@@ -5,53 +5,15 @@ from pymongo import MongoClient
 from gemini import app
 from typing import List, Tuple
 import datetime
+from functions import initialising_mongoDB
 
 load_dotenv()
 
-"""
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
-
-def add_chat_history_user(user_id, session_id, user_input, bot_response, user_intention):
-    data = {
-        "user_id": user_id,
-        "session_id": session_id,  # save the session ID
-        "user_input": user_input,
-        "bot_response": bot_response,
-        "intention": user_intention
-    }
-    response = supabase.table("chat_history").insert(data).execute()
-    return response
-
-def get_past_conversations_users(user_id, session_id):
-    response = (supabase.table("chat_history")
-                .select("intention")
-                .eq("user_id", user_id)
-                .eq("session_id", session_id)
-                .order("created_at", desc=True) # sorting the conversations by the most recent interaction
-                .limit(1) # getting the most recent interaction
-                .execute())
-    past_convo = response.data
-    string = " ".join(d['intention'] for d in past_convo)
-
-    return string
-    
-"""
 
 """ CONVERSATION HISTORY FOR REGISTERED USERS """
-ATLAS_URI = os.getenv("ATLAS_URI")
-DB_NAME = os.getenv("DB_NAME")
+db = initialising_mongoDB()
+chat_session = db.chatSession
 
-client = MongoClient(ATLAS_URI)
-DB_NAME = client[DB_NAME]
-collection = DB_NAME["chatSession"]
-
-def get_database():
-    """Create a database connection and return the database client."""
-    mongo_uri = os.getenv(ATLAS_URI)  # Ensure you have MONGO_URI in your .env file
-    client = MongoClient(mongo_uri)
-    return client[DB_NAME]
 
 def start_new_session(user_id, session_id):
     document = {
@@ -60,15 +22,16 @@ def start_new_session(user_id, session_id):
         "created_at": datetime.datetime.now(),
         "message_list": []
     }
-    collection.insert_one(document)
+    chat_session.insert_one(document)
     
 def add_chat_history_user(session_id, user_input, bot_response):
     dict = {"user_input": user_input, "bot_response": bot_response}
-    collection.update_one({"session_id": session_id}, {"$push": {"message_list": dict}})
+    chat_session.update_one({"session_id": session_id}, {"$push": {"message_list": dict}})
     print("Chat history updated successfully")
 
 def get_past_conversations_users(session_id):
-    response = collection.find_one({"session_id": session_id})
+
+    response = chat_session.find_one({"session_id": session_id})
     past_convo = response["message_list"]
     string = " ".join(d['user_input'] for d in past_convo)
 
