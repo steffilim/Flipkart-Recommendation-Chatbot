@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 
 from pymongo import MongoClient
-from gemini import app
+
 from typing import List, Tuple
 import datetime
 from functions import initialising_mongoDB

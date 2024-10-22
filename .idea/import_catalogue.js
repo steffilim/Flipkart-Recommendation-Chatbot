@@ -12,7 +12,7 @@ use('FLIPKART');
 //db.createCollection(collection);
 
 /* FILEPATHS just replace with the right ones*/ 
-// catalogue = '/Users/steffilim/Desktop/Flipkart-Recommendation-Chatbot/newData/flipkart_cleaned.csv';
+catalogue = '/Users/steffilim/Desktop/Flipkart-Recommendation-Chatbot/newData/flipkart_cleaned.csv';
 users = '/Users/steffilim/Desktop/Flipkart-Recommendation-Chatbot/newData/synthetic_v2.csv';
 
 const fs = require('fs');
@@ -32,7 +32,7 @@ for (let i = 1; i < rows.length; i++) {
     results.push(obj);
 }
 
-db.getCollection('Users').insertMany(results);
+db.getCollection('users').insertMany(results);
 console.log('Data inserted successfully');
 
 

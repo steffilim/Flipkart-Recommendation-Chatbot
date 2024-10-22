@@ -16,10 +16,10 @@ def initialising_mongoDB():
     return mydb
 
 
-def get_popular_items():
+def get_popular_items(db):
    
     # Load the dataset
-    db = initialising_mongoDB()
+    #db = initialising_mongoDB()
     top5 = db.Top5Products
 
     # retrieving the top5 products

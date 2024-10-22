@@ -18,9 +18,9 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 
-from convohistory import get_database, add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user
+from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user
 from prompt_template import intention_template, refine_template
-from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention
+from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention, initialising_mongoDB
 
 
 
@@ -41,8 +41,22 @@ previous_intention = "" # user intention
 # INITIALISATION
 # Authenticating model
 load_dotenv()
-google_api_key = os.getenv("GOOGLE_API_KEY")
-llm = ChatGoogleGenerativeAI(
+
+
+
+
+
+
+# initialising memory
+
+# Flask routes
+
+def initialise_app():
+    db = initialising_mongoDB()
+    print("Database setup successful")
+
+    google_api_key = os.getenv("GOOGLE_API_KEY")
+    llm = ChatGoogleGenerativeAI(
         model="gemini-pro", 
         google_api_key=google_api_key,
         temperature=0.1, 
@@ -50,24 +64,20 @@ llm = ChatGoogleGenerativeAI(
         stream=True
     )
 
+    # CHAINING
+    # refining the output based on the recommendations and keywords 
+    refine_prompt = ChatPromptTemplate.from_template(refine_template)
+    chain2 =  refine_prompt | llm | StrOutputParser()
 
-# CHAINING
+    # Create a new chain for intention extraction
+    intention_prompt = ChatPromptTemplate.from_template(intention_template)
+    intention_chain = intention_prompt | llm | StrOutputParser()
 
-# refining the output based on the recommendations and keywords 
-refine_template = ChatPromptTemplate.from_template(refine_template)
-chain2 =  refine_template | llm | StrOutputParser()
 
-# Create a new chain for intention extraction
-intention_prompt = ChatPromptTemplate.from_template(intention_template)
-intention_chain = intention_prompt | llm | StrOutputParser()
+    return db, llm, chain2, intention_chain
 
-# initialising memory
+db, llm, chain2, intention_chain = initialise_app()
 
-# Flask routes
-@app.before_first_request
-def initialise_database():
-    global db
-    db = get_database()
 
 @app.route('/')
 def index():
@@ -87,8 +97,10 @@ def index():
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    
     user_data = request.get_json()
     user_input = user_data.get('message')
+
     
 
     if not is_valid_input(user_input, valid_user_ids, keywords):
@@ -144,7 +156,7 @@ def chat():
 
     # If user ID is not set, expect user to input the ID or choose guest mode
     if not user_id:
-        popular_items_recommendation = get_popular_items()
+        popular_items_recommendation = get_popular_items(db)
         if user_input == "guest" or user_input == "Guest":
             # If the user opts for guest mode
             user_states["guest_mode"] = True  # Set guest mode flag
@@ -180,3 +192,5 @@ def chat():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    app.initialising_mongoDB()
+    print("Database setup successful")
