@@ -5,7 +5,11 @@ import pandas as pd
 from pymongo import MongoClient
 import pymongo
 import os
+import currency
 from dotenv import load_dotenv
+
+INR = currency.symbol('INR')
+print(INR)
 
 def initialising_mongoDB():
     load_dotenv()
@@ -26,8 +30,8 @@ def get_popular_items(db):
     popular_items = []
     top_products = top5.find().sort("User rating for the product", -1)
 
-    for product in top_products:
-        item_details = f"- {product['product_name']} priced at Rs.{product['discounted_price']} (Rating: {product['User rating for the product']})"
+    for index, product in enumerate(top_products, start=1):
+        item_details = f"{index}. {product['product_name']} at {INR}{product['discounted_price']} \n\n Description: {product.get('description', 'No description available')} \n\n"
         popular_items.append(item_details)
 
     
