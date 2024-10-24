@@ -4,6 +4,7 @@ from surprise.model_selection import cross_validate, train_test_split, GridSearc
 import pandas as pd
 import numpy as np
 
+"""
 flipkart = pd.read_csv("newData/flipkart_cleaned.csv")
 flipkart
 flipkart['product_category_tree'] = flipkart['product_category_tree'].apply(lambda x: ' '.join(eval(x)).lower())
@@ -11,8 +12,9 @@ flipkart['product_category_tree'] = flipkart['product_category_tree'].apply(lamb
 orderdata = pd.read_csv("newData/synthetic_v2.csv")
 orderdata = orderdata.rename(columns={'Product ID': 'uniq_id'})
 orderdata
+"""
 
-def svd_recommend_surprise(user_id, orderdata, n_recommendations=20):
+def svd_recommend_surprise(catalogue, user_id, orderdata, n_recommendations=20):
     reader = Reader(rating_scale=(0, 5))
     dataset = Dataset.load_from_df(orderdata[['User ID', 'uniq_id', 'User rating for the product']], reader)
     trainset = dataset.build_full_trainset()
@@ -35,11 +37,14 @@ def svd_recommend_surprise(user_id, orderdata, n_recommendations=20):
     recommended_product_ids = [prod[0] for prod in sorted_predictions[:n_recommendations]]
     
     # Get product information and include predicted ratings
-    recommendations = flipkart[flipkart['uniq_id'].isin(recommended_product_ids)]
-    recommendations['predicted_rating'] = recommendations['uniq_id'].apply(
-        lambda x: next(pred[1] for pred in predictions if pred[0] == x)
-    )
-    return recommendations[['uniq_id', 'product_name', 'description', 'product_category_tree', 'predicted_rating', 'retail_price']]
+    recommendations = list(catalogue.find({'uniq_id': {'$in': recommended_product_ids}}))
+    for rec in recommendations:
+        rec['predicted_rating'] = next((pred[1] for pred in predictions if pred[0] == rec['uniq_id']), None)
+    recommendations_df = pd.DataFrame(recommendations)
+    if not recommendations_df.empty:
+        recommendations_df = recommendations_df[['uniq_id', 'product_name', 'description', 'product_category_tree', 'predicted_rating', 'retail_price']]
+        
+    return recommendations_df
 
 # To test
 #user_id = 'U06610'

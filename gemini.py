@@ -127,11 +127,11 @@ def chat():
         previous_intention = get_past_conversation_guest(convo_history_list_guest)
         user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
 
-        bot_response = getting_bot_response(user_intention, chain2)
+        bot_response = getting_bot_response(user_intention, chain2, db, user_id = None)
         add_chat_history_guest(user_input, bot_response, convo_history_list_guest)
         print(convo_history_list_guest)
 
-        return jsonify({'response': bot_response}) # TO BE UPDATED WITH STREAMLINE CODE
+        return jsonify({'response': bot_response}) 
     
     # If the user is prompted to enter user ID (after /login)
     if user_states.get("login_mode"):
@@ -187,8 +187,8 @@ def chat():
     user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
     print(user_intention)
     # Getting the bot response
-    bot_response = getting_bot_response(user_intention, chain2)
-    add_chat_history_user(user_states["session_id"], user_input, user_intention)
+    bot_response = getting_bot_response(user_intention, chain2, db, user_id)
+    add_chat_history_user(user_states["session_id"], user_input,user_intention, bot_response)
     print("Chat history updated successfully")
     
     return jsonify({'response': bot_response})
@@ -196,5 +196,3 @@ def chat():
 
 if __name__ == '__main__':
     app.run(debug=True)
-    app.initialising_mongoDB()
-    print("Database setup successful")

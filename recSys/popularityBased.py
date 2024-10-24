@@ -33,11 +33,11 @@ detailed_top_products = detailed_top_products[['Product ID','product_name', 'dis
 # saving to dataframe for easy retrieval
 load_dotenv()
 MONGODB_URI = os.getenv("MONGODB_URI")
-DB_NAME = os.getenv("DB_NAME")
+FLIPKART = os.getenv("FLIPKART")
 
 
 client = pymongo.MongoClient(MONGODB_URI)
-mydb = client[DB_NAME]
+mydb = client[FLIPKART]
 top5 = mydb.Top5Products
 
 # saving the top 5 most popular products to the database

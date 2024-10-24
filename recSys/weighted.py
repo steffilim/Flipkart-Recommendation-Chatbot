@@ -5,21 +5,32 @@ from recSys.contentBased import load_product_data
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 import numpy as np
+from dotenv import load_dotenv
+import os
+import pymongo
 
-product_data_file = 'newData/flipkart_cleaned.csv'
+load_dotenv()
+MONGODB_URI = os.getenv("MONGODB_URI")
+FLIPKART = os.getenv("FLIPKART")
+
+client = pymongo.MongoClient(MONGODB_URI)
+flipkart = client[FLIPKART]
+
+product_data_file = flipkart.catalogue
 lsa_matrix_file = 'lsa_matrix.joblib'
 
-df = load_product_data(product_data_file)
+
+"""df = load_product_data(product_data_file)
 lsa_matrix = get_lsa_matrix(df, lsa_matrix_file)
 
 orderdata = pd.read_csv("newData/synthetic_v2.csv")
 orderdata = orderdata.rename(columns={'Product ID': 'uniq_id'})
-orderdata
+orderdata"""
 
-def hybrid_recommendations(user_product, user_id, df, lsa_matrix, orderdata, content_weight, collaborative_weight, n_recommendations=10):
-    content_recommendations = get_recommendations(user_product, df, lsa_matrix)
-    
-    collaborative_recommendations = svd_recommend_surprise(user_id, orderdata, n_recommendations)
+def hybrid_recommendations(catalogue, user_product, user_id, orderdata, content_weight, collaborative_weight, n_recommendations=10):
+    lsa_matrix = get_lsa_matrix(catalogue, lsa_matrix_file)
+    content_recommendations = get_recommendations(user_product, catalogue, lsa_matrix)
+    collaborative_recommendations = svd_recommend_surprise(catalogue, user_id, orderdata, n_recommendations)
 
     product_info = {}
     for item in content_recommendations:

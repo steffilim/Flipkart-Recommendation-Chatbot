@@ -82,16 +82,11 @@ def extract_keywords(item):
 """ RECOMMENDATION FUNCTIONS """
 
 
-catalouge = pd.read_csv('newData/flipkart_cleaned.csv')
-purchase_history = pd.read_csv('newData/synthetic_v2.csv')
-purchase_history = purchase_history.rename(columns={'Product ID': 'uniq_id'})
-
-
 
 """ CHAT BOT FUNCTION"""
 
 import re
-from recSys.weighted import hybrid_recommendations, lsa_matrix   
+from recSys.weighted import hybrid_recommendations
 
 # Getting user intention
 def getting_user_intention(user_input, intention_chain, previous_intention):
@@ -99,7 +94,7 @@ def getting_user_intention(user_input, intention_chain, previous_intention):
     return user_intention
 
 # Getting bot response
-def getting_bot_response(user_intention, chain2,user_id=None):
+def getting_bot_response(user_intention, chain2, db, user_id):
     """
     previous intention is derived from the past conversation. 
     """
@@ -118,14 +113,14 @@ def getting_bot_response(user_intention, chain2,user_id=None):
         n_recommendations = 5  # number of recommendations to output (adjustable later)
 
         recommendations = hybrid_recommendations(
+            catalogue = db.catalogue,    
             user_product = item, 
             user_id = user_id,  
-            df = catalouge,   
-            lsa_matrix = lsa_matrix,   
-            orderdata = purchase_history, 
-            n_recommendations = n_recommendations, 
+            orderdata = db.users, 
             content_weight = 0.6, 
-            collaborative_weight = 0.4
+            collaborative_weight = 0.4,
+            n_recommendations = n_recommendations, 
+            
         )
 
         recommendations_text = "\n".join(
