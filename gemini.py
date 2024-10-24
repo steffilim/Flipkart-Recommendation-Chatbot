@@ -112,7 +112,7 @@ def chat():
     # Check if the user is in login mode and expects a user ID input
     if user_states.get("login_mode"):
         try:
-            user_id = int(user_input)
+            user_id = str(user_input)
         except ValueError:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
 
