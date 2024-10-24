@@ -23,8 +23,8 @@ def svd_recommend_surprise(catalogue, user_id, orderdata, n_recommendations=20):
     orderdata = pd.DataFrame(list(cursor_order))
     reader = Reader(rating_scale=(0, 5))
 
-    print(orderdata)
-    print(reader)
+    #print(orderdata)
+    #print(reader)
     dataset = Dataset.load_from_df(orderdata[['User ID', 'uniq_id', 'User rating for the product']], reader)
     trainset = dataset.build_full_trainset()
 
@@ -49,7 +49,7 @@ def svd_recommend_surprise(catalogue, user_id, orderdata, n_recommendations=20):
     
     # Get product information and include predicted ratings
     recommendations = catalogue[catalogue['uniq_id'].isin(recommended_product_ids)].copy()
-    print(recommendations)
+    #print(recommendations)
     for idx, row in recommendations.iterrows():
         prediction = next((pred[1] for pred in predictions if pred[0] == row['uniq_id']), None)
         recommendations.loc[idx, 'predicted_rating'] = prediction

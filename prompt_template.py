@@ -52,7 +52,7 @@ Summarise the each of the product descriptions.
 Omit the product number and give it in the following format. Number the products sequentially starting from 1:
 For each product, follow the following format. DO NOT BOLD THE HEADERS:
 1. Product Name: <product_name>  
-   Price: <price>  
+   Price: ₹<price>  
    Description: <description>
 
 Always include the follow up question at the end of the response. DO NOT PRINT THE FOLLOW UP QUESTION HEADER.
