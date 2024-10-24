@@ -86,12 +86,9 @@ from recSys.weighted import hybrid_recommendations
 def getting_user_intention(user_input, intention_chain, previous_intention):
     user_intention = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention})
     return user_intention
-
+  
 # Getting bot response
 def getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id):
-    """
-    previous intention is derived from the past conversation. 
-    """
     item_availability_match = re.search(r'Available in Store:\s*(.+)', user_intention)
     item_availability = item_availability_match.group(1)
 
@@ -127,6 +124,7 @@ def getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id):
         questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
         questions = questions_match.group(1).strip()
         bot_response = chain2.invoke({"recommendations": recommendations_text, "questions": questions})
+
 
     return bot_response
 

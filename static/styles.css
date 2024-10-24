@@ -58,7 +58,8 @@ body {
 .chat-log .message-container {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 8px; 
+    margin-bottom: 10px;
 }
 
 .chat-log p {
@@ -74,7 +75,7 @@ body {
 .user-message {
     background-color: #20b2aa;
     color: black;
-    text-align: right;
+    text-align: left;
     align-self: flex-end;
     border-radius: 8px;
     padding: 10px;
@@ -84,6 +85,9 @@ body {
     background-color: #f1f0f0;
     color: #333;
     align-self: flex-start;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
 }
 
 .input-container {
@@ -96,10 +100,12 @@ body {
 .message-container.user-container {
     display: flex;
     flex-direction: column;
-    align-items: flex-end; /* Align the entire message container to the right */
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 10px;  
 }
 
-input[type="text"] {
+input[type="text"], input[type="password"] {
     flex-grow: 1;
     padding: 10px;
     border: 1px solid #ddd;

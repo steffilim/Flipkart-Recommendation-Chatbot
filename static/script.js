@@ -8,11 +8,16 @@ document.getElementById('user-input').addEventListener('keypress', function (e) 
     }
 });
 
+let isPasswordMode = false;
+
 function sendMessage() {
     let userInput = document.getElementById('user-input').value;
     if (userInput === '') return;
 
-    appendMessage(userInput, 'user-message', 'User');
+    // Mask the user input if in password mode
+    let displayInput = isPasswordMode ? '*'.repeat(userInput.length) : userInput;
+
+    appendMessage(displayInput, 'user-message', 'User');
 
     // Send the user input to the backend for processing
     fetch('/chat', {
@@ -24,6 +29,14 @@ function sendMessage() {
     })
     .then(response => response.json())
     .then(data => {
+        // Check if the response indicates that we are still in password mode
+        if (data.response.includes('Please enter your password.') || data.response.includes('Incorrect password.')) {
+            document.getElementById('user-input').type = 'password';  // Ensure input is masked
+            isPasswordMode = true;  // Keep password mode active
+        } else {
+            document.getElementById('user-input').type = 'text';  // Unmask input field
+            isPasswordMode = false;  // Reset password mode flag
+        }
         botSendMessage(data.response);
     })
     .catch(error => {
@@ -66,13 +79,12 @@ function appendMessage(message, className, sender) {
 }
 
 function botSendMessage(message) {
-    appendMessage(message, 'bot-message', 'Bot');
+    appendMessage(message, 'bot-message', 'Flippey');
 }
 
 // Toggle Chat Functionality
 document.getElementById('chat-header').addEventListener('click', function () {
     let chatContainer = document.getElementById('chat-container');
-    let toggleIcon = document.getElementById('toggle-chat');
 
     chatContainer.classList.toggle('folded');
 });
