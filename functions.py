@@ -1,3 +1,50 @@
+""" DATABASE FUNCTION"""
+
+# Initializing data
+import pandas as pd
+from pymongo import MongoClient
+import pymongo
+import os
+import currency
+from dotenv import load_dotenv
+
+INR = currency.symbol('INR')
+
+
+def initialising_mongoDB():
+    load_dotenv()
+    MONGODB_URI = os.getenv("MONGODB_URI")
+    FLIPKART = os.getenv("FLIPKART")
+    client = pymongo.MongoClient(MONGODB_URI)
+    mydb = client[FLIPKART]
+    return mydb
+
+
+def get_popular_items(db):
+   
+    # Load the dataset
+    #db = initialising_mongoDB()
+    top5 = db.Top5Products
+
+    # retrieving the top5 products
+    popular_items = []
+    top_products = top5.find().sort("User rating for the product", -1)
+
+    for index, product in enumerate(top_products, start=1):
+        item_details = f"{index}. {product['product_name']} at {INR}{product['discounted_price']} \n\n Description: {product.get('description', 'No description available')} \n\n"
+        popular_items.append(item_details)
+
+    
+    # Join all item details into a single string
+    response_text = "Here are these week's popular items:\n" + "\n".join(popular_items)
+    response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for."
+
+    return response_text
+
+
+
+
+
 """ KEYWORD DETECTION FUNCTION """
 
 import nltk
@@ -10,19 +57,12 @@ nltk.download('wordnet')
 # Function to check if the user's input is valid
 def is_valid_input(user_input, valid_user_ids, keywords):
     # Convert both user IDs and keywords to set for fast membership checking
-    valid_user_ids = set(valid_user_ids)
-    keywords = set(word.lower() for word in keywords)  # Ensure keywords are lowercase for comparison
+    keywords = set(word.lower() for word in keywords)
 
-    # Split the input into words
+    # Tokenize and validate
     tokens = nltk.word_tokenize(user_input)
+    valid_tokens = [word for word in tokens if word.lower() in wordnet.words() or word in valid_user_ids or word.lower() in keywords]
 
-    # Check each token if it's a word in WordNet, a valid numeric user ID, or a recognized keyword
-    valid_tokens = [word for word in tokens 
-                    if word.lower() in wordnet.words() or 
-                       (word.isdigit() and int(word) in valid_user_ids) or 
-                       word.lower() in keywords]
-
-    # Return True if there are any valid tokens, otherwise False
     return len(valid_tokens) > 0
 
 def extract_keywords(item):
@@ -33,41 +73,22 @@ def extract_keywords(item):
     return query_keyword_ls
 
 
-""" RECOMMENDATION FUNCTIONS """
-# Initializing data
-import pandas as pd
-catalouge = pd.read_csv('newData/flipkart_cleaned.csv')
-purchase_history = pd.read_csv('newData/synthetic_v2.csv')
-purchase_history = purchase_history.rename(columns={'Product ID': 'uniq_id'})
 
-def get_popular_items():
-   
-    # Load the dataset
-    df = pd.read_csv("newData/top_5_most_popular.csv")
 
-    popular_items_details = []
-    for index, row in df.iterrows():
-        item_details = f"- {row['product_name']} priced at Rs.{row['discounted_price']} (Rating: {row['User rating for the product']}/10)\n  Description: {row['description']}"
-        popular_items_details.append(item_details)
-
-    # Join all item details into a single string
-    response_text = "Here are these week's popular items:\n" + "\n".join(popular_items_details)
-    response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for."
-
-    return response_text
 
 
 """ CHAT BOT FUNCTION"""
 
 import re
-from recSys.weighted import hybrid_recommendations, lsa_matrix   
+from recSys.weighted import hybrid_recommendations
 
 # Getting user intention
 def getting_user_intention(user_input, intention_chain, previous_intention):
     user_intention = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention})
     return user_intention
-
-def getting_bot_response(user_intention, chain2, user_id=None):
+  
+# Getting bot response
+def getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id):
     item_availability_match = re.search(r'Available in Store:\s*(.+)', user_intention)
     item_availability = item_availability_match.group(1)
 
@@ -77,32 +98,33 @@ def getting_bot_response(user_intention, chain2, user_id=None):
     else:
         match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
         item = match.group(1)
-        item_keyword = extract_keywords(item)
- 
-        if item_keyword:  # check for non-empty keyword list
-            user_product = " ".join(item_keyword)
-            recommendations = hybrid_recommendations(
-                user_product = user_product,  
-                user_id = user_id,
-                df = catalouge,
-                lsa_matrix = lsa_matrix,
-                orderdata = purchase_history,
-                n_recommendations = 5,  
-                content_weight = 0.6,
-                collaborative_weight = 0.4
-            )
-
-            recommendations_text = "\n".join(
-                f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f} - Price: {int(rec['price'])} - Description: {rec['description']}"
-                for idx, rec in enumerate(recommendations)
-            )
 
 
-            questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
-            questions = questions_match.group(1).strip()
-            bot_response = chain2.invoke({"recommendations": recommendations_text, "questions": questions})
-        else:
-            bot_response = "No valid keywords found. Please specify the product you're interested in."
+        # calling hybrid_recommendations function 
+        n_recommendations = 5  # number of recommendations to output (adjustable later)
+
+        recommendations = hybrid_recommendations(
+            catalogue = db.catalogue,    
+            item = item, 
+            user_id = user_id,  
+            orderdata = db.users, 
+            lsa_matrix = lsa_matrix,
+            content_weight = 0.6, 
+            collaborative_weight = 0.4,
+            n_recommendations = n_recommendations, 
+            
+        )
+
+        recommendations_text = "\n".join(
+            f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
+            for idx, rec in enumerate(recommendations)
+        )
+
+        # Getting follow-up questions from previous LLM
+        questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
+        questions = questions_match.group(1).strip()
+        bot_response = chain2.invoke({"recommendations": recommendations_text, "questions": questions})
+
 
     return bot_response
 

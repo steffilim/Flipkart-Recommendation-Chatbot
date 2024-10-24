@@ -2,7 +2,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-
+import os
+from dotenv import load_dotenv
+from pymongo import MongoClient
+import pymongo
 ### Targeted at new customers, built on demographic filtering to resolve the cold start problem
 
 # Loading the dataset
@@ -23,9 +26,28 @@ top_5_most_popular = popular_products.sort_values('User rating for the product',
 
 # finding the product name and saving it into the top_5_most_popular dataframe
 detailed_top_products = pd.merge(top_5_most_popular, catalog, on='Product ID', how='left')
-detailed_top_products = detailed_top_products[['product_name', 'discounted_price', 'description', 'User rating for the product']]
+detailed_top_products = detailed_top_products[['Product ID','product_name', 'discounted_price', 'description', 'User rating for the product']]
 
-#print(detailed_top_products.columns)
+#print(detailed_top_products)
 
 # saving to dataframe for easy retrieval
-detailed_top_products.to_csv('newData/top_5_most_popular.csv', index=False)
+load_dotenv()
+MONGODB_URI = os.getenv("MONGODB_URI")
+FLIPKART = os.getenv("FLIPKART")
+
+
+client = pymongo.MongoClient(MONGODB_URI)
+mydb = client[FLIPKART]
+top5 = mydb.Top5Products
+
+# saving the top 5 most popular products to the database
+for index, row in detailed_top_products.iterrows():
+    document = {
+        "Product ID": row['Product ID'],
+        "product_name": row['product_name'],
+        "discounted_price": row['discounted_price'],
+        "description": row['description'],
+        "User rating for the product": row['User rating for the product']
+    }
+    #print(document)
+    top5.insert_one(document)

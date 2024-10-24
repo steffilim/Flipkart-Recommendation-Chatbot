@@ -35,6 +35,7 @@ interests = ["Electronics", "Fashion", "Books", "Sports", "Music", "Travel", "Co
 user_interests = [random.sample(interests, k=random.randint(1, 3)) for _ in range(num_users)]
 ethnicities = ["Asian", "Caucasian", "Hispanic", "African American", "Other"]
 user_ethnicities = np.random.choice(ethnicities, size=num_users)
+passwords = [''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()', k=12)) for _ in range(num_users)]
 
 # Create a DataFrame for users
 users_df = pd.DataFrame({
@@ -91,14 +92,14 @@ for _ in range(num_orders):
 
     order_total = (products['discounted_price'] * np.random.randint(1, 4, size=num_products)).sum()
     order_date = pd.to_datetime('2023-01-01') + pd.to_timedelta(np.random.randint(1, 365), unit='d')
-    purchase_address = f"{random.randint(100, 999)} {random.choice(['Elm St.', 'Main St.', 'Oak St.', 'Pine St.'])}, {random.choice(['New York', 'Los Angeles', 'Chicago', 'Houston'])}"
+    purchase_address = f"{random.randint(100, 999)} {random.choice(['Elm St.', 'Main St.', 'Oak St.', 'Pine St.'])}{random.choice(['New York', 'Los Angeles', 'Chicago', 'Houston'])}"
 
     for _, product in products.iterrows():
         rating = generate_user_rating(user_id, product, previous_ratings)
 
         orders.append({
             "Order ID": f'O{str(order_id_counter).zfill(7)}',
-            "Product ID": product['uniq_id'],
+            "uniq_id": product['uniq_id'],
             "Product Quantity": np.random.randint(1, 4),
             "Product Price Each": product['discounted_price'],
             "Order Total": order_total,

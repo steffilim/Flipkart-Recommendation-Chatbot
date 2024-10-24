@@ -1,35 +1,41 @@
 import os
 from dotenv import load_dotenv
-from supabase import create_client, Client
+
+from pymongo import MongoClient
+
 from typing import List, Tuple
+import datetime
+from functions import initialising_mongoDB
 
 load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
-def add_chat_history_user(user_id, session_id, user_input, bot_response, user_intention):
-    data = {
+""" CONVERSATION HISTORY FOR REGISTERED USERS """
+db = initialising_mongoDB()
+chat_session = db.chatSession
+
+
+def start_new_session(user_id, session_id):
+    document = {
         "user_id": user_id,
-        "session_id": session_id,  # save the session ID
-        "user_input": user_input,
-        "bot_response": bot_response,
-        "intention": user_intention
+        "session_id": session_id,
+        "created_at": datetime.datetime.now(),
+        "message_list": []
     }
-    response = supabase.table("chat_history").insert(data).execute()
-    return response
+    chat_session.insert_one(document)
+    
+def add_chat_history_user(session_id, user_input,user_intention, bot_response):
+    dict = {"user_input": user_input, "user_intention": user_intention, "bot_response": bot_response}
+    chat_session.update_one({"session_id": session_id}, {"$push": {"message_list": dict}})
+    print("Chat history updated successfully")
 
-def get_past_conversations_users(user_id, session_id):
-    response = (supabase.table("chat_history")
-                .select("intention")
-                .eq("user_id", user_id)
-                .eq("session_id", session_id)
-                .order("created_at", desc=True) # sorting the conversations by the most recent interaction
-                .limit(1) # getting the most recent interaction
-                .execute())
-    past_convo = response.data
-    string = " ".join(d['intention'] for d in past_convo)
+def get_past_conversations_users(user_id,session_id):
+
+    response = chat_session.find_one({"user_id": user_id, "session_id": session_id})
+    if response is None:
+        return ""
+    past_convo = response["message_list"]
+    string = " ".join(d['user_input'] for d in past_convo)
 
     return string
 
