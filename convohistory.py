@@ -24,14 +24,16 @@ def start_new_session(user_id, session_id):
     }
     chat_session.insert_one(document)
     
-def add_chat_history_user(session_id, user_input, bot_response):
-    dict = {"user_input": user_input, "bot_response": bot_response}
+def add_chat_history_user(session_id, user_input,user_intention, bot_response):
+    dict = {"user_input": user_input, "user_intention": user_intention, "bot_response": bot_response}
     chat_session.update_one({"session_id": session_id}, {"$push": {"message_list": dict}})
     print("Chat history updated successfully")
 
-def get_past_conversations_users(session_id):
+def get_past_conversations_users(user_id,session_id):
 
-    response = chat_session.find_one({"session_id": session_id})
+    response = chat_session.find_one({"user_id": user_id, "session_id": session_id})
+    if response is None:
+        return ""
     past_convo = response["message_list"]
     string = " ".join(d['user_input'] for d in past_convo)
 

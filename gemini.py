@@ -18,7 +18,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 
-from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user
+from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session
 from prompt_template import intention_template, refine_template
 from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention, initialising_mongoDB
 
@@ -30,7 +30,7 @@ from functions import is_valid_input, getting_bot_response, get_popular_items, g
 app = Flask(__name__)
 
 # Dummy user IDs for validation
-valid_user_ids = [78126, 65710, 58029, 48007, 158347]
+valid_user_ids = ['U00085', 'U05543', 'U09644', 'U09644', 'U02314']
 keywords = ["/logout", "/login", "guest", "Guest"]
 
 # Initialisation
@@ -147,6 +147,8 @@ def chat():
             user_states["user_id"] = user_id  # Save the user ID
             user_states["session_id"] = str(uuid4())  # Generate a unique session ID
             user_states.pop("login_mode", None)  # Remove login mode flag
+            start_new_session(user_id, user_states["session_id"])  # Start a new session for the user
+            print("New Session started, check mongodb")
             return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
@@ -175,17 +177,19 @@ def chat():
             user_states["user_id"] = user_id  # Save the user ID
             user_states["session_id"] = str(uuid4())  # Generate a unique session ID
             user_states.pop("guest_mode", None)  # Ensure guest mode flag is removed
+            start_new_session(user_id, user_states["session_id"])
             return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
 
     # Getting information from the user
-    previous_intention = get_past_conversations_users(user_id, user_states["session_id"])
+    previous_intention = get_past_conversations_users(user_id, user_states["session_id"])       
     user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
-
+    print(user_intention)
     # Getting the bot response
     bot_response = getting_bot_response(user_intention, chain2)
-    add_chat_history_user(user_id, user_states["session_id"], user_input, bot_response, user_intention)
+    add_chat_history_user(user_states["session_id"], user_input, user_intention)
+    print("Chat history updated successfully")
     
     return jsonify({'response': bot_response})
 

@@ -9,7 +9,7 @@ import currency
 from dotenv import load_dotenv
 
 INR = currency.symbol('INR')
-print(INR)
+
 
 def initialising_mongoDB():
     load_dotenv()
