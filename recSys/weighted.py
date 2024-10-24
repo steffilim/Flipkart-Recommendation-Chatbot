@@ -8,6 +8,7 @@ import numpy as np
 from dotenv import load_dotenv
 import os
 import pymongo
+import concurrent.futures
 
 load_dotenv()
 MONGODB_URI = os.getenv("MONGODB_URI")
@@ -29,8 +30,19 @@ orderdata"""
 
 def hybrid_recommendations(catalogue, item, user_id, orderdata,lsa_matrix, content_weight, collaborative_weight, n_recommendations=10):
     #lsa_matrix = get_lsa_matrix(catalogue, lsa_matrix_file)
-    content_recommendations = get_recommendations(item, catalogue, lsa_matrix)
-    collaborative_recommendations = svd_recommend_surprise(catalogue, user_id, orderdata, n_recommendations)
+
+    def fetch_content_recommendation():
+        return get_recommendations(item, catalogue, lsa_matrix)
+    
+    def fetch_collaborative_recommendation():
+        return svd_recommend_surprise(catalogue, user_id, orderdata, n_recommendations)
+    
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        content_recommendations_future = executor.submit(fetch_content_recommendation)
+        collaborative_recommendations_future = executor.submit(fetch_collaborative_recommendation)
+
+        content_recommendations = content_recommendations_future.result()
+        collaborative_recommendations = collaborative_recommendations_future.result()
 
     product_info = {}
     for item in content_recommendations:

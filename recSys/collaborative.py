@@ -15,6 +15,7 @@ orderdata
 """
 
 def svd_recommend_surprise(catalogue, user_id, orderdata, n_recommendations=20):
+    print("SVD")
     cursor_cat = catalogue.find({})
     catalogue = pd.DataFrame(list(cursor_cat))  
 

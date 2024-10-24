@@ -80,6 +80,7 @@ def get_lsa_matrix(catalogue_df, catalogue_db, lsa_matrix_file):
 
 # Function to get recommendations
 def get_recommendations(item, catalogue, lsa_matrix):
+    print("content")
     cursor = catalogue.find({})
     catalogue = pd.DataFrame(list(cursor))  
     match = process.extractOne(item, catalogue['product_name'])
