@@ -27,9 +27,9 @@ orderdata = pd.read_csv("newData/synthetic_v2.csv")
 orderdata = orderdata.rename(columns={'Product ID': 'uniq_id'})
 orderdata"""
 
-def hybrid_recommendations(catalogue, user_product, user_id, orderdata, content_weight, collaborative_weight, n_recommendations=10):
-    lsa_matrix = get_lsa_matrix(catalogue, lsa_matrix_file)
-    content_recommendations = get_recommendations(user_product, catalogue, lsa_matrix)
+def hybrid_recommendations(catalogue, item, user_id, orderdata,lsa_matrix, content_weight, collaborative_weight, n_recommendations=10):
+    #lsa_matrix = get_lsa_matrix(catalogue, lsa_matrix_file)
+    content_recommendations = get_recommendations(item, catalogue, lsa_matrix)
     collaborative_recommendations = svd_recommend_surprise(catalogue, user_id, orderdata, n_recommendations)
 
     product_info = {}

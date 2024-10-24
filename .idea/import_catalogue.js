@@ -29,6 +29,7 @@ for (let i = 1; i < rows.length; i++) {
     for (let j = 0; j < fieldnames.length; j++) {
         obj[fieldnames[j]] = row[j];
     }
+    obj['modified_time'] = new Date();
     results.push(obj);
 }
 

@@ -3,11 +3,13 @@ import time
 import numpy as np
 import os
 from dotenv import load_dotenv
-from sklearn.feature_extraction.text import CountVectorizer, TficatalogueTransformer
+from sklearn.feature_extraction.text import CountVectorizer,  TfidfTransformer
 from sklearn.decomposition import TruncatedSVD
 from joblib import dump, load
 from sklearn.metrics.pairwise import cosine_similarity
 from fuzzywuzzy import process
+import pymongo
+import pandas as pd
 
 # lsa_matrix = load(lsa_matrix_file)
 
@@ -23,7 +25,8 @@ lsa_matrix_file = 'lsa_matrix.joblib'
 """
 # Function to load and preprocess the data
 def load_product_data(product_data_file):
-    catalogue = product_data_file.find({})
+    cursor = product_data_file.find({})
+    catalogue = pd.DataFrame(list(cursor))  
     catalogue['content'] = (catalogue['product_name'].astype(str) + ' ' +
                      catalogue['product_category_tree'].astype(str) + ' ' +
                      catalogue['retail_price'].astype(str) + ' ' +
@@ -39,13 +42,18 @@ def load_product_data(product_data_file):
     print("Successfully loaded DataFrame from MongoDB")
     return catalogue
 
+
 # Function to calculate or load the LSA matrix
-def get_lsa_matrix(catalogue, lsa_matrix_file):
+def get_lsa_matrix(catalogue_df, catalogue_db, lsa_matrix_file):
     recalculate_lsa = False
     if os.path.exists(lsa_matrix_file):
         lsa_matrix_mtime = os.path.getmtime(lsa_matrix_file)
-        product_data_mtime = os.path.getmtime(catalogue)
-        if product_data_mtime > lsa_matrix_mtime:
+        print(lsa_matrix_mtime)
+
+        # retrieving the latest modification time from the database
+        latest_update = catalogue_db.find_one(sort=[("modified_time", pymongo.DESCENDING)])['modified_time']
+        catalogue_mtime = latest_update.timestamp()
+        if catalogue_mtime > lsa_matrix_mtime:
             print("product database changed... recalculating lsa matrix")
             recalculate_lsa = True
     else:
@@ -55,14 +63,14 @@ def get_lsa_matrix(catalogue, lsa_matrix_file):
     if recalculate_lsa:
         print("commencing calculating lsa")
         vectorizer = CountVectorizer()
-        bow = vectorizer.fit_transform(catalogue['content'])
+        bow = vectorizer.fit_transform(catalogue_df['content'])
 
-        tficatalogue_transformer = TficatalogueTransformer()
-        tficatalogue = tficatalogue_transformer.fit_transform(bow)
+        tfidf_transformer = TfidfTransformer()
+        tfidf = tfidf_transformer.fit_transform(bow)
 
         lsa = TruncatedSVD(n_components=100, algorithm='arpack')
-        lsa.fit(tficatalogue)
-        lsa_matrix = lsa.transform(tficatalogue)
+        lsa.fit(tfidf)
+        lsa_matrix = lsa.transform(tfidf)
         dump(lsa_matrix, lsa_matrix_file)
     else:
         print("lsa matrix found... loading...")
@@ -71,8 +79,10 @@ def get_lsa_matrix(catalogue, lsa_matrix_file):
     return lsa_matrix
 
 # Function to get recommendations
-def get_recommendations(user_product, catalogue, lsa_matrix):
-    match = process.extractOne(user_product, catalogue['product_name'])
+def get_recommendations(item, catalogue, lsa_matrix):
+    cursor = catalogue.find({})
+    catalogue = pd.DataFrame(list(cursor))  
+    match = process.extractOne(item, catalogue['product_name'])
     closest_match = match[0]
     score = match[1]
 

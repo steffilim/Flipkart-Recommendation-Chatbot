@@ -99,7 +99,7 @@ for _ in range(num_orders):
 
         orders.append({
             "Order ID": f'O{str(order_id_counter).zfill(7)}',
-            "Product ID": product['uniq_id'],
+            "uniq_id": product['uniq_id'],
             "Product Quantity": np.random.randint(1, 4),
             "Product Price Each": product['discounted_price'],
             "Order Total": order_total,

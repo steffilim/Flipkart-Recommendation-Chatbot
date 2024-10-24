@@ -14,9 +14,9 @@ INR = currency.symbol('INR')
 def initialising_mongoDB():
     load_dotenv()
     MONGODB_URI = os.getenv("MONGODB_URI")
-    DB_NAME = os.getenv("DB_NAME")
+    FLIPKART = os.getenv("FLIPKART")
     client = pymongo.MongoClient(MONGODB_URI)
-    mydb = client[DB_NAME]
+    mydb = client[FLIPKART]
     return mydb
 
 
@@ -44,6 +44,7 @@ def get_popular_items(db):
 
 
 
+
 """ KEYWORD DETECTION FUNCTION """
 
 import nltk
@@ -56,19 +57,12 @@ nltk.download('wordnet')
 # Function to check if the user's input is valid
 def is_valid_input(user_input, valid_user_ids, keywords):
     # Convert both user IDs and keywords to set for fast membership checking
-    valid_user_ids = set(valid_user_ids)
-    keywords = set(word.lower() for word in keywords)  # Ensure keywords are lowercase for comparison
+    keywords = set(word.lower() for word in keywords)
 
-    # Split the input into words
+    # Tokenize and validate
     tokens = nltk.word_tokenize(user_input)
+    valid_tokens = [word for word in tokens if word.lower() in wordnet.words() or word in valid_user_ids or word.lower() in keywords]
 
-    # Check each token if it's a word in WordNet, a valid numeric user ID, or a recognized keyword
-    valid_tokens = [word for word in tokens 
-                    if word.lower() in wordnet.words() or 
-                       (word.isdigit() and int(word) in valid_user_ids) or 
-                       word.lower() in keywords]
-
-    # Return True if there are any valid tokens, otherwise False
     return len(valid_tokens) > 0
 
 def extract_keywords(item):
@@ -79,7 +73,7 @@ def extract_keywords(item):
     return query_keyword_ls
 
 
-""" RECOMMENDATION FUNCTIONS """
+
 
 
 
@@ -94,7 +88,7 @@ def getting_user_intention(user_input, intention_chain, previous_intention):
     return user_intention
 
 # Getting bot response
-def getting_bot_response(user_intention, chain2, db, user_id):
+def getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id):
     """
     previous intention is derived from the past conversation. 
     """
@@ -114,9 +108,10 @@ def getting_bot_response(user_intention, chain2, db, user_id):
 
         recommendations = hybrid_recommendations(
             catalogue = db.catalogue,    
-            user_product = item, 
+            item = item, 
             user_id = user_id,  
             orderdata = db.users, 
+            lsa_matrix = lsa_matrix,
             content_weight = 0.6, 
             collaborative_weight = 0.4,
             n_recommendations = n_recommendations, 

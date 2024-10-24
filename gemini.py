@@ -21,7 +21,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session
 from prompt_template import intention_template, refine_template
 from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention, initialising_mongoDB
-
+from recSys.contentBased import get_lsa_matrix, load_product_data
 
 
 
@@ -30,7 +30,7 @@ from functions import is_valid_input, getting_bot_response, get_popular_items, g
 app = Flask(__name__)
 
 # Dummy user IDs for validation
-valid_user_ids = ['U00085', 'U05543', 'U09644', 'U09644', 'U02314']
+valid_user_ids = ["U03589", "U08573", "U07482", "U07214", "U08218"]
 keywords = ["/logout", "/login", "guest", "Guest"]
 
 # Initialisation
@@ -55,6 +55,12 @@ def initialise_app():
     db = initialising_mongoDB()
     print("Database setup successful")
 
+    #lsa matrix
+    catalogue_df = load_product_data(db.catalogue)
+    catalogue_db = db.catalogue
+    lsa_matrix_file = 'lsa_matrix.joblib'
+    lsa_matrix = get_lsa_matrix(catalogue_df, catalogue_db, lsa_matrix_file)
+
     google_api_key = os.getenv("GOOGLE_API_KEY")
     llm = ChatGoogleGenerativeAI(
         model="gemini-pro", 
@@ -74,9 +80,9 @@ def initialise_app():
     intention_chain = intention_prompt | llm | StrOutputParser()
 
 
-    return db, llm, chain2, intention_chain
+    return db, llm, chain2, intention_chain, lsa_matrix
 
-db, llm, chain2, intention_chain = initialise_app()
+db, llm, chain2, intention_chain, lsa_matrix = initialise_app()
 
 
 @app.route('/')
@@ -127,7 +133,7 @@ def chat():
         previous_intention = get_past_conversation_guest(convo_history_list_guest)
         user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
 
-        bot_response = getting_bot_response(user_intention, chain2, db, user_id = None)
+        bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id = None)
         add_chat_history_guest(user_input, bot_response, convo_history_list_guest)
         print(convo_history_list_guest)
 
@@ -137,7 +143,7 @@ def chat():
     if user_states.get("login_mode"):
         try:
             # Try to interpret the input as an ID
-            user_id = int(user_input)
+            user_id = str(user_input)
         except ValueError:
             # If input is not a valid numeric ID, prompt for valid ID again
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
@@ -147,6 +153,7 @@ def chat():
             user_states["user_id"] = user_id  # Save the user ID
             user_states["session_id"] = str(uuid4())  # Generate a unique session ID
             user_states.pop("login_mode", None)  # Remove login mode flag
+            get_user_past_purchase(db, user_id)
             start_new_session(user_id, user_states["session_id"])  # Start a new session for the user
             print("New Session started, check mongodb")
             return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
@@ -167,7 +174,7 @@ def chat():
 
         try:
             # Try to interpret the input as an ID
-            user_id = int(user_input)
+            user_id = str(user_input)
         except ValueError:
             # If input is not a valid numeric ID, proceed in guest mode
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
@@ -178,6 +185,7 @@ def chat():
             user_states["session_id"] = str(uuid4())  # Generate a unique session ID
             user_states.pop("guest_mode", None)  # Ensure guest mode flag is removed
             start_new_session(user_id, user_states["session_id"])
+
             return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
@@ -187,7 +195,7 @@ def chat():
     user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
     print(user_intention)
     # Getting the bot response
-    bot_response = getting_bot_response(user_intention, chain2, db, user_id)
+    bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id)
     add_chat_history_user(user_states["session_id"], user_input,user_intention, bot_response)
     print("Chat history updated successfully")
     
