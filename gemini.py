@@ -177,7 +177,7 @@ def chat():
             user_states["user_id"] = user_id  # Save the user ID
             user_states["session_id"] = str(uuid4())  # Generate a unique session ID
             user_states.pop("login_mode", None)  # Remove login mode flag
-            get_user_past_purchase(db, user_id)
+
             start_new_session(user_id, user_states["session_id"])  # Start a new session for the user
             print("New Session started, check mongodb")
             return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
