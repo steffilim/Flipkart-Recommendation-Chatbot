@@ -24,10 +24,22 @@ def start_new_session(user_id, session_id):
     }
     chat_session.insert_one(document)
     
-def add_chat_history_user(session_id, user_input,user_intention, bot_response):
-    dict = {"user_input": user_input, "user_intention": user_intention, "bot_response": bot_response}
-    chat_session.update_one({"session_id": session_id}, {"$push": {"message_list": dict}})
-    print("Chat history updated successfully")
+def add_chat_history_user(session_id, user_input, user_intention, bot_response):
+    # Build the dictionary to be pushed into the message list
+    message_entry = {
+        "user_input": user_input,
+        "user_intention": user_intention,
+        "bot_response": bot_response
+    }
+
+    # Attempt to update the document in MongoDB
+    result = chat_session.update_one(
+        {"session_id": session_id},  # Ensure this is the correct field and type in your MongoDB documents
+        {"$push": {"message_list": message_entry}}
+    )
+
+    # Check the result of the update
+    
 
 def get_past_conversations_users(user_id,session_id):
 

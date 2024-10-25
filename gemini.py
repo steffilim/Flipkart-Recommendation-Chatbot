@@ -38,6 +38,7 @@ password = "pw123"  # Hardcoded password
 user_states = {} # user states
 convo_history_list_guest = [] # convo history list for guest users
 previous_intention = "" # user intention
+session_id = "" # session id    
 
 # INITIALISATION
 # Authenticating model
@@ -127,7 +128,7 @@ def chat():
     # If the user is prompted to enter a password
     if user_states.get("password_mode"):
         if user_input == "pw123":  # Hardcoded password check
-            user_states["session_id"] = str(uuid4())  # Generate a unique session ID
+              # Start a new session for the user
             user_states.pop("password_mode", None)  # Remove password mode flag
             return jsonify({'response': 'Password validated. You are now logged in. You may enter /logout to exit. Please enter your query.'})
         else:
@@ -175,19 +176,18 @@ def chat():
         if user_id in valid_user_ids:
             # Valid user ID, store it and initialize a session
             user_states["user_id"] = user_id  # Save the user ID
-            user_states["session_id"] = str(uuid4())  # Generate a unique session ID
             user_states.pop("login_mode", None)  # Remove login mode flag
-
-            start_new_session(user_id, user_states["session_id"])  # Start a new session for the user
+            print(session_id)
+            start_new_session(user_id, session_id)  # Start a new session for the user
             print("New Session started, check mongodb")
             return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
 
-        return jsonify({'response': bot_response})
 
     # Get user state to check if ID has already been provided
     user_id = user_states.get("user_id")
+    session_id = user_states.get("session_id")
 
     # If user ID is not set, expect user to input the ID or choose guest mode
     if not user_id:
@@ -209,23 +209,28 @@ def chat():
 
             # Valid user ID, store it and initialize a session
             user_states["user_id"] = user_id  # Save the user ID
-            user_states["session_id"] = str(uuid4())  # Generate a unique session ID
             user_states.pop("guest_mode", None)  # Ensure guest mode flag is removed
             user_states["password_mode"] = True  # Set password mode flag
-            start_new_session(user_id, user_states["session_id"])
-            print("New session started, check mongodb")
+            user_states["session_id"] = str(uuid4())  # Generate a unique session ID
+            print(user_states["session_id"])
+            session_id = user_states["session_id"]
+            print(session_id)
+            start_new_session(user_id, session_id)
+            print("New session started, check mongodb line 219")
             return jsonify({'response': 'User ID validated. Please enter your password.'})
 
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
 
     # Getting information from the user
-    previous_intention = get_past_conversations_users(user_id, user_states["session_id"])       
+    print(session_id)
+    previous_intention = get_past_conversations_users(user_id, session_id)       
     user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
     print(user_intention)
     # Getting the bot response
+
     bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id)
-    add_chat_history_user(user_states["session_id"], user_input,user_intention, bot_response)
+    add_chat_history_user(session_id, user_input,user_intention, bot_response)
     print("Chat history updated successfully")
     
     return jsonify({'response': bot_response})
