@@ -212,10 +212,9 @@ def chat():
             user_states["session_id"] = str(uuid4())  # Generate a unique session ID
             user_states.pop("guest_mode", None)  # Ensure guest mode flag is removed
             user_states["password_mode"] = True  # Set password mode flag
-            return jsonify({'response': 'User ID validated. Please enter your password.'})
             start_new_session(user_id, user_states["session_id"])
-
-            return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
+            print("New session started, check mongodb")
+            return jsonify({'response': 'User ID validated. Please enter your password.'})
 
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
