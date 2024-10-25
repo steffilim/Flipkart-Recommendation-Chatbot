@@ -114,6 +114,7 @@ def chat():
     if user_states.get("login_mode"):
         try:
             user_id = str(user_input)
+            print(user_id)
         except ValueError:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
 
@@ -129,6 +130,7 @@ def chat():
     if user_states.get("password_mode"):
         if user_input == "pw123":  # Hardcoded password check
               # Start a new session for the user
+            print("line 132")
             user_states.pop("password_mode", None)  # Remove password mode flag
             return jsonify({'response': 'Password validated. You are now logged in. You may enter /logout to exit. Please enter your query.'})
         else:
@@ -179,7 +181,7 @@ def chat():
             user_states.pop("login_mode", None)  # Remove login mode flag
             print(session_id)
             start_new_session(user_id, session_id)  # Start a new session for the user
-            print("New Session started, check mongodb")
+            print("New Session started, check mongodb line 182")
             return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
@@ -216,7 +218,7 @@ def chat():
             session_id = user_states["session_id"]
             print(session_id)
             start_new_session(user_id, session_id)
-            print("New session started, check mongodb line 219")
+            print("line 219")
             return jsonify({'response': 'User ID validated. Please enter your password.'})
 
         else:
