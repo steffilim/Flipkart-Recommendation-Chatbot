@@ -20,22 +20,37 @@ flipkart = client[FLIPKART]
 product_data_file = flipkart.catalogue
 lsa_matrix_file = 'lsa_matrix.joblib'
 
-
-"""df = load_product_data(product_data_file)
-lsa_matrix = get_lsa_matrix(df, lsa_matrix_file)
-
-orderdata = pd.read_csv("newData/synthetic_v2.csv")
-orderdata = orderdata.rename(columns={'Product ID': 'uniq_id'})
-orderdata"""
-
-def hybrid_recommendations(catalogue, item, user_id, orderdata,lsa_matrix, content_weight, collaborative_weight, n_recommendations=10):
+def hybrid_recommendations(catalogue, item, user_id, orderdata, lsa_matrix, content_weight, collaborative_weight, 
+                           brand_preference=None, specs_preference=None, n_recommendations=10):
     #lsa_matrix = get_lsa_matrix(catalogue, lsa_matrix_file)
 
     def fetch_content_recommendation():
-        return get_recommendations(item, catalogue, lsa_matrix)
+        content_recommendations = get_recommendations(item, catalogue, lsa_matrix)
+
+        # Apply brand and specification filters to content-based recommendations
+        if brand_preference:
+            content_recommendations = [rec for rec in content_recommendations 
+                                       if brand_preference.lower() in rec['product_name'].lower()]
+        if specs_preference:
+            content_recommendations = [rec for rec in content_recommendations 
+                                       if specs_preference.lower() in rec['description'].lower()]
+
+        return content_recommendations
     
     def fetch_collaborative_recommendation():
-        return svd_recommend_surprise(catalogue, user_id, orderdata, n_recommendations)
+        collaborative_recommendations = svd_recommend_surprise(catalogue, user_id, orderdata, n_recommendations)
+
+        # Apply brand and specification filters to collaborative recommendations
+        if brand_preference:
+            collaborative_recommendations = collaborative_recommendations[
+                collaborative_recommendations['product_name'].str.contains(brand_preference, case=False)
+            ]
+        if specs_preference:
+            collaborative_recommendations = collaborative_recommendations[
+                collaborative_recommendations['description'].str.contains(specs_preference, case=False)
+            ]
+
+        return collaborative_recommendations
     
     with concurrent.futures.ThreadPoolExecutor() as executor:
         content_recommendations_future = executor.submit(fetch_content_recommendation)
