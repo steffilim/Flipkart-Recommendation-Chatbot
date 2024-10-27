@@ -83,12 +83,17 @@ import re
 from recSys.weighted import hybrid_recommendations
 
 # Getting user intention
-def getting_user_intention(user_input, intention_chain, previous_intention):
-    user_intention = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention})
+def getting_user_intention(user_input, intention_chain, previous_intention, brand_preference=None, specs_preference=None):
+    user_intention = intention_chain.invoke({
+        "input": user_input, 
+        "previous_intention": previous_intention,
+        "brand": brand_preference or "None",
+        "specs": specs_preference or "None"
+    })
     return user_intention
   
 # Getting bot response
-def getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id):
+def getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id, brand_preference=None, specs_preference=None):
     item_availability_match = re.search(r'Available in Store:\s*(.+)', user_intention)
     item_availability = item_availability_match.group(1)
 
@@ -104,15 +109,16 @@ def getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id):
         n_recommendations = 5  # number of recommendations to output (adjustable later)
 
         recommendations = hybrid_recommendations(
-            catalogue = db.catalogue,    
-            item = item, 
-            user_id = user_id,  
-            orderdata = db.users, 
-            lsa_matrix = lsa_matrix,
-            content_weight = 0.6, 
-            collaborative_weight = 0.4,
-            n_recommendations = n_recommendations, 
-            
+            catalogue=db.catalogue,
+            item=item,
+            user_id=user_id,
+            orderdata=db.users,
+            lsa_matrix=lsa_matrix,
+            content_weight=0.6,
+            collaborative_weight=0.4,
+            brand_preference=brand_preference,
+            specs_preference=specs_preference,
+            n_recommendations=n_recommendations
         )
 
         recommendations_text = "\n".join(
