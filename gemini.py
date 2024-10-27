@@ -99,33 +99,37 @@ def chat():
 
     # If user selects guest mode
     if not user_id and user_input.lower() == "guest":
-        user_states["guest_mode"] = True  # Set guest mode flag
-        query_steps[user_id]["step"] = 1  # Move to brand question
-        query_steps[user_id]["initial_query"] = user_input  # Store the initial query
+        user_states["guest_mode"] = True
+        query_steps[user_id]["step"] = 1
+        query_steps[user_id]["initial_query"] = user_input
         return jsonify({'response': 'Welcome to Guest Mode. Let\'s get started! What brands are you interested in?'})
 
     # Guest mode handling
     if guest_mode:
         if user_input == "/login":
-            user_states.pop("guest_mode", None)  # Remove guest mode flag
-            user_states["login_mode"] = True  # Set login mode flag
+            user_states.pop("guest_mode", None)
+            user_states["login_mode"] = True
             return jsonify({'response': 'Please enter your user ID to log in.'})
 
-        # Handle multi-step interaction in guest mode
-        previous_intention = get_past_conversation_guest(convo_history_list_guest)
+        # Check if the user input is product-related
+        is_product_related = is_valid_input(user_input, valid_user_ids, keywords)
 
-        # If it's the first step, store the initial user query
         if current_step == 0:
-            query_steps[user_id]["initial_query"] = user_input  # Store the initial query
-            query_steps[user_id]["step"] = 1  # Move to brand question
-            return jsonify({'response': 'What brands are you interested in?'})
+            if is_product_related:
+                query_steps[user_id]["initial_query"] = user_input
+                query_steps[user_id]["step"] = 1
+                return jsonify({'response': 'What brands are you interested in?'})
+            else:
+                # Handle non-product-related inputs at step 0
+                return jsonify({'response': "I'm here to assist with product recommendations. How can I help with your search today?"})
+
         elif current_step == 1:
             query_steps[user_id]["brand"] = user_input
-            query_steps[user_id]["step"] = 2  # Move to specification question
+            query_steps[user_id]["step"] = 2
             return jsonify({'response': 'Any specific specifications or features you are looking for?'})
         elif current_step == 2:
             query_steps[user_id]["specs"] = user_input
-            query_steps[user_id]["step"] = 3  # Ready to provide recommendations
+            query_steps[user_id]["step"] = 3
 
             # Extract brand and specs preferences
             initial_query = query_steps[user_id]["initial_query"]
@@ -162,45 +166,42 @@ def chat():
     if not user_id:
         if user_input in valid_user_ids:
             user_states["user_id"] = user_input
-            user_states["password_mode"] = True  # Set password mode flag
-            user_states["session_id"] = str(uuid4())  # Create session ID
+            user_states["password_mode"] = True
+            user_states["session_id"] = str(uuid4())
             return jsonify({'response': 'User ID validated. Please enter your password.'})
         
         return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID or type "guest" to continue without logging in.'})
 
     # Check if the user is prompted to enter a password
     if user_states.get("password_mode"):
-        if user_input == password:  # Check the hardcoded password
-            user_states.pop("password_mode", None)  # Remove password mode flag
-            return jsonify({'response': 'Password validated. You are now logged in. You may enter /logout to exit. Please enter your query.'})
+        if user_input == password:
+            user_states.pop("password_mode", None)
+            return jsonify({'response': 'Password validated. How can I assist you with product recommendations today?'})
         else:
             return jsonify({'response': 'Incorrect password. Please try again.'})
 
-    # Validate user input only when not in login or password mode
-    if not is_valid_input(user_input, valid_user_ids, keywords):
-        return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
-
-    # Handle logout
-    if user_input == "/logout":
-        user_states.pop("user_id", None)  # Remove user ID
-        user_states.pop("session_id", None)  # Remove session ID
-        user_states["guest_mode"] = True  # Set guest mode flag
-        return jsonify({'response': 'You have logged out and are now in guest mode. You may enter /login to log in again.'})
+    # Check if the user input is product-related
+    is_product_related = is_valid_input(user_input, valid_user_ids, keywords)
 
     # Handle logged-in users
     previous_intention = get_past_conversations_users(user_id, user_states.get("session_id"))
 
     if current_step == 0:
-        query_steps[user_id]["initial_query"] = user_input  # Store the initial query
-        query_steps[user_id]["step"] = 1  # Move to brand question
-        return jsonify({'response': 'What brands are you interested in?'})
+        if is_product_related:
+            query_steps[user_id]["initial_query"] = user_input
+            query_steps[user_id]["step"] = 1
+            return jsonify({'response': 'What brands are you interested in?'})
+        else:
+            # Handle non-product-related inputs at step 0
+            return jsonify({'response': "I'm here to assist with product recommendations. How can I help with your search today?"})
+
     elif current_step == 1:
         query_steps[user_id]["brand"] = user_input
-        query_steps[user_id]["step"] = 2  # Move to specification question
+        query_steps[user_id]["step"] = 2
         return jsonify({'response': 'Any specific specifications or features you are looking for?'})
     elif current_step == 2:
         query_steps[user_id]["specs"] = user_input
-        query_steps[user_id]["step"] = 3  # Ready to provide recommendations
+        query_steps[user_id]["step"] = 3
 
         # Extract brand and specs preferences
         initial_query = query_steps[user_id]["initial_query"]
@@ -246,7 +247,6 @@ def chat():
     add_chat_history_user(user_states.get("session_id"), user_input, user_intention, bot_response)
 
     return jsonify({'response': bot_response})
-
 
 if __name__ == '__main__':
     app.run(debug=True)
