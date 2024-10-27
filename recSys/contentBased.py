@@ -84,6 +84,7 @@ def get_recommendations(user_product, df, lsa_matrix):
     print(recommendations)
     return recommendations
 
+### example
 product_data = load_product_data(product_data_file)
 lsa_matrix = get_lsa_matrix(product_data, lsa_matrix_file)
 
