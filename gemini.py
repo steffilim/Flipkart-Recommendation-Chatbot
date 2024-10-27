@@ -93,7 +93,7 @@ def chat():
 
     # Initialize multi-step interaction state for new sessions
     if user_id not in query_steps:
-        query_steps[user_id] = {"step": 0, "brand": None, "specs": None}
+        query_steps[user_id] = {"step": 0, "initial_query": None, "brand": None, "specs": None}
 
     current_step = query_steps[user_id]["step"]
 
@@ -101,6 +101,7 @@ def chat():
     if not user_id and user_input.lower() == "guest":
         user_states["guest_mode"] = True  # Set guest mode flag
         query_steps[user_id]["step"] = 1  # Move to brand question
+        query_steps[user_id]["initial_query"] = user_input  # Store the initial query
         return jsonify({'response': 'Welcome to Guest Mode. Let\'s get started! What brands are you interested in?'})
 
     # Guest mode handling
@@ -109,12 +110,13 @@ def chat():
             user_states.pop("guest_mode", None)  # Remove guest mode flag
             user_states["login_mode"] = True  # Set login mode flag
             return jsonify({'response': 'Please enter your user ID to log in.'})
-        
+
         # Handle multi-step interaction in guest mode
         previous_intention = get_past_conversation_guest(convo_history_list_guest)
-        user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
 
+        # If it's the first step, store the initial user query
         if current_step == 0:
+            query_steps[user_id]["initial_query"] = user_input  # Store the initial query
             query_steps[user_id]["step"] = 1  # Move to brand question
             return jsonify({'response': 'What brands are you interested in?'})
         elif current_step == 1:
@@ -125,21 +127,35 @@ def chat():
             query_steps[user_id]["specs"] = user_input
             query_steps[user_id]["step"] = 3  # Ready to provide recommendations
 
-            # Generate recommendations based on collected info
+            # Extract brand and specs preferences
+            initial_query = query_steps[user_id]["initial_query"]
             brand_preference = query_steps[user_id]["brand"]
             specs_preference = query_steps[user_id]["specs"]
 
+            # Call getting_user_intention with separate parameters
             user_intention = getting_user_intention(
-                f"Brand: {brand_preference}, Specs: {specs_preference}",
+                initial_query,
                 intention_chain,
-                previous_intention
+                previous_intention,
+                brand_preference=brand_preference,
+                specs_preference=specs_preference
             )
 
-            bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id=None)
-            add_chat_history_guest(user_input, bot_response, convo_history_list_guest)
+            # Call getting_bot_response with separate parameters
+            bot_response = getting_bot_response(
+                user_intention,
+                chain2,
+                db,
+                lsa_matrix,
+                user_id=None,
+                brand_preference=brand_preference,
+                specs_preference=specs_preference
+            )
+
+            add_chat_history_guest(initial_query, bot_response, convo_history_list_guest)
 
             # Reset multi-step interaction for the next query
-            query_steps[user_id] = {"step": 0, "brand": None, "specs": None}
+            query_steps[user_id] = {"step": 0, "initial_query": None, "brand": None, "specs": None}
             return jsonify({'response': bot_response})
 
     # Handle initial login or ID input
@@ -171,11 +187,11 @@ def chat():
         user_states["guest_mode"] = True  # Set guest mode flag
         return jsonify({'response': 'You have logged out and are now in guest mode. You may enter /login to log in again.'})
 
-    # Handle bot response for logged-in users
-    previous_intention = get_past_conversations_users(user_id, user_states.get("session_id"))       
-    user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
+    # Handle logged-in users
+    previous_intention = get_past_conversations_users(user_id, user_states.get("session_id"))
 
     if current_step == 0:
+        query_steps[user_id]["initial_query"] = user_input  # Store the initial query
         query_steps[user_id]["step"] = 1  # Move to brand question
         return jsonify({'response': 'What brands are you interested in?'})
     elif current_step == 1:
@@ -186,27 +202,51 @@ def chat():
         query_steps[user_id]["specs"] = user_input
         query_steps[user_id]["step"] = 3  # Ready to provide recommendations
 
-        # Generate recommendations based on collected info
+        # Extract brand and specs preferences
+        initial_query = query_steps[user_id]["initial_query"]
         brand_preference = query_steps[user_id]["brand"]
         specs_preference = query_steps[user_id]["specs"]
 
+        # Call getting_user_intention with separate parameters
         user_intention = getting_user_intention(
-            f"Brand: {brand_preference}, Specs: {specs_preference}",
+            initial_query,
             intention_chain,
-            previous_intention
+            previous_intention,
+            brand_preference=brand_preference,
+            specs_preference=specs_preference
         )
 
-        bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id)
-        add_chat_history_user(user_states.get("session_id"), user_input, user_intention, bot_response)
+        # Call getting_bot_response with separate parameters
+        bot_response = getting_bot_response(
+            user_intention,
+            chain2,
+            db,
+            lsa_matrix,
+            user_id,
+            brand_preference=brand_preference,
+            specs_preference=specs_preference
+        )
+
+        add_chat_history_user(user_states.get("session_id"), initial_query, user_intention, bot_response)
 
         # Reset multi-step interaction for the next query
-        query_steps[user_id] = {"step": 0, "brand": None, "specs": None}
+        query_steps[user_id] = {"step": 0, "initial_query": None, "brand": None, "specs": None}
         return jsonify({'response': bot_response})
 
-    bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id)
+    # Continue with normal bot response
+    bot_response = getting_bot_response(
+        user_intention,
+        chain2,
+        db,
+        lsa_matrix,
+        user_id,
+        brand_preference=None,
+        specs_preference=None
+    )
     add_chat_history_user(user_states.get("session_id"), user_input, user_intention, bot_response)
-    
+
     return jsonify({'response': bot_response})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
