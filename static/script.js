@@ -1,14 +1,5 @@
 // script.js
 
-let loginStep = 0;  // Step to track login flow (0 - ask for userID, 1 - ask for password, 2 - logged in)
-let userID = '';
-let userPassword = '';
-let isLoggedIn = false;
-
-// Initialize the bot by asking for user ID
-window.onload = function() {
-    botSendMessage("Please enter your User ID to login:");
-}
 
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 document.getElementById('user-input').addEventListener('keypress', function (e) {
@@ -17,95 +8,83 @@ document.getElementById('user-input').addEventListener('keypress', function (e) 
     }
 });
 
-    function sendMessage() {
-        let userInput = document.getElementById('user-input').value;
-        if (userInput === '') return;
+let isPasswordMode = false;
 
-        appendMessage(userInput, 'user-message', 'User');
+function sendMessage() {
+    let userInput = document.getElementById('user-input').value;
+    if (userInput === '') return;
 
-        const userId = 'user123';  // Replace with the actual user ID logic
+    // Mask the user input if in password mode
+    let displayInput = isPasswordMode ? '*'.repeat(userInput.length) : userInput;
 
-        // Send the user input to the backend for processing
-        fetch('/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ user_id: userId, message: userInput }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            botSendMessage(data.response);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+    appendMessage(displayInput, 'user-message', 'User');
 
-        document.getElementById('user-input').value = '';
-    }
-
-    function handleLoginFlow(userInput) {
-        if (loginStep === 0) {
-            userID = userInput;
-            botSendMessage("Please enter your password:");
-            loginStep = 1;
-        } else if (loginStep === 1) {
-            userPassword = userInput;
-            validateLogin(userID, userPassword);
-        }
-    }
-
-    function validateLogin(userID, password) {
-        // Simulate login validation
-        if (userID === 'user123' && password === 'pass123') {
-            isLoggedIn = true;
-            botSendMessage("Login successful! How can I assist you today?");
+    // Send the user input to the backend for processing
+    fetch('/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: userInput }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Check if the response indicates that we are still in password mode
+        if (data.response.includes('Please enter your password.') || data.response.includes('Incorrect password.')) {
+            document.getElementById('user-input').type = 'password';  // Ensure input is masked
+            isPasswordMode = true;  // Keep password mode active
         } else {
-            botSendMessage("Invalid login credentials. Please enter your User ID to try again:");
-            loginStep = 0; // Reset login process
-        }       
-    }
-
-    function appendMessage(message, className, sender) {
-        let chatLog = document.getElementById('chat-log');
-    
-        // Create a container for the message and label
-        let messageContainer = document.createElement('div');
-        messageContainer.classList.add('message-container');
-    
-        // Add the user-container class for user messages
-        if (sender === 'User') {
-            messageContainer.classList.add('user-container');
+            document.getElementById('user-input').type = 'text';  // Unmask input field
+            isPasswordMode = false;  // Reset password mode flag
         }
-    
-        // Add the label (user or bot)
-        let label = document.createElement('span');
-        label.classList.add('label');
-        label.textContent = sender;
-        messageContainer.appendChild(label);
-    
-        // Add the message bubble wrapped in a <p> tag
-        let messageElement = document.createElement('p');
-        messageElement.classList.add(className);
-        messageElement.textContent = message;
-        messageContainer.appendChild(messageElement);
-    
-        chatLog.appendChild(messageContainer);
-    
-        // Ensure the chat scrolls to the bottom after appending a new message
-        setTimeout(() => {
-            chatLog.scrollTop = chatLog.scrollHeight;
-        }, 100); // Small delay to ensure the DOM is updated
-    }    
+        botSendMessage(data.response);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
 
-    function botSendMessage(message) {
-        appendMessage(message, 'bot-message', 'Bot');
+    document.getElementById('user-input').value = '';
+}
+
+function appendMessage(message, className, sender) {
+    let chatLog = document.getElementById('chat-log');
+
+    // Create a container for the message and label
+    let messageContainer = document.createElement('div');
+    messageContainer.classList.add('message-container');
+
+    // Add the user-container class for user messages
+    if (sender === 'User') {
+        messageContainer.classList.add('user-container');
     }
 
-    // Toggle Chat Functionality
-    document.getElementById('chat-header').addEventListener('click', function () {
-        let chatContainer = document.getElementById('chat-container');
-        let toggleIcon = document.getElementById('toggle-chat');
+    // Add the label (user or bot)
+    let label = document.createElement('span');
+    label.classList.add('label');
+    label.textContent = sender;
+    messageContainer.appendChild(label);
 
-        chatContainer.classList.toggle('folded');
-    });
+    // Add the message bubble wrapped in a <p> tag
+    let messageElement = document.createElement('p');
+    messageElement.classList.add(className);
+    messageElement.textContent = message;
+    messageContainer.appendChild(messageElement);
+
+    chatLog.appendChild(messageContainer);
+
+    // Ensure the chat scrolls to the bottom after appending a new message
+    setTimeout(() => {
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }, 100); // Small delay to ensure the DOM is updated
+}
+
+function botSendMessage(message) {
+    appendMessage(message, 'bot-message', 'Flippey');
+}
+
+// Toggle Chat Functionality
+document.getElementById('chat-header').addEventListener('click', function () {
+    let chatContainer = document.getElementById('chat-container');
+
+    chatContainer.classList.toggle('folded');
+});

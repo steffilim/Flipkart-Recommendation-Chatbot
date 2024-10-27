@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import random
+from scipy.stats import truncnorm
 
 # Load your dataset (replace 'your_dataset.csv' with the actual dataset file path)
 df = pd.read_csv('newData/flipkart_cleaned.csv')
@@ -9,14 +10,27 @@ df = pd.read_csv('newData/flipkart_cleaned.csv')
 num_users = 10000  # You can change this number to increase or decrease users
 num_orders = 50000  # You can change this number to increase or decrease orders
 
+def generate_truncated_normal(mean, std_dev, lower_bound, upper_bound, size):
+    lower_limit = (lower_bound - mean) / std_dev
+    upper_limit = (upper_bound - mean) / std_dev
+    return truncnorm.rvs(lower_limit, upper_limit, loc=mean, scale=std_dev, size=size).astype(int)
+
+
+age_mean = 40  # Average age of users
+age_std_dev = 12  # Standard deviation for age
+
+income_mean = 80000  # Average income of users
+income_std_dev = 30000  # Standard deviation for income
+
+user_ages = generate_truncated_normal(age_mean, age_std_dev, 18, 70, num_users)
+user_incomes = generate_truncated_normal(income_mean, income_std_dev, 30000, 200000, num_users)
+
 # Generate user IDs
 user_ids = [f'U{str(i).zfill(5)}' for i in range(1, num_users + 1)]
 
 # Generate synthetic user data
-user_ages = np.random.randint(18, 70, size=num_users)
 occupations = ["Engineer", "Doctor", "Artist", "Teacher", "Student", "Lawyer", "Accountant", "Scientist", "Manager"]
 user_occupations = np.random.choice(occupations, size=num_users)
-user_incomes = np.random.randint(30000, 200000, size=num_users)
 interests = ["Electronics", "Fashion", "Books", "Sports", "Music", "Travel", "Cooking", "Fitness"]
 user_interests = [random.sample(interests, k=random.randint(1, 3)) for _ in range(num_users)]
 ethnicities = ["Asian", "Caucasian", "Hispanic", "African American", "Other"]
