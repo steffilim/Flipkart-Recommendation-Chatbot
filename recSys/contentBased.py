@@ -15,118 +15,104 @@ import torch
 
 # lsa_matrix = load(lsa_matrix_file)
 
-'''
+''' Load Environment Variables '''
 load_dotenv()
 MONGODB_URI = os.getenv("MONGODB_URI")
 FLIPKART = os.getenv("FLIPKART")
 
 client = pymongo.MongoClient(MONGODB_URI)
 flipkart = client[FLIPKART]
-collection = flipkart["catalogue"]
+product_collection = flipkart["catalogue"]
+embeddings_collection = flipkart["productEmbeddings"]
 
-# Step 2: Retrieve data from the collection
-flipkart_data = collection.find()  # Fetch all documents in the collection
+# print(client.list_database_names())  # Lists all databases
+# print(flipkart.list_collection_names())  # Lists all collections in the flipkart database
 
-# Step 3: Convert the MongoDB cursor to a list of dictionaries
-flipkart_list = list(flipkart_data)  # Converts the cursor to a list
-
-# Step 4: Create a DataFrame from the list of dictionaries
-df = pd.DataFrame(flipkart_list)
-# df = pd.DataFrame(flipkart)
-# df.to_csv("newData/flipkart_cleaned.csv", index=False)
-'''
-
-product_data_file = flipkart.catalogue
-lsa_matrix_file = 'lsa_matrix.joblib'
+''' Preprocessing the Product Database '''
+# Load the Sentence Transformer model
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
 # Function to load and preprocess the data
-def load_product_data(product_data_file):
-    cursor = product_data_file.find({})
+# Returns: Dataframe of entire product database from MongoDB 
+def load_product_data():
+    cursor = product_collection.find({})
     catalogue = pd.DataFrame(list(cursor))  
-    # print(catalogue)
-    ''' 
-    catalogue['content'] = (catalogue['product_name'].astype(str) + ' ' +
-                     catalogue['product_category_tree'].astype(str) + ' ' +
-                     catalogue['retail_price'].astype(str) + ' ' +
-                     catalogue['discounted_price'].astype(str) + ' ' +
-                     catalogue['discount'].astype(str) + ' ' +
-                     catalogue['description'].astype(str) + ' ' +
-                     catalogue['overall_rating'].astype(str) + ' ' +
-                     catalogue['brand'].astype(str) + ' ' +
-                     catalogue['product_specifications'].astype(str))
-    
-    catalogue['content'] = catalogue['content'].fillna('')  # Ensure there are no NaN values which can cause issues
-    '''
-    
     print("Successfully loaded DataFrame from MongoDB")
     return catalogue
 
-# df = load_product_data(flipkart.catalogue)
-# Save the DataFrame to a CSV file
-# df.to_csv("newData/flipkart_cleaned.csv", index=False)
-
-# Function to Filter Products based on keywords - for features that have a 'hard' limit
-def filter_products(database, product_name=None, price_limit=None, brand=None, overall_rating=None):
-   
-    filtered_df = database.copy()
-
-    # Filter by product name
-    if product_name and isinstance(product_name, str) and product_name.strip():
-        # Check for NaN values in the 'product_name' column and filter
-        filtered_df = filtered_df[filtered_df['product_name'].notna() & 
-                                   filtered_df['product_name'].str.contains(product_name, case=False)]
-        
-    # Filter by retail price
-    if price_limit is not None:  # Check if price_limit is explicitly set
-        filtered_df = filtered_df[filtered_df['retail_price'].notna() & 
-                                   (filtered_df['retail_price'] <= price_limit)]
-        
-    # Filter by brand
-    if brand and isinstance(brand, str) and brand.strip():  # Check if brand is a non-empty string
-        # Check for NaN values in the 'brand' column and filter
-        filtered_df = filtered_df[filtered_df['brand'].notna() & 
-                                   filtered_df['brand'].str.contains(brand, case=False)]
- 
-    # Filter by minimum overall rating
-    if overall_rating is not None:  # Check if overall_rating is explicitly set
-        filtered_df = filtered_df[filtered_df['overall_rating'].notna() & 
-                                   (filtered_df['overall_rating'] >= overall_rating)]
-
-    return filtered_df
-
-# Example extracted information from user input
-extracted_info = {
-    "product_name": "cycling shorts",
-    "price_limit": 3000,
-    "brand": "alisha",
-    "overall_rating": 0,
-}
-
-'''
-# Apply filters based on extracted information
-result = filter_products(database, **extracted_info)
-print(result)
-'''
-
-# Load the Sentence Transformer model
-model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
-# model.save("sentenceTransformer")
-
-# precompute product embeddings
+# Function to compute product embeddings
 def precompute_product_embeddings(df):
     product_descriptions = df['content'].tolist()
     product_embeddings = model.encode(product_descriptions, convert_to_tensor=True)
     return product_embeddings
 
-def store_embeddings(product_embeddings):
-    np.save("product_embeddings.npy", product_embeddings.cpu().numpy())
+# Function to precompute product embeddings and store in MongoDB
+# Returns: product_embeddings
+def precompute_and_store_product_embeddings(df):
+    product_descriptions = df['content'].tolist()
+    product_embeddings = model.encode(product_descriptions, convert_to_tensor=True)
 
-def load_embeddings(product_embeddings_file):
-    product_embeddings_file = torch.tensor(np.load("product_embeddings.npy"))
+    try:
+        # Store embeddings in MongoDB
+        embeddings_data = [
+        {"product_id": row["uniq_id"], "embedding": embedding.cpu().numpy().tolist()}
+        for row, embedding in zip(df.to_dict(orient="records"), product_embeddings)
+    ]
+        result = embeddings_collection.insert_many(embeddings_data)
+        print(f"Successfully stored {len(result.inserted_ids)} embeddings in MongoDB")
 
-# product_embeddings = precompute_product_embeddings(df)
+    except pymongo.errors.PyMongoError as e:
+        print("Error while inserting embeddings:", e)
+    
+    return product_embeddings
 
+# Loading all embeddings from MongoDB
+# Returns: Embeddings
+def load_embeddings_from_mongo():
+    embeddings_data = embeddings_collection.find({})
+    embeddings = torch.tensor([entry["embedding"] for entry in embeddings_data])
+    return embeddings
+
+# Load embeddings only for filtered products
+# Returns: Embeddings
+def load_filtered_embeddings_from_mongo(filtered_ids):
+    # Use product IDs to load embeddings for only filtered products
+    embeddings_data = embeddings_collection.find({"product_id": {"$in": filtered_ids}})
+    embeddings = torch.tensor([entry["embedding"] for entry in embeddings_data if entry["product_id"] in filtered_ids])
+
+    return embeddings
+
+''' Content Based Recommender '''
+# Function to query MongoDB with keywords
+# Returns: Dataframe of filtered products
+def query_catalogue_with_keywords(product_name=None, price_limit=None, brand=None, overall_rating=None):
+    query = {}
+    
+    # Product name filter
+    if product_name:
+        query['product_name'] = {"$regex": product_name, "$options": "i"}
+        
+    # Price limit filter
+    if price_limit is not None:
+        query['retail_price'] = {"$lte": price_limit}
+        
+    # Brand filter
+    if brand:
+        query['brand'] = {"$regex": brand, "$options": "i"}
+    
+    # Overall rating filter
+    if overall_rating is not None:
+        query['overall_rating'] = {"$gte": overall_rating}
+    
+    # Execute query
+    filtered_data = pd.DataFrame(list(product_collection.find(query)))
+    print("Successfully filtered data from MongoDB")
+    return filtered_data
+
+# Recommendation function
+# Returns top 10 products
 def recommend_top_products(user_query, product_embeddings, df, top_n=20):
+    
     # Generate embedding for the user query
     query_embedding = model.encode(user_query, convert_to_tensor=True)
 
@@ -138,100 +124,68 @@ def recommend_top_products(user_query, product_embeddings, df, top_n=20):
     
     # Get top N most similar products
     top_indices = similarities.argsort(descending=True)[:top_n]
+
+    # Handle case where no valid recommendations are found
+    if len(top_indices) == 0:
+        return {"message": "No recommendations found."}
+    
+    top_products = df.iloc[top_indices]
+
     top_products = df.iloc[top_indices]
     
     return top_products
 
+''' Precomputing Example '''
 '''
-# Generate precomputed embeddings
-product_embeddings = precompute_product_embeddings(filtered_df)
+# Load product data
+start_time = time.time()
 
-# User query example
-user_query = "I want shorts for cycling"
+load_start_time = time.time()
+df = load_product_data()
+print(f"Time taken to load data: {time.time() - load_start_time:.2f} seconds")
 
-# Call the recommendation function with precomputed embeddings
-top_recommendations = recommend_top_products(user_query, product_embeddings, filtered_df, top_n=3)
+# Precompute and store all embeddings
+store_embeddings_start_time = time.time()
+product_embeddings = precompute_and_store_product_embeddings(df)
+print(f"Time taken to store data: {time.time() - store_embeddings_start_time:.2f} seconds")
+'''
 
-# Display the recommended products
+''' Recommender Example '''
+start_time = time.time()
+
+
+# User Query
+user_query = "i want a red sofa"
+
+# Filtering Data
+filter_start_time = time.time()
+filtered_df = query_catalogue_with_keywords(product_name='sofa')
+print(f"Time taken for filtering data: {time.time() - filter_start_time:.2f} seconds")
+
+if len(filtered_df) > 1000:
+    filtered_df = filtered_df.sample(n=1000, random_state=42).reset_index(drop=True)
+
+# Extract the filtered product IDs
+id_extraction_start_time = time.time()
+filtered_product_ids = filtered_df["uniq_id"].astype(str).tolist()
+print(f"Time taken for extracting filtered product IDs: {time.time() - id_extraction_start_time:.2f} seconds")
+
+# Load only the embeddings for the filtered products
+load_embeddings_start_time = time.time()
+filtered_product_embeddings = load_filtered_embeddings_from_mongo(filtered_product_ids)
+print(f"Time taken for loading filtered embeddings: {time.time() - load_embeddings_start_time:.2f} seconds")
+
+# Checks
+print(f"Number of rows in filtered_df: {len(filtered_df)}")
+print(f"Number of embeddings: {filtered_product_embeddings.shape[0]}")
+
+# Get recommendations
+recommendation_start_time = time.time()
+top_recommendations = recommend_top_products(user_query, filtered_product_embeddings, filtered_df)
+print(f"Time taken for generating recommendations: {time.time() - recommendation_start_time:.2f} seconds")
+
 print(top_recommendations[['product_name', 'description']])
-'''
 
-'''
-# Function to calculate or load the LSA matrix
-def get_lsa_matrix(catalogue_df, catalogue_db, lsa_matrix_file):
-    recalculate_lsa = False
-    if os.path.exists(lsa_matrix_file):
-        lsa_matrix_mtime = os.path.getmtime(lsa_matrix_file)
-        print(lsa_matrix_mtime)
 
-        # retrieving the latest modification time from the database
-        latest_update = catalogue_db.find_one(sort=[("modified_time", pymongo.DESCENDING)])['modified_time']
-        catalogue_mtime = latest_update.timestamp()
-        if catalogue_mtime > lsa_matrix_mtime:
-            print("product database changed... recalculating lsa matrix")
-            recalculate_lsa = True
-    else:
-        print("no lsa matrix found... calculating lsa matrix")
-        recalculate_lsa = True
-
-    if recalculate_lsa:
-        print("commencing calculating lsa")
-        vectorizer = CountVectorizer()
-        bow = vectorizer.fit_transform(catalogue_df['content'])
-
-        tfidf_transformer = TfidfTransformer()
-        tfidf = tfidf_transformer.fit_transform(bow)
-
-        lsa = TruncatedSVD(n_components=100, algorithm='arpack')
-        lsa.fit(tfidf)
-        lsa_matrix = lsa.transform(tfidf)
-        dump(lsa_matrix, lsa_matrix_file)
-    else:
-        print("lsa matrix found... loading...")
-        lsa_matrix = load(lsa_matrix_file)
-   #  print("LSA Matrix: ", lsa_matrix)
-    return lsa_matrix
-
-# Function to get recommendations
-def get_recommendations(item, catalogue, lsa_matrix):
-    print("content")
-    cursor = catalogue.find({})
-    catalogue = pd.DataFrame(list(cursor))  
-    match = process.extractOne(item, catalogue['product_name'])
-    closest_match = match[0]
-    score = match[1]
-
-    if score < 70:
-        return "No close match found"
-    
-    product_index = catalogue[catalogue['product_name'] == closest_match].index[0]
-    similarity_scores = cosine_similarity(lsa_matrix[product_index].reshape(1, -1), lsa_matrix)
-    
-    similar_products = list(enumerate(similarity_scores[0]))
-    sorted_similar_products = sorted(similar_products, key=lambda x: x[1], reverse=True)[1:10]
-
-    recommendations = []
-    for i, score in sorted_similar_products:
-        # recommendations.append(catalogue.loc[i, 'product_name'])
-        product_name = catalogue.loc[i, 'product_name']
-        retail_price = catalogue.loc[i, 'retail_price']
-        description = catalogue.loc[i, 'description']
-        overall_rating = catalogue.loc[i, 'overall_rating']
-        recommendations.append({
-            'product_name': product_name,
-            'retail_price': retail_price,
-            'description': description,
-            'overall_rating': overall_rating,
-            'similarity_score': score
-        })
-    
-    # print(recommendations)
-    return recommendations
-
-### example
-# product_data = load_product_data(product_data_file)
-# lsa_matrix = get_lsa_matrix(product_data, lsa_matrix_file)
-
-#user_product = 'socks'
-#recommendations = get_recommendations(user_product, product_data, lsa_matrix)
-'''
+total_time = time.time() - start_time
+print(f"Total time taken for the example run: {total_time:.2f} seconds")
