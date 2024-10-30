@@ -29,7 +29,7 @@ Step 1. Analyze the user input dictionary and the 'previous_intention' to identi
 Step 2. If any of these keys in the user input dictionary are not specified or have null/empty values:
    - **DO NOT GENERATE ANY PRODUCT RECOMMENDATIONS FIRST!**
    - Ask a follow-up question in a warm and friendly tone to gather all missing information.
-   - Based on user's response to the follow-up question, update the missing components for that item_type in the user input dictionary before proceeding. 
+   - Based on user's response to the follow-up question, update the missing components for that item_type in the user input dictionary then proceed to the next step. 
    
 Step 3. Copy the updated user input dictionary with all details and previous intention into the appropriate sections of the response template:
 
