@@ -28,6 +28,7 @@ Previous Intention: {previous_intention}
 
 2. If any of these keys in the user input dictionary are missing or have null/empty values:
    - **Ask a follow-up question one at a time** in a warm, friendly tone to gather the missing information.
+   - If the user responds with "no preference," "anything," or similar, accept it as valid and do not insist on more specific details. Treat these responses as user does not have a specific preference.
    - Ensure that you update the missing components in the user input dictionary before reassessing. 
    - Do **not generate any product recommendations** until all four components ('item_type', 'max_price', 'brand', 'specifications') are provided.
 
