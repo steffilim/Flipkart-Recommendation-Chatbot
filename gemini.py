@@ -20,7 +20,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session
 from prompt_template import intention_template, refine_template
-from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention, initialising_mongoDB
+from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention, initialising_mongoDB, extract_keywords
 from recSys.contentBased import get_lsa_matrix, load_product_data
 
 
@@ -157,9 +157,11 @@ def chat():
             return jsonify({'response': 'Please enter your user ID to log in.'})
         
         # Get previous conversation and intention in guest mode
-        previous_intention = get_past_conversation_guest(convo_history_list_guest)
-        user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
 
+        previous_intention = get_past_conversation_guest(convo_history_list_guest)
+        #query_keyword = extract_keywords(user_input)
+        user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
+        print(user_intention)
         bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id = None)
         add_chat_history_guest(user_input, bot_response, convo_history_list_guest)
         print(convo_history_list_guest)
@@ -226,7 +228,9 @@ def chat():
 
     # Getting information from the user
     print(session_id)
-    previous_intention = get_past_conversations_users(user_id, session_id)       
+    previous_intention = get_past_conversations_users(user_id, session_id)    
+
+    #query_keyword = extract_keywords(user_input)
     user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
     print(user_intention)
     # Getting the bot response
