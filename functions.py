@@ -98,13 +98,14 @@ def getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id):
     else:
         match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
         item = match.group(1)
+        
 
 
         # calling hybrid_recommendations function 
         n_recommendations = 5  # number of recommendations to output (adjustable later)
 
         recommendations = hybrid_recommendations(
-            catalogue = db.catalogue,    
+            catalogue = db.test_catalogue,    
             item = item, 
             user_id = user_id,  
             orderdata = db.users, 

@@ -58,8 +58,8 @@ def initialise_app():
     print("Database setup successful")
 
     #lsa matrix
-    catalogue_df = load_product_data(db.catalogue)
-    catalogue_db = db.catalogue
+    catalogue_df = load_product_data(db.test_catalogue)
+    catalogue_db = db.test_catalogue
     lsa_matrix_file = 'lsa_matrix.joblib'
     lsa_matrix = get_lsa_matrix(catalogue_df, catalogue_db, lsa_matrix_file)
 
