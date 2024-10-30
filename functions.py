@@ -93,12 +93,12 @@ def getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id):
     item_availability = item_availability_match.group(1)
 
     if item_availability != "Yes.":
-        response = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
+        response = re.search(r'Suggested Actions:\s*(.+)', user_intention, re.DOTALL)
         bot_response = response.group(1).strip()
     else:
-        match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
+        match = re.search(r'Actionable Goal + Specific Details Breakdown:\s*(.+)', user_intention)
         item = match.group(1)
-        
+
 
 
         # calling hybrid_recommendations function 
