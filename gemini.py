@@ -18,8 +18,8 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 
-from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session
-from prompt_template import intention_template, refine_template
+from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, get_past_follow_up_question
+from prompt_template import intention_template, refine_template, intention_template_2
 from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention, initialising_mongoDB, extract_keywords
 from recSys.contentBased import get_lsa_matrix, load_product_data
 
@@ -58,10 +58,10 @@ def initialise_app():
     print("Database setup successful")
 
     #lsa matrix
-    catalogue_df = load_product_data(db.test_catalogue)
-    catalogue_db = db.test_catalogue
-    lsa_matrix_file = 'lsa_matrix.joblib'
-    lsa_matrix = get_lsa_matrix(catalogue_df, catalogue_db, lsa_matrix_file)
+    #catalogue_df = load_product_data(db.catalogue)
+    #catalogue_db = db.catalogue
+    lsa_matrix= 'lsa_matrix.joblib'
+    #lsa_matrix = get_lsa_matrix(catalogue_df, catalogue_db, lsa_matrix_file)
 
     google_api_key = os.getenv("GOOGLE_API_KEY")
     llm = ChatGoogleGenerativeAI(
@@ -78,7 +78,7 @@ def initialise_app():
     chain2 =  refine_prompt | llm | StrOutputParser()
 
     # Create a new chain for intention extraction
-    intention_prompt = ChatPromptTemplate.from_template(intention_template)
+    intention_prompt = ChatPromptTemplate.from_template(intention_template_2)
     intention_chain = intention_prompt | llm | StrOutputParser()
 
 
@@ -227,11 +227,13 @@ def chat():
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
 
     # Getting information from the user
-    print(session_id)
+  
     previous_intention = get_past_conversations_users(user_id, session_id)    
+    #print(previous_intention)
 
-    #query_keyword = extract_keywords(user_input)
-    user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
+    past_follow_up_question = get_past_follow_up_question(user_id, session_id)
+    print(past_follow_up_question)
+    user_intention = getting_user_intention(user_input, intention_chain, previous_intention, past_follow_up_question)
     print(user_intention)
     # Getting the bot response
 

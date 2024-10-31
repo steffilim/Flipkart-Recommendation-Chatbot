@@ -51,6 +51,22 @@ def get_past_conversations_users(user_id,session_id):
 
     return string
 
+def get_past_follow_up_question(user_id, session_id):
+    question = chat_session.find_one({"user_id": user_id, "session_id": session_id})
+    if question is None:
+        return ""
+
+    # Extract the message list
+    past_question = question["message_list"]
+
+    # Check if the message list is not empty
+    if len(past_question) > 0:
+        # Get the latest bot response
+        latest_bot_response = past_question[-1]["bot_response"]
+        return latest_bot_response
+    else:
+        return ""
+
 
 
 """CONVERSATION HISTORY FOR GUEST USERS """
