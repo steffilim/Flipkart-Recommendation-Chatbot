@@ -161,7 +161,7 @@ def chat():
 
         previous_intention = get_past_conversation_guest(convo_history_list_guest)
         #query_keyword = extract_keywords(user_input)
-        user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
+        user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention)
         print(type(user_intention))
         bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id = None)
         add_chat_history_guest(user_input, bot_response, convo_history_list_guest)
@@ -233,11 +233,10 @@ def chat():
     #print(previous_intention)
 
     past_follow_up_question = get_past_follow_up_question(user_id, session_id)
-    print(past_follow_up_question)
     user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_question)
-    print(user_intention)
     user_intention_dictionary = parse_user_intention(user_intention)
-    print(user_intention_dictionary.get("Brand"))
+    print(user_intention_dictionary)
+
 
     # Getting the bot response
 

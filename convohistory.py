@@ -33,7 +33,7 @@ def add_chat_history_user(session_id, user_input, user_intention, bot_response):
     }
 
     # Attempt to update the document in MongoDB
-    result = chat_session.update_one(
+    chat_session.update_one(
         {"session_id": session_id},  # Ensure this is the correct field and type in your MongoDB documents
         {"$push": {"message_list": message_entry}}
     )
@@ -47,7 +47,8 @@ def get_past_conversations_users(user_id,session_id):
     if response is None:
         return ""
     past_convo = response["message_list"]
-    string = " ".join(d['user_input'] for d in past_convo)
+    string = " ".join(d['user_intention'] for d in past_convo)
+
 
     return string
 
