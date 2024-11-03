@@ -74,9 +74,9 @@ def extract_keywords(item):
 
 
 # function to change string to dictionary with chatbot output
-def parse_user_intention(user_intention):
+def parse_user_intention(user_intention_dictionary):
     dictionary = {}
-    lines = user_intention.split("\n")
+    lines = user_intention_dictionary.split("\n")
     current_key = None
 
     for line in lines:
@@ -90,6 +90,7 @@ def parse_user_intention(user_intention):
             dictionary[current_key] += " " + line.strip()
     
     return dictionary
+
 def get_dummy_recommendation(keywords_list): # getting the top 3 products based on keywords
     return "hello"
 
@@ -102,63 +103,57 @@ import re
 from recSys.weighted import hybrid_recommendations
 
 # Getting user intention
-def getting_user_intention(user_input, intention_chain, previous_intention, follow_up_questions):
-    user_intention = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention, "follow_up_questions": follow_up_questions})
-    return user_intention
+def getting_user_intention_dictionary(user_input, intention_chain, previous_intention, follow_up_questions):
+    user_intention_dictionary = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention, "follow_up_questions": follow_up_questions})
+    return user_intention_dictionary
   
 # Getting bot response
-def getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id):
-    item_availability_match = re.search(r'Available in Store:\s*(.+)', user_intention)
-    item_availability = item_availability_match.group(1)
+def getting_bot_response(user_intention_dictionary, chain2, db, lsa_matrix, user_id):
+    item_availability = user_intention_dictionary.get("Available in Store")
     
 
     if item_availability == "No":
         print("Item not available")
-        response = re.search(r'Follow-Up Question:\s*(.+)', user_intention, re.DOTALL)
-        bot_response = response.group(1).strip()
+        bot_response = user_intention_dictionary.get("Follow-Up Question")
 
     else: 
-        to_follow_up_match = re.search(r'To-Follow-Up:\s*(.+)', user_intention)
-        to_follow_up_match = to_follow_up_match.group(1)
+        to_follow_up = user_intention_dictionary.get("To-Follow-Up")
 
-        if to_follow_up_match == "Yes":
+        if to_follow_up == "Yes":
             print("Follow-up questions")
-            response = re.search(r'Follow-Up Question:\s*(.+)', user_intention, re.DOTALL)
-            bot_response = response.group(1).strip()
+            bot_response = user_intention_dictionary.get("Follow-Up Question")
 
         else:
             print("No follow-up questions")
-            match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention, re.DOTALL)
-            item = match.group(1)
+            item = user_intention_dictionary.get("Product Item")
 
 
 
         # calling hybrid_recommendations function 
         #n_recommendations = 5  # number of recommendations to output (adjustable later)
 
-        """recommendations = hybrid_recommendations(
-            catalogue = db.catalogue,    
-            item = item, 
-            user_id = user_id,  
-            orderdata = db.users, 
-            lsa_matrix = lsa_matrix,
-            content_weight = 0.6, 
-            collaborative_weight = 0.4,
-            n_recommendations = n_recommendations, 
-            
-        )"""
+            """recommendations = hybrid_recommendations(
+                catalogue = db.catalogue,    
+                item = item, 
+                user_id = user_id,  
+                orderdata = db.users, 
+                lsa_matrix = lsa_matrix,
+                content_weight = 0.6, 
+                collaborative_weight = 0.4,
+                n_recommendations = n_recommendations, 
+                
+            )"""
+            print(item)
+            recommendations =  get_dummy_recommendation(item)
 
-        recommendations =  get_dummy_recommendation(item)
-
-        """recommendations_text = "\n".join(
-            f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
-            for idx, rec in enumerate(recommendations)
-        )
-"""
-        # Getting follow-up questions from previous LLM
-        questions_match = re.search(r'Follow-Up Question:\s*(.+)', user_intention, re.DOTALL)
-        questions = questions_match.group(1).strip()
-        bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+            """recommendations_text = "\n".join(
+                f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
+                for idx, rec in enumerate(recommendations)
+            )
+    """
+            # Getting follow-up questions from previous LLM
+            questions = user_intention_dictionary.get("Follow-Up Question")
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
 
 
     return bot_response
