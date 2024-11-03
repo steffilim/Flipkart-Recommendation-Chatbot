@@ -74,7 +74,7 @@ User Query: {input}
 Previous Intention: {previous_intention}
 Previous Follow-Up Questions: {follow_up_questions}
 
-Based on the information extracted, fill in the following response template:
+Based on the information extracted, you are to identify these key components and fill the response template below:
 - Available in Store: State whether the item is available ('Yes' or 'No').
    - If 'No', ask: "The item is not currently available. Could you please specify another type of item you are interested in?"
    - If 'Yes', evaluate the completeness of the product details:

@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from collections import Counter
 import re
 import time
+import json
 
 # for LLM
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -20,7 +21,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, get_past_follow_up_question
 from prompt_template import intention_template, refine_template, intention_template_2
-from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention, initialising_mongoDB, extract_keywords
+from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention, initialising_mongoDB, extract_keywords, parse_user_intention
 from recSys.contentBased import get_lsa_matrix, load_product_data
 
 
@@ -161,7 +162,7 @@ def chat():
         previous_intention = get_past_conversation_guest(convo_history_list_guest)
         #query_keyword = extract_keywords(user_input)
         user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
-        print(user_intention)
+        print(type(user_intention))
         bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id = None)
         add_chat_history_guest(user_input, bot_response, convo_history_list_guest)
         print(convo_history_list_guest)
@@ -235,9 +236,12 @@ def chat():
     print(past_follow_up_question)
     user_intention = getting_user_intention(user_input, intention_chain, previous_intention, past_follow_up_question)
     print(user_intention)
+    dictionary = parse_user_intention(user_intention)
+    print(dictionary)
+
     # Getting the bot response
 
-    bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id)
+    bot_response = getting_bot_response(dictionary, chain2, db, lsa_matrix, user_id)
     add_chat_history_user(session_id, user_input,user_intention, bot_response)
     print("Chat history updated successfully")
     

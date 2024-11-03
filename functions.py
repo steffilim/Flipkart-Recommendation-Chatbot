@@ -72,6 +72,24 @@ def extract_keywords(item):
     query_keyword_ls = [keyword[1] for keyword in query_keyword]
     return query_keyword_ls
 
+
+# function to change string to dictionary with chatbot output
+def parse_user_intention(user_intention):
+    dictionary = {}
+    lines = user_intention.split("\n")
+    current_key = None
+
+    for line in lines:
+        # Remove leading dashes and strip any extra whitespace from the line
+        cleaned_line = line.lstrip('- ').strip()
+        if ": " in cleaned_line:  # Check if the line has a colon and space, indicating a key-value pair
+            key, value = cleaned_line.split(": ", 1)
+            current_key = key.strip()
+            dictionary[current_key] = value.strip()
+        elif current_key:  # This line might be a continuation of the last key's value
+            dictionary[current_key] += " " + line.strip()
+    
+    return dictionary
 def get_dummy_recommendation(keywords_list): # getting the top 3 products based on keywords
     return "hello"
 
