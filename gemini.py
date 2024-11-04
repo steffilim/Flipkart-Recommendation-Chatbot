@@ -139,9 +139,6 @@ def chat():
 
     # Validate user input only when not in login or password mode
 
-    if not is_valid_input(user_input, valid_user_ids, keywords):
-        return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
-
     # Check if the user is logged in and wants to log out
     if user_states.get("user_id") and user_input == "/logout":
         user_states.pop("user_id", None)  # Remove user ID
@@ -158,6 +155,8 @@ def chat():
             return jsonify({'response': 'Please enter your user ID to log in.'})
         
         # Get previous conversation and intention in guest mode
+        if not is_valid_input(user_input, valid_user_ids, keywords):
+            return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
 
         previous_intention = get_past_conversation_guest(convo_history_list_guest)
         #query_keyword = extract_keywords(user_input)
@@ -228,6 +227,8 @@ def chat():
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
 
     # Getting information from the user
+    if not is_valid_input(user_input, valid_user_ids, keywords):
+        return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
   
     previous_intention = get_past_conversations_users(user_id, session_id)    
     #print(previous_intention)
