@@ -61,6 +61,8 @@ def is_valid_input(user_input, valid_user_ids, keywords):
 
     # Tokenize and validate
     tokens = nltk.word_tokenize(user_input)
+
+    # Define validity check
     valid_tokens = [word for word in tokens if word.lower() in wordnet.words() or word in valid_user_ids or word.lower() in keywords]
 
     return len(valid_tokens) > 0
