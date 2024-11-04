@@ -86,8 +86,8 @@ Based on the information extracted, identify these key components and fill the r
       - Fields Incompleted: Count the number of fields (Brand, Product Item, Product Details, Budget) that are 'Not specified'.
    - To-Follow-Up: Set to 'Yes' if 'Fields Incompleted' is less than 1, including fields that are partially specified. Otherwise, set to 'No'.
    - Follow-Up Question: Adjust based on the fields that are incomplete:
-   - If 'Fields Incompleted' is 1 or more, provide tailored follow-up questions for each missing field to help refine the search and options.
-   - If all fields are specified or adequately answered, ask: "Do the options presented meet your requirements, or would you like to explore other products?"
+      - If 'Fields Incompleted' is 1 or more, provide tailored follow-up questions for each missing field to help refine the search and options.
+      - If all fields are specified or adequately answered, ask: "Do the options presented meet your requirements, or would you like to explore other products?"
 """
 
 
