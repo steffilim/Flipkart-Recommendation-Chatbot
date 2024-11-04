@@ -72,14 +72,26 @@ def get_past_follow_up_question(user_id, session_id):
 
 """CONVERSATION HISTORY FOR GUEST USERS """
 # function to update the chat history (which is stored in a list)
-def add_chat_history_guest(user_input, bot_response, convo_history_list_guest):
+def add_chat_history_guest(user_input, user_intention_dictionary, convo_history_list_guest):
     # Append the current user query and bot response as a tuple to the conversation history
-    convo_history_list_guest.append((user_input, bot_response))
+    #print("Convo History List Guest before appending: ", convo_history_list_guest)
+    convo_history_list_guest.append((user_input, user_intention_dictionary))
+    print("Convo History List Guest after appending: ", convo_history_list_guest)
+    return convo_history_list_guest
 
 
 # function to get the past intention of the user
-def get_past_conversation_guest(memory) -> List[str]:
+def get_past_conversation_guest(memory) :
     # Extract the last element from each tuple in the memory list
-    last_elements = [msg[0] for msg in memory]  # msg[0] accesses the first element of each tuple
-    
-    return last_elements
+    if len(memory) == 0:
+        return ""
+    else: 
+        last_elements = memory[-1][1] 
+        print("last_elem+", last_elements) # msg[0] accesses the first element of each tuple
+        
+        return last_elements
+
+def update_past_follow_up_question_guest(user_intention_dictionary):
+    # function to update the follow up questions such that it can be passed on to the LLM during the next user prompt loop
+    follow_up_question = user_intention_dictionary.get("Follow-Up Question")
+    return follow_up_question

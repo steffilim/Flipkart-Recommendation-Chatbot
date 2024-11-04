@@ -84,7 +84,7 @@ Based on the information extracted, identify these key components and fill the r
       - Product Details: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, prompt: "Are there specific features or specifications you need?"
       - Budget: Ascertain if the user has mentioned a budget range or price limit. If not specified, prompt: "Do you have a budget range in mind for this purchase?"
       - Fields Incompleted: Count the number of fields (Brand, Product Item, Product Details, Budget) that are 'Not specified'.
-   - To-Follow-Up: Set to 'Yes' if 'Fields Incompleted' is less than 1, including fields that are partially specified. Otherwise, set to 'No'.
+   - To-Follow-Up: Set to 'Yes' if 'Fields Incompleted' is more than 2, including fields that are partially specified. Otherwise, set to 'No'.
    - Follow-Up Question: Adjust based on the fields that are incomplete:
       - If 'Fields Incompleted' is 1 or more, provide tailored follow-up questions for each missing field to help refine the search and options.
       - If all fields are specified or adequately answered, ask: "Do the options presented meet your requirements, or would you like to explore other products?"

@@ -19,7 +19,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 
-from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, get_past_follow_up_question
+from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, get_past_follow_up_question, update_past_follow_up_question_guest
 from prompt_template import intention_template, refine_template, intention_template_2
 from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention
 from recSys.contentBased import get_lsa_matrix, load_product_data
@@ -40,6 +40,7 @@ user_states = {} # user states
 convo_history_list_guest = [] # convo history list for guest users
 previous_intention = "" # user intention
 session_id = "" # session id    
+past_follow_up_question_guest = "" # follow up question for guest users
 
 # INITIALISATION
 # Authenticating model
@@ -149,9 +150,12 @@ def chat():
 
     # Check if the user is in guest mode
     if user_states.get("guest_mode"):
+        past_follow_up_question_guest = ""
+
         if user_input == "/login":
             user_states.pop("guest_mode", None)  # Remove guest mode flag
             user_states["login_mode"] = True  # Set login mode flag
+            
             return jsonify({'response': 'Please enter your user ID to log in.'})
         
         # Get previous conversation and intention in guest mode
@@ -159,12 +163,20 @@ def chat():
             return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
 
         previous_intention = get_past_conversation_guest(convo_history_list_guest)
+        print(len(previous_intention))
+        #print(previous_intention)
         #query_keyword = extract_keywords(user_input)
-        user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention)
-        print(type(user_intention))
-        bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id = None)
-        add_chat_history_guest(user_input, bot_response, convo_history_list_guest)
-        print(convo_history_list_guest)
+
+        user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_question_guest)
+        user_intention_dictionary = parse_user_intention(user_intention)
+        # updating follow-up question
+        past_follow_up_question_guest = update_past_follow_up_question_guest(user_intention_dictionary)
+       #print(past_follow_up_question_guest)
+
+        #print(user_intention_dictionary)
+        bot_response = getting_bot_response(user_intention_dictionary, chain2, db, lsa_matrix, user_id = None)
+        add_chat_history_guest(user_input, user_intention_dictionary, convo_history_list_guest)
+        #print(convo_history_list_guest)
 
         return jsonify({'response': bot_response}) 
     
