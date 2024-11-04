@@ -90,7 +90,6 @@ Based on the information extracted, identify these key components and fill the r
       - If all fields are specified or adequately answered, ask: "Do the options presented meet your requirements, or would you like to explore other products?"
 """
 
-
 intention_template_2 = """
 Context: 
 You are a chatbot for an e-commerce platform that mirrors the inventory of Amazon.com.
@@ -108,8 +107,11 @@ User Query: {input}
 Previous Intention: {previous_intention}
 Previous Follow-Up Questions: {follow_up_questions}
 
-Based on the information extracted, identify these key components and fill the response template below:
-- Related to Follow-Up Questions: If the user did not prompt a new noun, treat it as a continuation from user's current query.
+Processing Logic:
+1. **Detect Greetings**: If the input is a simple greeting (e.g., "hi", "hello"), respond with a friendly message, such as "Hello! How can I assist you with your shopping today?" This response should bypass any product-related inquiry.
+   
+2. Based on the information extracted, identify these key components and fill the response template below:
+- Related to Follow-Up Questions: If the user did not prompt a new noun, treat it as a continuation from the user's current query.
 - Available in Store: State whether the item is available ('Yes' or 'No').
    - If 'No', ask: "The item is not currently available. Could you please specify another type of item you are interested in?"
    - If 'Yes', evaluate the completeness of the product details:
@@ -123,6 +125,7 @@ Based on the information extracted, identify these key components and fill the r
       - If 'Fields Incompleted' is 1 or more, provide tailored follow-up questions for each missing field to help refine the search and options.
       - If all fields are specified or adequately answered, ask: "Do the options presented meet your requirements, or would you like to explore other products?"
 """
+
 
 
 
