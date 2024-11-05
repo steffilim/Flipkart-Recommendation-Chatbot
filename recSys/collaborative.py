@@ -3,6 +3,8 @@ from surprise import SVD, NMF
 from surprise.model_selection import cross_validate, train_test_split, GridSearchCV
 import pandas as pd
 import numpy as np
+from supabase import create_client
+from functions import initialising_supabase, load_product_data
 
 """
 flipkart = pd.read_csv("newData/flipkart_cleaned.csv")
