@@ -50,10 +50,10 @@ def get_popular_items(db):
 import nltk
 from rake_nltk import Rake
 from nltk.corpus import words, wordnet
-nltk.download('words')
+"""nltk.download('words')
 nltk.download('stopwords')
 nltk.download('punkt_tab')
-nltk.download('wordnet')
+nltk.download('wordnet')"""
 # Function to check if the user's input is valid
 def is_valid_input(user_input, valid_user_ids, keywords):
     # Convert both user IDs and keywords to set for fast membership checking
@@ -124,14 +124,14 @@ def getting_bot_response(user_intention_dictionary, chain2, db, lsa_matrix, user
         bot_response = user_intention_dictionary.get("Follow-Up Question")
 
     else: 
-        to_follow_up = user_intention_dictionary.get("To-Follow-Up")
+        fields_incomplete = int(user_intention_dictionary.get("Fields Incompleted"))
 
-        if to_follow_up == "Yes":
-            print("Follow-up questions")
+        if fields_incomplete > 2:
+            print("Fields incomplete")
             bot_response = user_intention_dictionary.get("Follow-Up Question")
 
         else:
-            print("No follow-up questions")
+            print("Roughly complete")
             item = user_intention_dictionary.get("Product Item")
 
 

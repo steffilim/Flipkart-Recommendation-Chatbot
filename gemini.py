@@ -20,7 +20,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, get_past_follow_up_question, update_past_follow_up_question_guest
-from prompt_template import intention_template, refine_template, intention_template_2
+from prompt_template import intention_template_test, refine_template, intention_template_2
 from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention
 from recSys.contentBased import get_lsa_matrix, load_product_data
 
@@ -163,20 +163,16 @@ def chat():
             return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
 
         previous_intention = get_past_conversation_guest(convo_history_list_guest)
-        print(len(previous_intention))
-        #print(previous_intention)
-        #query_keyword = extract_keywords(user_input)
 
         user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_question_guest)
         user_intention_dictionary = parse_user_intention(user_intention)
+        print("line 172:", user_intention_dictionary)
+
         # updating follow-up question
         past_follow_up_question_guest = update_past_follow_up_question_guest(user_intention_dictionary)
-       #print(past_follow_up_question_guest)
-
-        #print(user_intention_dictionary)
         bot_response = getting_bot_response(user_intention_dictionary, chain2, db, lsa_matrix, user_id = None)
         add_chat_history_guest(user_input, user_intention_dictionary, convo_history_list_guest)
-        #print(convo_history_list_guest)
+
 
         return jsonify({'response': bot_response}) 
     
