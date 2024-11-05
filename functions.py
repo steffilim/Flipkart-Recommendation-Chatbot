@@ -50,10 +50,10 @@ def get_popular_items(db):
 import nltk
 from rake_nltk import Rake
 from nltk.corpus import words, wordnet
-nltk.download('words')
+"""nltk.download('words')
 nltk.download('stopwords')
 nltk.download('punkt_tab')
-nltk.download('wordnet')
+nltk.download('wordnet')"""
 # Function to check if the user's input is valid
 def is_valid_input(user_input, valid_user_ids, keywords):
     # Convert both user IDs and keywords to set for fast membership checking
@@ -61,6 +61,8 @@ def is_valid_input(user_input, valid_user_ids, keywords):
 
     # Tokenize and validate
     tokens = nltk.word_tokenize(user_input)
+
+    # Define validity check
     valid_tokens = [word for word in tokens if word.lower() in wordnet.words() or word in valid_user_ids or word.lower() in keywords]
 
     return len(valid_tokens) > 0
@@ -73,6 +75,26 @@ def extract_keywords(item):
     return query_keyword_ls
 
 
+# function to change string to dictionary with chatbot output
+def parse_user_intention(user_intention_dictionary):
+    dictionary = {}
+    lines = user_intention_dictionary.split("\n")
+    current_key = None
+
+    for line in lines:
+        # Remove leading dashes and strip any extra whitespace from the line
+        cleaned_line = line.lstrip('- ').strip()
+        if ": " in cleaned_line:  # Check if the line has a colon and space, indicating a key-value pair
+            key, value = cleaned_line.split(": ", 1)
+            current_key = key.strip()
+            dictionary[current_key] = value.strip()
+        elif current_key:  # This line might be a continuation of the last key's value
+            dictionary[current_key] += " " + line.strip()
+    
+    return dictionary
+
+def get_dummy_recommendation(keywords_list): # getting the top 3 products based on keywords
+    return "hello"
 
 
 
@@ -83,53 +105,62 @@ import re
 from recSys.weighted import hybrid_recommendations
 
 # Getting user intention
-def getting_user_intention(user_input, intention_chain, previous_intention, brand_preference=None, specs_preference=None):
-    user_intention = intention_chain.invoke({
-        "input": user_input, 
-        "previous_intention": previous_intention,
-        "brand": brand_preference or "None",
-        "specs": specs_preference or "None"
-    })
-    return user_intention
+def getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_questions):
+    if past_follow_up_questions is None:
+        past_follow_up_questions = []
+
+    
+    user_intention_dictionary = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention, "follow_up_questions": past_follow_up_questions})
+
+    return user_intention_dictionary
   
 # Getting bot response
-def getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id, brand_preference=None, specs_preference=None):
-    item_availability_match = re.search(r'Available in Store:\s*(.+)', user_intention)
-    item_availability = item_availability_match.group(1)
+def getting_bot_response(user_intention_dictionary, chain2, db, lsa_matrix, user_id):
+    item_availability = user_intention_dictionary.get("Available in Store")
+    
 
-    if item_availability != "Yes.":
-        response = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
-        bot_response = response.group(1).strip()
-    else:
-        match = re.search(r'Actionable Goal \+ Specific Details:\s*(.+)', user_intention)
-        item = match.group(1)
+    if item_availability == "No":
+        print("Item not available")
+        bot_response = user_intention_dictionary.get("Follow-Up Question")
+
+    else: 
+        fields_incomplete = int(user_intention_dictionary.get("Fields Incompleted"))
+
+        if fields_incomplete > 2:
+            print("Fields incomplete")
+            bot_response = user_intention_dictionary.get("Follow-Up Question")
+
+        else:
+            print("Roughly complete")
+            item = user_intention_dictionary.get("Product Item")
+
 
 
         # calling hybrid_recommendations function 
-        n_recommendations = 5  # number of recommendations to output (adjustable later)
+        #n_recommendations = 5  # number of recommendations to output (adjustable later)
 
-        recommendations = hybrid_recommendations(
-            catalogue=db.catalogue,
-            item=item,
-            user_id=user_id,
-            orderdata=db.users,
-            lsa_matrix=lsa_matrix,
-            content_weight=0.6,
-            collaborative_weight=0.4,
-            brand_preference=brand_preference,
-            specs_preference=specs_preference,
-            n_recommendations=n_recommendations
-        )
+            """recommendations = hybrid_recommendations(
+                catalogue = db.catalogue,    
+                item = item, 
+                user_id = user_id,  
+                orderdata = db.users, 
+                lsa_matrix = lsa_matrix,
+                content_weight = 0.6, 
+                collaborative_weight = 0.4,
+                n_recommendations = n_recommendations, 
+                
+            )"""
+            print(item)
+            recommendations =  get_dummy_recommendation(item)
 
-        recommendations_text = "\n".join(
-            f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
-            for idx, rec in enumerate(recommendations)
-        )
-
-        # Getting follow-up questions from previous LLM
-        questions_match = re.search(r'Suggested Actions or Follow-Up Questions:\s*(.+)', user_intention, re.DOTALL)
-        questions = questions_match.group(1).strip()
-        bot_response = chain2.invoke({"recommendations": recommendations_text, "questions": questions})
+            """recommendations_text = "\n".join(
+                f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
+                for idx, rec in enumerate(recommendations)
+            )
+    """
+            # Getting follow-up questions from previous LLM
+            questions = user_intention_dictionary.get("Follow-Up Question")
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
 
 
     return bot_response
