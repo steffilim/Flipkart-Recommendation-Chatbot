@@ -77,7 +77,7 @@ def add_chat_history_guest(user_input, user_intention_dictionary, convo_history_
     #print("Convo History List Guest before appending: ", convo_history_list_guest)
 
     if user_intention_dictionary.get("Related to Follow-Up Questions") == "Old":
-        convo_history_list_guest = convo_history_list_guest[:-1] # removing the last element from the list
+        convo_history_list_guest = convo_history_list_guest[:-2] # removing the last element from the list
         convo_history_list_guest.append((user_input, user_intention_dictionary))
        
 
