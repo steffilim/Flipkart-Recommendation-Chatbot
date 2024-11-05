@@ -21,8 +21,8 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, get_past_follow_up_question, update_past_follow_up_question_guest
 from prompt_template import intention_template_test, refine_template, intention_template_2
-from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention
-from recSys.contentBased import load_product_data
+from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data
+#from recSys.contentBased import load_product_data
 
 
 
@@ -56,6 +56,9 @@ load_dotenv()
 # Flask routes
 
 def initialise_app():
+    supabase = initialising_supabase()
+    print("Supabase setup successful")
+
     db = initialising_mongoDB()
     print("Database setup successful")
 
@@ -84,9 +87,9 @@ def initialise_app():
     intention_chain = intention_prompt | llm | StrOutputParser()
 
 
-    return db, llm, chain2, intention_chain, lsa_matrix
+    return supabase, db, llm, chain2, intention_chain, lsa_matrix
 
-db, llm, chain2, intention_chain, lsa_matrix = initialise_app()
+supabase, db, llm, chain2, intention_chain, lsa_matrix = initialise_app()
 
 
 @app.route('/')
@@ -170,7 +173,7 @@ def chat():
 
         # updating follow-up question
         past_follow_up_question_guest = update_past_follow_up_question_guest(user_intention_dictionary)
-        bot_response = getting_bot_response(user_intention_dictionary, chain2, db, lsa_matrix, user_id = None)
+        bot_response = getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id = None)
         add_chat_history_guest(user_input, user_intention_dictionary, convo_history_list_guest)
 
 
@@ -249,7 +252,7 @@ def chat():
 
     # Getting the bot response
 
-    bot_response = getting_bot_response(user_intention_dictionary, chain2, db, lsa_matrix, user_id)
+    bot_response = getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id)
     add_chat_history_user(session_id, user_input,user_intention, bot_response)
     print("Chat history updated successfully")
     
