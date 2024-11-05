@@ -15,29 +15,16 @@ import torch
 
 # lsa_matrix = load(lsa_matrix_file)
 
-'''
-load_dotenv()
+"""load_dotenv()
 MONGODB_URI = os.getenv("MONGODB_URI")
 FLIPKART = os.getenv("FLIPKART")
 
 client = pymongo.MongoClient(MONGODB_URI)
 flipkart = client[FLIPKART]
-collection = flipkart["catalogue"]
-
-# Step 2: Retrieve data from the collection
-flipkart_data = collection.find()  # Fetch all documents in the collection
-
-# Step 3: Convert the MongoDB cursor to a list of dictionaries
-flipkart_list = list(flipkart_data)  # Converts the cursor to a list
-
-# Step 4: Create a DataFrame from the list of dictionaries
-df = pd.DataFrame(flipkart_list)
-# df = pd.DataFrame(flipkart)
-# df.to_csv("newData/flipkart_cleaned.csv", index=False)
-'''
 
 product_data_file = flipkart.catalogue
 lsa_matrix_file = 'lsa_matrix.joblib'
+"""
 
 # Function to load and preprocess the data
 def load_product_data(product_data_file):
