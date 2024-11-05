@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from collections import Counter
 import re
 import time
+import json
 
 # for LLM
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -18,9 +19,9 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 
-from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session
-from prompt_template import intention_template, refine_template
-from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention, initialising_mongoDB
+from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, get_past_follow_up_question, update_past_follow_up_question_guest
+from prompt_template import intention_template_test, refine_template, intention_template_2
+from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention
 from recSys.contentBased import get_lsa_matrix, load_product_data
 
 
@@ -39,6 +40,7 @@ user_states = {} # user states
 convo_history_list_guest = [] # convo history list for guest users
 previous_intention = "" # user intention
 session_id = "" # session id    
+past_follow_up_question_guest = "" # follow up question for guest users
 
 # INITIALISATION
 # Authenticating model
@@ -58,10 +60,10 @@ def initialise_app():
     print("Database setup successful")
 
     #lsa matrix
-    catalogue_df = load_product_data(db.catalogue)
-    catalogue_db = db.catalogue
-    lsa_matrix_file = 'lsa_matrix.joblib'
-    lsa_matrix = get_lsa_matrix(catalogue_df, catalogue_db, lsa_matrix_file)
+    #catalogue_df = load_product_data(db.catalogue)
+    #catalogue_db = db.catalogue
+    lsa_matrix= 'lsa_matrix.joblib'
+    #lsa_matrix = get_lsa_matrix(catalogue_df, catalogue_db, lsa_matrix_file)
 
     google_api_key = os.getenv("GOOGLE_API_KEY")
     llm = ChatGoogleGenerativeAI(
@@ -78,7 +80,7 @@ def initialise_app():
     chain2 =  refine_prompt | llm | StrOutputParser()
 
     # Create a new chain for intention extraction
-    intention_prompt = ChatPromptTemplate.from_template(intention_template)
+    intention_prompt = ChatPromptTemplate.from_template(intention_template_2)
     intention_chain = intention_prompt | llm | StrOutputParser()
 
 
@@ -138,9 +140,6 @@ def chat():
 
     # Validate user input only when not in login or password mode
 
-    if not is_valid_input(user_input, valid_user_ids, keywords):
-        return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
-
     # Check if the user is logged in and wants to log out
     if user_states.get("user_id") and user_input == "/logout":
         user_states.pop("user_id", None)  # Remove user ID
@@ -151,18 +150,29 @@ def chat():
 
     # Check if the user is in guest mode
     if user_states.get("guest_mode"):
+        past_follow_up_question_guest = ""
+
         if user_input == "/login":
             user_states.pop("guest_mode", None)  # Remove guest mode flag
             user_states["login_mode"] = True  # Set login mode flag
+            
             return jsonify({'response': 'Please enter your user ID to log in.'})
         
         # Get previous conversation and intention in guest mode
-        previous_intention = get_past_conversation_guest(convo_history_list_guest)
-        user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
+        if not is_valid_input(user_input, valid_user_ids, keywords):
+            return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
 
-        bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id = None)
-        add_chat_history_guest(user_input, bot_response, convo_history_list_guest)
-        print(convo_history_list_guest)
+        previous_intention = get_past_conversation_guest(convo_history_list_guest)
+
+        user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_question_guest)
+        user_intention_dictionary = parse_user_intention(user_intention)
+        print("line 172:", user_intention_dictionary)
+
+        # updating follow-up question
+        past_follow_up_question_guest = update_past_follow_up_question_guest(user_intention_dictionary)
+        bot_response = getting_bot_response(user_intention_dictionary, chain2, db, lsa_matrix, user_id = None)
+        add_chat_history_guest(user_input, user_intention_dictionary, convo_history_list_guest)
+
 
         return jsonify({'response': bot_response}) 
     
@@ -225,17 +235,25 @@ def chat():
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
 
     # Getting information from the user
-    print(session_id)
-    previous_intention = get_past_conversations_users(user_id, session_id)       
-    user_intention = getting_user_intention(user_input, intention_chain, previous_intention)
-    print(user_intention)
+    if not is_valid_input(user_input, valid_user_ids, keywords):
+        return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
+  
+    previous_intention = get_past_conversations_users(user_id, session_id)    
+    #print(previous_intention)
+
+    past_follow_up_question = get_past_follow_up_question(user_id, session_id)
+    user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_question)
+    user_intention_dictionary = parse_user_intention(user_intention)
+    print(user_intention_dictionary)
+
+
     # Getting the bot response
 
-    bot_response = getting_bot_response(user_intention, chain2, db, lsa_matrix, user_id)
+    bot_response = getting_bot_response(user_intention_dictionary, chain2, db, lsa_matrix, user_id)
     add_chat_history_user(session_id, user_input,user_intention, bot_response)
     print("Chat history updated successfully")
     
     return jsonify({'response': bot_response})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)
