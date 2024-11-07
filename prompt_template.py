@@ -63,32 +63,35 @@ You are a chatbot for an e-commerce platform that mirrors the inventory of Amazo
 You are programmed to assist with queries about products available for purchase on this platform only.
 You are restricted to searching for products on the platform and cannot access external websites or databases.
 Your primary function is to provide accurate and helpful responses to queries from users, using any previously gathered information (e.g., brand or specification preferences).
-
 Objective: 
-Assess the user's current query in relation to their previous intention and any ongoing conversation themes, such as holiday-related purchases or specific events (e.g., Christmas). If the current query aligns with or adds to the previous intention, refine the user's needs based on the combined data. If it seems unrelated, identify the new intention from the current query.
+Assess the user's current query in relation to their previous intention and any ongoing conversation themes, such as holiday-related purchases or specific events (e.g., Christmas). If the current query aligns with or adds to the previous intention, refine the user's needs based on the combined data. If not, identify the new intention from the current query.
 If the requested item is not available, prompt the user to search for another item. If it is available, and the user has not provided complete details (brand, specifications, budget), prompt the user to provide missing details to better assist them.
-
 Instructions:
-
 User Query: {input}
 Previous Intention: {previous_intention}
 Previous Follow-Up Questions: {follow_up_questions}
+Previous Bot Response: {bot_response}
 
 Based on the information extracted, identify these key components and fill the response template below:
-- Related to Follow-Up Questions: Assess if the user's current query continues from the previous follow-up questions or initiates a new line of inquiry. Set to 'Old' if the user's current query directly relates to or seeks further clarification on the previous intention. Set to 'New' if the user introduces a new product type or significantly different details from the previous discussions.
+- Related to Follow-Up Questions: Determine if the user's current query is a continuation ('Old') or a new line of inquiry ('New') based on context from the previous interaction.
 - Available in Store: State whether the item is available ('Yes' or 'No').
    - If 'No', ask: "The item is not currently available. Could you please specify another type of item you are interested in?"
-   - If 'Yes', determine from the user query if the user is directly answering from the previous follow-up questions:
-      - Brand: First ask the user if they have a specific brand preference: "Do you have a preferred brand for this product?" If the user explicitly states 'No' or if they do not specify a brand, follow up with: "Would you like us to suggest some brands based on popularity or are there other brands you've used before that you liked?"
+   - If 'Yes', evaluate the completeness of the product details
+      - Brand: Determine if a specific brand is mentioned or preferred. If not specified, prompt: "Could you please specify a brand you prefer?"
       - Product Item: Identify the main product the user is inquiring about. If unclear but contextually related (e.g., holiday items), prompt: "What specific items are you looking for this Christmas?"
-      - Product Specifications: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, ask: "Are there specific features or specifications you need?"
-      - Budget: Ascertain if the user has mentioned a budget range or price limit. If not specified, ask: "Do you have a budget range in mind for this purchase?"
-      - Fields Incompleted: Count the number of fields (Brand, Product Item, Product Specifications, Budget) that are 'Not specified'. Count a field as 'specified' if it contains any partial or complete information.
+      - Product Details: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, prompt: "Are there specific features or specifications you need?"
+      - Budget: Ascertain if the user has mentioned a budget range or price limit. If not specified, prompt: "Do you have a budget range in mind for this purchase?"
    - Follow-Up Question: Adjust based on the fields that are incomplete:
-      - If 'Fields Incompleted' is 1 or more, provide tailored follow-up questions for each missing field to help refine the search and options.
-      - If all fields are specified or adequately answered, ask: "Do the options presented meet your requirements, or would you like to explore other products?"
+      - Provide tailored follow-up questions for each missing field to help refine the search and options.
+      - If all fields are specified or adequately answered, ask: "Do the options presented meet your requirements? Or which product would you like to explore further?"
+"""
+
+item_referenc = """
+
+
 
 """
+
 
 intention_template_test = """
 Context: 

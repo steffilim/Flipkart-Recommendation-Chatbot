@@ -11,6 +11,7 @@ load_dotenv()
 
 
 """ CONVERSATION HISTORY FOR REGISTERED USERS """
+import re
 db = initialising_mongoDB()
 chat_session = db.chatSession
 
@@ -24,12 +25,13 @@ def start_new_session(user_id, session_id):
     }
     chat_session.insert_one(document)
     
-def add_chat_history_user(session_id, user_input, user_intention, bot_response):
+def add_chat_history_user(session_id, user_input, user_intention, items_recommended, bot_response):
     # Build the dictionary to be pushed into the message list
     message_entry = {
         "user_input": user_input,
         "user_intention": user_intention,
-        "bot_response": bot_response
+        "items_recommended": items_recommended,
+        "bot_response": bot_response,
     }
 
     # Attempt to update the document in MongoDB
@@ -43,16 +45,28 @@ def add_chat_history_user(session_id, user_input, user_intention, bot_response):
 
 def get_past_conversations_users(user_id,session_id):
 
-    response = chat_session.find_one({"user_id": user_id, "session_id": session_id})
-    if response is None:
+    initialisation  = chat_session.find_one({"user_id": user_id, "session_id": session_id})
+    if initialisation is None:
         return ""
-    past_convo = response["message_list"]
-    string = " ".join(d['user_intention'] for d in past_convo)
+    
+    # getting the past user inputs
+    past_chats = initialisation["message_list"]
+    if len(past_chats) <= 0:
+        return "", "", "", ""
+    
+    else:
 
+        past_user_inputs = " ".join(d['user_input'] for d in past_chats)
+        previous_intention = " ".join(d['user_intention'] for d in past_chats)
+        previous_follow_up = past_chats[-1]["user_intention"]
+        previous_follow_up_match = re.search(r'- Follow-Up Question: (\w+)', previous_follow_up)
+        previous_follow_up_question = previous_follow_up[previous_follow_up_match.end():]
+        last_bot_response = past_chats[-1]["bot_response"]
+   
 
-    return string
+        return past_user_inputs, previous_intention, previous_follow_up_question, last_bot_response
 
-def get_past_follow_up_question(user_id, session_id):
+"""def get_past_follow_up_question(user_id, session_id):
     question = chat_session.find_one({"user_id": user_id, "session_id": session_id})
     if question is None:
         return ""
@@ -68,7 +82,8 @@ def get_past_follow_up_question(user_id, session_id):
     else:
         return ""
 
-
+def get_bot_response(user, session_id):
+    return "hello"""
 
 """CONVERSATION HISTORY FOR GUEST USERS """
 # function to update the chat history (which is stored in a list)
