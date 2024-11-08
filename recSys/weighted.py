@@ -155,6 +155,7 @@ def hybrid_recommendations(extracted_info, table_name, user_id, content_weight, 
     return product_details_df
 
 
+
 '''test'''
 extracted_info = extracted_info = {
     "product_name": "cycling shorts",
@@ -174,17 +175,14 @@ start_time = time.time()
 prods = hybrid_recommendations(extracted_info, table_name, user_id, content_weight, collaborative_weight, brand_preference = None, specs_preference = None)
 print("products", prods)
 
+
 # End timer
 end_time = time.time()
 # Calculate and print the elapsed time
 elapsed_time = end_time - start_time
 print(f"Execution time: {elapsed_time:.2f} seconds")
 
-
-
-
-
-
+#re ranking with intent
 
 
 
