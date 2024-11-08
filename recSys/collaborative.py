@@ -36,17 +36,28 @@ def load_product_data():
     catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
      # Ensure there are no NaN values which can cause issues
     catalogue_data['content'] = catalogue_data['content'].fillna('') 
-    print("Successfully loaded DataFrame from Supabase")
+
+    print("Successfully loaded product data from Supabase")
  
     return catalogue_data
 
+def load_order_data():
+    supabase = initialising_supabase()
+    # Load data from the flipkart_cleaned table in supabase
+    order_data = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
 
-def svd_recommend_surprise(user_id, orderdata, n_recommendations=20):
+    print("Successfully loaded order from Supabase")
+ 
+    return order_data
+
+
+
+def svd_recommend_surprise(user_id, catalogue, n_recommendations=20):
     print("SVD")
     supabase = initialising_supabase()
      # Fetch the catalogue & users data from Supabase
     catalogue = load_product_data()
-    orderdata = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
+    orderdata = load_order_data()
 
     reader = Reader(rating_scale=(0, 5))
 
@@ -84,7 +95,7 @@ def svd_recommend_surprise(user_id, orderdata, n_recommendations=20):
     
     return recommendations_df
 
-def svd_recommend_surprise_filtered(user_id, extracted_info, n_recommendations=20):
+def svd_recommend_surprise_filtered(user_id, extracted_info, n_recommendations=10):
     print("SVD - Filtered Recommendations")
 
     # Fetch the catalogue & users data from Supabase
@@ -92,7 +103,7 @@ def svd_recommend_surprise_filtered(user_id, extracted_info, n_recommendations=2
     catalogue = load_product_data()
 
     # Create the dataset
-    orderdata = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
+    orderdata = load_order_data()
 
     reader = Reader(rating_scale=(0, 5))
     dataset = Dataset.load_from_df(orderdata[['User ID', 'uniq_id', 'User rating for the product']], reader)

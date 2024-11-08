@@ -18,17 +18,42 @@ from supabase import create_client, Client
 
 # lsa_matrix = load(lsa_matrix_file)
 
-# Load environment variables
-load_dotenv()
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
-
-# Initialize Supabase client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 # supabase = initialising_supabase()
+def initialising_supabase():
+    load_dotenv()
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
+    supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
+    return supabase
 
 ''' loading product data '''
+def load_product_data():
+    supabase = initialising_supabase()
+    # Load data from the flipkart_cleaned table in supabase
+    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned').select('*').execute().data)
+
+    # Create the 'content' column by concatenating 'description' and 'product_specifications'
+    catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
+     # Ensure there are no NaN values which can cause issues
+    catalogue_data['content'] = catalogue_data['content'].fillna('') 
+
+    print("Successfully loaded product data from Supabase")
+ 
+    return catalogue_data
+
+def load_order_data():
+    supabase = initialising_supabase()
+    # Load data from the flipkart_cleaned table in supabase
+    order_data = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
+
+    print("Successfully loaded order from Supabase")
+ 
+    return order_data
+
+'''
 def load_data(table_name, n_rows):
+    supabase = initialising_supabase()
+
     all_data = []
     batch_size = 1000  # Maximum rows Supabase allows per request
     start = 0
@@ -45,7 +70,7 @@ def load_data(table_name, n_rows):
         all_data.extend(response.data)
         start += batch_size  # Move to the next batch
 
-        print(f"Loaded {len(all_data)} rows so far...")  # Monitor loading progress
+        # print(f"Loaded {len(all_data)} rows so far...")  # Monitor loading progress
 
     # Convert the combined data to a DataFrame
     catalogue = pd.DataFrame(all_data)
@@ -55,13 +80,14 @@ def load_data(table_name, n_rows):
 
     catalogue['content'] = catalogue['description'].astype(str) + catalogue['product_specifications'].astype(str)
 
-    print("Shape of catalogue:", catalogue.shape)  # Check final shape after combining batches
-    print("Successfully loaded 'flipkart_cleaned' from Supabase")
+    # print("Shape of catalogue:", catalogue.shape)  # Check final shape after combining batches
+    # print("Successfully loaded 'flipkart_cleaned' from Supabase")
     return catalogue
 
 # Load the data
-# df = load_data("flipkart_cleaned", 20000)
+# df = load_product_data()
 # print("Final shape:", df.shape)
+'''
 
 # Load the Sentence Transformer model
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
@@ -134,6 +160,8 @@ def store_product_embeddings_in_supabase(product_embeddings):
 ''' retrieving embeddings for a list of product_ids'''
 def get_product_embeddings(product_ids):
     # Fetch embeddings for the given list of product_ids from Supabase
+    supabase = initialising_supabase()
+
     response = supabase.table("product_embeddings") \
                        .select("product_id, embedding_list") \
                        .in_("product_id", product_ids) \
@@ -186,9 +214,9 @@ def check_if_embedding_list_is_float(df):
 ''' filter function '''
 # Function to Filter Products based on keywords - for features that have a 'hard' limit
 
-def filter_products(table_name, product_name=None, price_limit=None, brand=None, overall_rating=None, product_specifications=None):
+def filter_products(product_name=None, price_limit=None, brand=None, overall_rating=None, product_specifications=None):
     # Build the SQL query dynamically based on the filters provided
-    query = supabase.table(table_name).select("*")
+    query = supabase.table("flipkart_cleaned").select("*")
     
     if product_name and isinstance(product_name, str) and product_name.strip():
         query = query.ilike("product_name", f"%{product_name}%")
@@ -209,7 +237,8 @@ def filter_products(table_name, product_name=None, price_limit=None, brand=None,
     response = query.execute()
     return response.data
 
-def recommend_top_products(user_query, filtered_products, top_n=5):
+def recommend_top_products(user_query, filtered_products, top_n=10):
+    supabase = initialising_supabase()
     '''
     user_query: string e.g. "i want a red shoe"
     # product_embeddings: embeddings of filtered products
