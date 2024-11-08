@@ -77,16 +77,23 @@ Based on the information extracted, identify these key components and fill the r
    - If 'Yes', evaluate the completeness of the product details. 
       - Brand: Determine if a specific brand is mentioned or preferred. If not specified, prompt: "Could you please specify a brand you prefer?"
       - Product Item: Identify the main product the user is inquiring about. If unclear but contextually related (e.g., holiday items), prompt: "What specific items are you looking for this Christmas?"
-      - Specifications: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, prompt: "Are there specific features or specifications you need?"
       - Budget: Ascertain if the user has mentioned a budget range or price limit. If not specified, prompt: "Do you have a budget range in mind for this purchase?"
+      - Specifications: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, prompt: "Are there specific features or specifications you need?"
       - Fields Incompleted: Count the number of fields (Brand, Product Item, Product Details, Budget) that are 'Not specified'.
    - To-Follow-Up: Set to 'Yes' if 'Fields Incompleted' is more than 2, including fields that are partially specified. Otherwise, set to 'No'.
    - Follow-Up Question: Adjust based on the fields that are incomplete:
       - If 'Fields Incompleted' is 1 or more, provide tailored follow-up questions for each missing field to help refine the search and options. **You should only ask ONE question at a time!**
       - If all fields are specified or adequately answered, ask: "Do the options presented meet your requirements, or would you like to explore other products?"
 
-Example Conversation:
-- 
+You must refer to the example conversation here:
+- User: I want a laptop.
+- Bot: Could you please specify a brand you prefer?
+- User: Lenovo Brand.
+- Bot: Do you have a budget range in mind for this purchase?
+- User: Maximum $5000.
+- Bot: Are there specific features or specifications you need in a laptop?
+- User: 15.6-inch screen.
+- Bot: I see you are looking for a product. Here are a few recommendations for you:
 """
 
 
