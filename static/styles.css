@@ -105,11 +105,20 @@ body {
     margin-bottom: 10px;  
 }
 
-input[type="text"], input[type="password"] {
+textarea {
     flex-grow: 1;
-    padding: 10px;
+    padding: 8px;
     border: 1px solid #ddd;
     border-radius: 5px;
+    resize: none;
+    overflow-y: auto; 
+    max-height: 100px; 
+    min-height: 20px;
+    line-height: normal; 
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
 }
 
 button {
