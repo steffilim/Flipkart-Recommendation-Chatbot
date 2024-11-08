@@ -192,8 +192,42 @@ def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id)
 
     return bot_response
 
+"will refine it later"
+def re_rank_with_intent(catalogue, item, user_id, content_weight, collaborative_weight, user_intention, n_recommendations=10):
+    recommendations = hybrid_recommendations(catalogue, item, user_id, content_weight, collaborative_weight, n=n_recommendations)
+    
+    # Weights based on user intent
+    brand_weight = 1.5
+    spec_weight = 1.2
+    budget_penalty_factor = 0.1
 
+    for rec in recommendations:
+        product_name = rec['product_name']
+        rec_score = rec['predicted_rating']
 
+        # Apply brand and specification filters from user intent
+        if user_intention.get('brand') and user_intention['brand'].lower() in product_name.lower():
+            rec_score *= brand_weight 
+
+        if user_intention.get('specifications'):
+            spec_matches = sum(1 for spec in user_intention['specifications'] if spec.lower() in rec['description'].lower())
+            rec_score *= (spec_weight ** spec_matches)
+
+        if user_intention.get('max_price'):
+            budget_difference = rec['price'] - user_intention['max_price']
+            if budget_difference > 0:
+                rec_score -= budget_penalty_factor * budget_difference
+        
+        rec['predicted_rating'] = rec_score
+
+    min_score = min(rec['predicted_rating'] for rec in recommendations)
+    max_score = max(rec['predicted_rating'] for rec in recommendations)
+    
+    for rec in recommendations:
+        rec['predicted_rating'] = (rec['predicted_rating'] - min_score) / (max_score - min_score) * 5
+
+    recommendations = sorted(recommendations, key=lambda x: x['predicted_rating'], reverse=True)
+    return recommendations[:n_recommendations]
 '''
 def getting_bot_response(user_intention_dictionary, chain2, db, lsa_matrix, user_id):
     item_availability = user_intention_dictionary.get("Available in Store")

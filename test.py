@@ -17,9 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from convohistory import add_chat_history, get_past_conversations
 from prompt_template import intention_template, refine_template
-from functions import is_valid_input, get_recommendation, extract_keywords
-
-
+from functions import is_valid_input, get_recommendation, extract_keywords,re_rank_with_intent
 
 
 # Initialize Flask app
@@ -132,8 +130,7 @@ def chat():
         questions = questions_match.group(1).strip()
         recommendations = get_recommendation(query_keyword_ls)
         bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
-
-
+        
     # Call the add_chat_history function to save the convo
     add_chat_history(user_id, session_id, user_input, bot_response, user_intention)
     
