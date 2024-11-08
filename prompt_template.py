@@ -71,13 +71,13 @@ User Query: {input}
 Previous Intention: {previous_intention}
 Previous Follow-Up Questions: {follow_up_questions}
 Based on the information extracted, identify these key components and fill the response template below:
-- Related to Follow-Up Questions: Determine if the user's current query is a continuation ('Old') or a new line of inquiry ('New') based on context from the previous interaction.
+- Related to Follow-Up Questions: Determine if the user's current query is a continuation ('Old') or a new line of inquiry ('New') based on context from the previous interaction. It should always be 'Old' unless the user asks for a new 'Product Item'. If it is 'Old', the 'Brand', 'Budget' and 'Product Details' should remain unchanged! 
 - Available in Store: State whether the item is available ('Yes' or 'No').
    - If 'No', ask: "The item is not currently available. Could you please specify another type of item you are interested in?"
    - If 'Yes', evaluate the completeness of the product details:
       - Brand: Determine if a specific brand is mentioned or preferred. If not specified, prompt: "Could you please specify a brand you prefer?"
       - Product Item: Identify the main product the user is inquiring about. If unclear but contextually related (e.g., holiday items), prompt: "What specific items are you looking for this Christmas?"
-      - Product Details: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, prompt: "Are there specific features or specifications you need?"
+      - Specifications: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, prompt: "Are there specific features or specifications you need?"
       - Budget: Ascertain if the user has mentioned a budget range or price limit. If not specified, prompt: "Do you have a budget range in mind for this purchase?"
       - Fields Incompleted: Count the number of fields (Brand, Product Item, Product Details, Budget) that are 'Not specified'.
    - To-Follow-Up: Set to 'Yes' if 'Fields Incompleted' is more than 2, including fields that are partially specified. Otherwise, set to 'No'.
@@ -148,6 +148,7 @@ Looks like you are looking for laptop, I have some recommendations just for you!
 1. Product Name: Laptop
    Price: $500
    Description: 15-inch screen, 8GB RAM, 512GB SSD
+
 2. Product Name: Tablet
    Price: $300
    Description: 10-inch screen, 4GB RAM, 256GB SSD
