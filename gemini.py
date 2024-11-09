@@ -63,7 +63,7 @@ def initialise_app():
     llm = ChatGoogleGenerativeAI(
         model="gemini-pro", 
         google_api_key=google_api_key,
-        temperature=0.1, 
+        temperature=0.05, 
         verbose=True, 
         stream=True
     )
@@ -232,22 +232,26 @@ def chat():
     if not is_valid_input(user_input, valid_user_ids, keywords):
         return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
   
-    past_user_inputs, previous_intention, previous_follow_up_question, last_bot_response = get_past_conversations_users(user_id, session_id)    
+    past_user_inputs, previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended = get_past_conversations_users(user_id, session_id)    
     print("last_bot_response:", last_bot_response)
 
     """ past_follow_up_question = get_past_follow_up_question(user_id, session_id)
     print("Past Follow Up Question: ", past_follow_up_question)"""
 
 
-    user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, previous_follow_up_question, last_bot_response)
+    user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended)
     user_intention_dictionary = parse_user_intention(user_intention)
     print(user_intention_dictionary)
 
 
     # Getting the bot response
 
-    items_recommended, bot_response = getting_bot_response(user_intention_dictionary, chain2, db, user_id)
-    add_chat_history_user(session_id, user_input,user_intention, items_recommended, bot_response)
+    recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, db, user_id, user_input)
+
+    # to account for the use case of the user asking for more information on a particular item
+    if recommendations is None:
+        recommendations = previous_items_recommended
+    add_chat_history_user(session_id, user_input,user_intention, recommendations, bot_response)
     print("Chat history updated successfully")
     
     return jsonify({'response': bot_response})

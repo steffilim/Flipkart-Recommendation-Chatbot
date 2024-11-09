@@ -44,7 +44,6 @@ def get_popular_items(db):
 
 
 
-
 """ KEYWORD DETECTION FUNCTION """
 
 import nltk
@@ -94,8 +93,21 @@ def parse_user_intention(user_intention_dictionary):
     return dictionary
 
 def get_dummy_recommendation(keywords_list): # getting the top 3 products based on keywords
-    return {"pid": "BOTEH2PGHGGCUPHH", "price": 1599, "product_name": "Rastogi Handicrafts JOINT LESS LEAK PROOF DECORATIVE 950 ml Bottle", "description": "AAA", "overall_rating": 5}
-
+    products = {
+        "BOTEH2PGHGGCUPHH": {
+            "price": 1599,
+            "product_name": "Rastogi Handicrafts JOINT LESS LEAK PROOF DECORATIVE 950 ml Bottle",
+            "description": "AAA",
+            "overall_rating": 5
+        },
+        "JKSDBKAJBD": {
+            "price": 1599,
+            "product_name": "IPHONE 16 pro max",
+            "description": "BBB",
+            "overall_rating": 4
+        }
+    }
+    return products
 
 
 
@@ -105,26 +117,51 @@ import re
 from recSys.weighted import hybrid_recommendations
 
 # Getting user intention
-def getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_questions, bot_response):
+def getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_questions, bot_response, items_recommended):
     if past_follow_up_questions is None:
         past_follow_up_questions = []
 
     
-    user_intention_dictionary = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention, "follow_up_questions": past_follow_up_questions, "bot_response": "hello"})
+    user_intention_dictionary = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention, "follow_up_questions": past_follow_up_questions, "bot_response": "hello", "items_recommended": items_recommended})
 
     return user_intention_dictionary
+
+
+def get_item_details(db, pid, follow_up_question):
+
+    """
+    SUPABASE IMPLEMENTATION TO GO HERE
+    BUT THE FORMAT IS AS FOLLOWS:
+    product name:
+    brand: 
+    description:
+    overall rating of the product:
+    price:
+    """
+
+    return follow_up_question
   
 # Getting bot response
-def getting_bot_response(user_intention_dictionary, chain2, db, user_id):
+def getting_bot_response(user_intention_dictionary, chain2, db, user_id, user_input):
     item_availability = user_intention_dictionary.get("Available in Store")
     
     
-
+    # for unavailable items
     if item_availability == "Not Available":
         print("Item not available")
         bot_response = user_intention_dictionary.get("Follow-Up Question")
         return None, bot_response
 
+    # for available items
+    
+    # Related to Recommendation
+    elif user_intention_dictionary.get("Related to Recommendation") == "Yes":
+        
+        product_id = user_intention_dictionary.get("Product ID")
+        item_recommendation = get_item_details(db, product_id, user_intention_dictionary.get("Follow-Up Question"))
+        
+        return None, item_recommendation
+    
     else: 
         fields_incomplete = sum(1 for key, value in user_intention_dictionary.items() if value == "Not specified")
         #fields_incomplete = (user_intention_dictionary.get("Fields Incompleted"))
@@ -154,8 +191,9 @@ def getting_bot_response(user_intention_dictionary, chain2, db, user_id):
                 n_recommendations = n_recommendations, 
                 
             )"""
-            print(item)
-            items_recommended =  get_dummy_recommendation(item)
+            
+            recommendations =  get_dummy_recommendation(item)
+            print(recommendations)
 
             """recommendations_text = "\n".join(
                 f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
@@ -164,8 +202,8 @@ def getting_bot_response(user_intention_dictionary, chain2, db, user_id):
     """
             # Getting follow-up questions from previous LLM
             questions = user_intention_dictionary.get("Follow-Up Question")
-            bot_response = chain2.invoke({"recommendations": items_recommended, "questions": questions})
-            print(items_recommended)
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+            print(recommendations)
 
-            return items_recommended, bot_response
+            return recommendations, bot_response
 

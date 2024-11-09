@@ -52,7 +52,7 @@ def get_past_conversations_users(user_id,session_id):
     # getting the past user inputs
     past_chats = initialisation["message_list"]
     if len(past_chats) <= 0:
-        return "", "", "", ""
+        return "", "", "", "", ""
     
     else:
 
@@ -60,11 +60,13 @@ def get_past_conversations_users(user_id,session_id):
         previous_intention = " ".join(d['user_intention'] for d in past_chats)
         previous_follow_up = past_chats[-1]["user_intention"]
         previous_follow_up_match = re.search(r'- Follow-Up Question: (\w+)', previous_follow_up)
-        previous_follow_up_question = previous_follow_up[previous_follow_up_match.end():]
+        previous_follow_up_question = previous_follow_up_match.group(1)
         last_bot_response = past_chats[-1]["bot_response"]
+        print("last_bot_response: ", last_bot_response)
+        previous_items_recommended = past_chats[-1]["items_recommended"]
    
 
-        return past_user_inputs, previous_intention, previous_follow_up_question, last_bot_response
+        return past_user_inputs, previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended
 
 """def get_past_follow_up_question(user_id, session_id):
     question = chat_session.find_one({"user_id": user_id, "session_id": session_id})
