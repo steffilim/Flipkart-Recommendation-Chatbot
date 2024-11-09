@@ -156,16 +156,20 @@ def chat():
         if not is_valid_input(user_input, valid_user_ids, keywords):
             return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
 
-        previous_intention = get_past_conversation_guest(convo_history_list_guest)
+        previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended = get_past_conversation_guest(convo_history_list_guest)
 
-        user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_question_guest)
+        user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_question_guest, last_bot_response, previous_items_recommended)
         user_intention_dictionary = parse_user_intention(user_intention)
-        print("line 172:", user_intention_dictionary)
+        #print("line 172:", user_intention_dictionary)
 
         # updating follow-up question
         past_follow_up_question_guest = update_past_follow_up_question_guest(user_intention_dictionary)
-        bot_response = getting_bot_response(user_intention_dictionary, chain2, db, user_id = None)
-        add_chat_history_guest(user_input, user_intention_dictionary, convo_history_list_guest)
+        recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, db, user_input, user_id = "guest")
+        
+        # To account for the case of the user asking for more information on a particular item
+        if recommendations is None:
+            recommendations = previous_items_recommended
+        add_chat_history_guest(user_input, user_intention_dictionary, recommendations, bot_response, convo_history_list_guest)
 
 
         return jsonify({'response': bot_response}) 
@@ -232,12 +236,8 @@ def chat():
     if not is_valid_input(user_input, valid_user_ids, keywords):
         return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
   
-    past_user_inputs, previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended = get_past_conversations_users(user_id, session_id)    
+    previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended = get_past_conversations_users(user_id, session_id)    
     print("last_bot_response:", last_bot_response)
-
-    """ past_follow_up_question = get_past_follow_up_question(user_id, session_id)
-    print("Past Follow Up Question: ", past_follow_up_question)"""
-
 
     user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended)
     user_intention_dictionary = parse_user_intention(user_intention)
@@ -245,12 +245,12 @@ def chat():
 
 
     # Getting the bot response
+    recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, db, user_input, user_id)
 
-    recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, db, user_id, user_input)
-
-    # to account for the use case of the user asking for more information on a particular item
+    # To account for the case of the user asking for more information on a particular item
     if recommendations is None:
         recommendations = previous_items_recommended
+
     add_chat_history_user(session_id, user_input,user_intention, recommendations, bot_response)
     print("Chat history updated successfully")
     

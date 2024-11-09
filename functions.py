@@ -92,21 +92,38 @@ def parse_user_intention(user_intention_dictionary):
     
     return dictionary
 
+import random
 def get_dummy_recommendation(keywords_list): # getting the top 3 products based on keywords
     products = {
-        "BOTEH2PGHGGCUPHH": {
+        "JSBFKS234KB": {
             "price": 1599,
             "product_name": "Rastogi Handicrafts JOINT LESS LEAK PROOF DECORATIVE 950 ml Bottle",
             "description": "AAA",
             "overall_rating": 5
         },
-        "JKSDBKAJBD": {
+        "NGEORI1otOÅ": {
             "price": 1599,
             "product_name": "IPHONE 16 pro max",
             "description": "BBB",
             "overall_rating": 4
+        }, 
+        "JKJKJKJKJWKERLW": {
+            "price": 1599,
+            "product_name": "SPORTS running shoes",
+            "description": "BBB",
+            "overall_rating": 4
         }
+
     }
+
+    selected_keys = random.sample(list(products.keys()), 2)
+    
+    # Construct a new dictionary with only the selected items
+    selected_products = {key: products[key] for key in selected_keys}
+    
+    return selected_products
+
+
     return products
 
 
@@ -142,7 +159,7 @@ def get_item_details(db, pid, follow_up_question):
     return follow_up_question
   
 # Getting bot response
-def getting_bot_response(user_intention_dictionary, chain2, db, user_id, user_input):
+def getting_bot_response(user_intention_dictionary, chain2, db, user_input, user_id):
     item_availability = user_intention_dictionary.get("Available in Store")
     
     
@@ -158,8 +175,9 @@ def getting_bot_response(user_intention_dictionary, chain2, db, user_id, user_in
     elif user_intention_dictionary.get("Related to Recommendation") == "Yes":
         
         product_id = user_intention_dictionary.get("Product ID")
+        #print(product_id)
         item_recommendation = get_item_details(db, product_id, user_intention_dictionary.get("Follow-Up Question"))
-        
+
         return None, item_recommendation
     
     else: 

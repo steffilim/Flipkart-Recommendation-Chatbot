@@ -80,10 +80,11 @@ Based on the information extracted, identify these key components and fill the r
    - If 'New': Handle the query as a fresh request for product recommendation. 
 - Related to Recommendation: Determine if the user's current query is asking to know more about an item ('Yes' or 'No').
    - If 'Yes': 
-      - Product Number: 
-         - First, parse the user input to extract a numerical reference (like "item 2").
-         - Match this numerical reference to the corresponding product in the Products Recommended list.
-         - Extract the Product ID corresponding to this numerical reference.
+      - Product ID: ENSURE THAT YOU DO THIS STEP CORRECTLY. YOU ARE NOT ALLOWED TO MAKE MISTAKES.
+         - Start by parsing the user input to identify numerical references such as "item 2".
+         - Convert this numerical reference into an index by subtracting 1 (since list indexing starts at 0 but user references start at 1).
+         - Use this index to access the corresponding product from the dictionary of Products Recommended. Ensure the dictionary is ordered or indexed in a way that the items can be directly accessed.
+         - Retrieve and return the Product ID from the selected product using this index. If the user input is "tell me more about item 2", use the index to access the second product in your structured dictionary and extract the Product ID.
       - Follow-Up Question: Ask "Would you like to discover items similar to this one?"
    - If 'No': Complete the following steps:
       - Available in Store: State whether the item is available ('Yes' or 'No').
