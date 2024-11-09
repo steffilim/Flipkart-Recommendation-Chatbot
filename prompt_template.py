@@ -71,29 +71,19 @@ User Query: {input}
 Previous Intention: {previous_intention}
 Previous Follow-Up Questions: {follow_up_questions}
 Based on the information extracted, identify these key components and fill the response template below:
-- Related to Follow-Up Questions: Determine if the user's current query is a continuation ('Old') or a new line of inquiry ('New') based on context from the previous interaction. It should always be 'Old' unless the user asks for a new 'Product Item'. If it is 'Old', the 'Brand', 'Budget' and 'Product Details' should remain unchanged! 
-- Available in Store: State whether the item is available ('Yes' or 'No').
-   - If 'No', ask: "The item is not currently available. Could you please specify another type of item you are interested in?"
-   - If 'Yes', evaluate the completeness of the product details. 
-      - Brand: Determine if a specific brand is mentioned or preferred. If not specified, prompt: "Could you please specify a brand you prefer?"
-      - Product Item: Identify the main product the user is inquiring about. If unclear but contextually related (e.g., holiday items), prompt: "What specific items are you looking for this Christmas?"
-      - Budget: Ascertain if the user has mentioned a budget range or price limit. If not specified, prompt: "Do you have a budget range in mind for this purchase?"
-      - Specifications: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, prompt: "Are there specific features or specifications you need?"
-      - Fields Incompleted: Count the number of fields (Brand, Product Item, Product Details, Budget) that are 'Not specified'.
-   - To-Follow-Up: Set to 'Yes' if 'Fields Incompleted' is more than 2, including fields that are partially specified. Otherwise, set to 'No'.
-   - Follow-Up Question: Adjust based on the fields that are incomplete:
-      - If 'Fields Incompleted' is 1 or more, provide tailored follow-up questions for each missing field to help refine the search and options. **You should only ask ONE question at a time!**
-      - If all fields are specified or adequately answered, ask: "Do the options presented meet your requirements, or would you like to explore other products?"
-
-You must refer to the example conversation here:
-- User: I want a laptop.
-- Bot: Could you please specify a brand you prefer?
-- User: Lenovo Brand.
-- Bot: Do you have a budget range in mind for this purchase?
-- User: Maximum $5000.
-- Bot: Are there specific features or specifications you need in a laptop?
-- User: 15.6-inch screen.
-- Bot: I see you are looking for a product. Here are a few recommendations for you:
+   - Related to Follow-Up Questions: Determine if the user's current query is a continuation ('Old') or a new line of inquiry ('New') based on context from the previous interaction. It should always be 'Old' unless the user asks for a new 'Product Item'. If it is 'Old', the 'Brand', 'Budget' and 'Product Details' should remain unchanged! 
+   - Available in Store: State whether the item is available ('Yes' or 'No').
+      - If 'No', ask: "The item is not currently available. Could you please specify another type of item you are interested in?"
+      - If 'Yes', evaluate the completeness of the product details:
+         - Brand: Determine if a specific brand is mentioned or preferred. If not specified, prompt: "Could you please specify a brand you prefer?"
+         - Product Item: Identify the main product the user is inquiring about. If unclear but contextually related (e.g., holiday items), prompt: "What specific items are you looking for this Christmas?"
+         - Specifications: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, prompt: "Are there specific features or specifications you need?"
+         - Budget: Ascertain if the user has mentioned a budget range or price limit. If not specified, prompt: "Do you have a budget range in mind for this purchase?"
+         - Fields Incompleted: Count the number of fields (Brand, Product Item, Product Details, Budget) that are 'Not specified'.
+      - To-Follow-Up: Set to 'No' if 'Fields Incompleted' is lesser than 2. Otherwise, set to 'Yes'.
+      - Follow-Up Question: Adjust based on the fields that are incomplete:
+         - If 'To-Follow-Up' is 'Yes', provide tailored follow-up questions for each missing field to help refine the search and options.
+         - If 'To-Follow-Up' is 'No', ask: "Do the options presented meet your requirements, or would you like to explore other products?"
 """
 
 
