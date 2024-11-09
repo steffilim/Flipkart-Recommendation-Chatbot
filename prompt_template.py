@@ -70,39 +70,32 @@ Instructions:
 User Query: {input}
 Previous Intention: {previous_intention}
 Previous Follow-Up Questions: {follow_up_questions}
-Previous Bot Response: {bot_response}
 Products Recommended: {items_recommended}
 
 
-Based on the information extracted, identify these key components and fill the response template below:
-- Related to Follow-Up Questions: Determine if the user's current query is a continuation ('Old') or a new line of inquiry ('New') based on context from the previous interaction.
-   - If 'Old': Assess if the query references a previously recommended product. 
-   - If 'New': Handle the query as a fresh request for product recommendation. 
-- Related to Recommendation: Determine if the user's current query is asking to know more about an item ('Yes' or 'No').
-   - If 'Yes': 
-      - Product ID: ENSURE THAT YOU DO THIS STEP CORRECTLY. YOU ARE NOT ALLOWED TO MAKE MISTAKES.
+Based on the information User Query, Previous Intention and Products Recommended, identify these key components below. Do not add additional characters other than the ones provided in the template:
+- Related to Follow-Up Questions: Determine if the user's current query is a continuation ('Old') or a new line of inquiry (New) based on context from the previous interaction.
+   - If Old: Assess if the query references a previously recommended product. 
+   - If New: Handle the query as a fresh request for product recommendation. 
+- Related to Recommendation: Determine if the user's current query is asking to know more about an item (Yes or No) that was recommended in the python dictionary Products Recommended.
+   - If Yes: 
+      - Product ID:
          - Start by parsing the user input to identify numerical references such as "item 2".
          - Convert this numerical reference into an index by subtracting 1 (since list indexing starts at 0 but user references start at 1).
-         - Use this index to access the corresponding product from the dictionary of Products Recommended. Ensure the dictionary is ordered or indexed in a way that the items can be directly accessed.
-         - Retrieve and return the Product ID from the selected product using this index. If the user input is "tell me more about item 2", use the index to access the second product in your structured dictionary and extract the Product ID.
-      - Follow-Up Question: Ask "Would you like to discover items similar to this one?"
-   - If 'No': Complete the following steps:
+         - Use this index to access the corresponding product from the python dictionary of Products Recommended. 
+         - Retrieve and return the unique ID from the selected product using this index. If the user input is "tell me more about item 2", use the index to access the second product in your structured dictionary called Products Recommended and extract the unique ID.
+      - Follow-Up Question: Ask, Would you like to discover items similar to this one?
+   - If No: Take information from User Query and Previous Intention to determine the user's current needs.
       - Available in Store: State whether the item is available ('Yes' or 'No').
-         - If 'No', ask: "The item is not currently available. Could you please specify another type of item you are interested in?"
-         - If 'Yes', evaluate the completeness of the product details
-            - Brand: Determine if a specific brand is mentioned or preferred. If not specified, prompt: "Could you please specify a brand you prefer?"
-            - Product Item: Identify the main product the user is inquiring about. If unclear but contextually related (e.g., holiday items), prompt: "What specific items are you looking for this Christmas?"
-            - Product Details: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, prompt: "Are there specific features or specifications you need?"
-            - Budget: Ascertain if the user has mentioned a budget range or price limit. If not specified, prompt: "Do you have a budget range in mind for this purchase?"
-         - Follow-Up Question: Adjust based on the fields that are incomplete:
-            - Provide tailored follow-up questions for each missing field to help refine the search and options.
-            - If all fields are specified or adequately answered, ask: "Do the options presented meet your requirements? Or which product would you like to explore further?"
-
-"""
-
-item_referenc = """
-
-
+         - If No, ask: The item is not currently available. Could you please specify another type of item you are interested in?
+         - If Yes, evaluate the completeness of the product details
+            - Brand: Determine if a specific brand is mentioned or preferred. If not specified, prompt: Could you please specify a brand you prefer?
+            - Product Item: Identify the main product the user is inquiring about. If unclear but contextually related (e.g., holiday items), prompt: What specific items are you looking for this Christmas?
+            - Product Details: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, prompt: Are there specific features or specifications you need?
+            - Budget: Ascertain if the user has mentioned a budget range or price limit. If not specified, prompt: Do you have a budget range in mind for this purchase?
+         - Follow-Up Question: 
+            - Provide tailored follow-up questions the fields that are 'Not specified'. 
+            - If all fields are specified or adequately answered, ask: Do the options presented meet your requirements? Or which product would you like to explore further?
 
 """
 

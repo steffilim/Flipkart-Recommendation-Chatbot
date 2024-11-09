@@ -124,8 +124,6 @@ def get_dummy_recommendation(keywords_list): # getting the top 3 products based 
     return selected_products
 
 
-    return products
-
 
 
 """ CHAT BOT FUNCTION"""
@@ -134,12 +132,12 @@ import re
 from recSys.weighted import hybrid_recommendations
 
 # Getting user intention
-def getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_questions, bot_response, items_recommended):
+def getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_questions,  items_recommended):
     if past_follow_up_questions is None:
         past_follow_up_questions = []
 
     
-    user_intention_dictionary = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention, "follow_up_questions": past_follow_up_questions, "bot_response": "hello", "items_recommended": items_recommended})
+    user_intention_dictionary = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention, "follow_up_questions": past_follow_up_questions, "items_recommended": items_recommended})
 
     return user_intention_dictionary
 
@@ -177,7 +175,7 @@ def getting_bot_response(user_intention_dictionary, chain2, db, user_input, user
         product_id = user_intention_dictionary.get("Product ID")
         #print(product_id)
         item_recommendation = get_item_details(db, product_id, user_intention_dictionary.get("Follow-Up Question"))
-
+        print("Item recommendation: ", item_recommendation)
         return None, item_recommendation
     
     else: 

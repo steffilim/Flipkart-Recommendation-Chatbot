@@ -8,6 +8,7 @@ from collections import Counter
 import re
 import time
 import json
+import threading
 
 # for LLM
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -63,7 +64,7 @@ def initialise_app():
     llm = ChatGoogleGenerativeAI(
         model="gemini-pro", 
         google_api_key=google_api_key,
-        temperature=0.05, 
+        temperature=0, 
         verbose=True, 
         stream=True
     )
@@ -110,7 +111,7 @@ def chat():
     if user_states.get("login_mode"):
         try:
             user_id = str(user_input)
-            print(user_id)
+            
         except ValueError:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
 
@@ -156,9 +157,9 @@ def chat():
         if not is_valid_input(user_input, valid_user_ids, keywords):
             return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
 
-        previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended = get_past_conversation_guest(convo_history_list_guest)
+        previous_intention, previous_follow_up_question, previous_items_recommended = get_past_conversation_guest(convo_history_list_guest)
 
-        user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_question_guest, last_bot_response, previous_items_recommended)
+        user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_question_guest, previous_items_recommended)
         user_intention_dictionary = parse_user_intention(user_intention)
         #print("line 172:", user_intention_dictionary)
 
@@ -169,7 +170,8 @@ def chat():
         # To account for the case of the user asking for more information on a particular item
         if recommendations is None:
             recommendations = previous_items_recommended
-        add_chat_history_guest(user_input, user_intention_dictionary, recommendations, bot_response, convo_history_list_guest)
+        
+        threading.Thread(target=add_chat_history_guest, args=(user_input, user_intention_dictionary, recommendations, convo_history_list_guest)).start()
 
 
         return jsonify({'response': bot_response}) 
@@ -187,6 +189,9 @@ def chat():
             # Valid user ID, store it and initialize a session
             user_states["user_id"] = user_id  # Save the user ID
             user_states.pop("login_mode", None)  # Remove login mode flag
+            user_states["session_id"] = str(uuid4())  # Generate a unique session ID
+            print("line 193: ", user_states["session_id"])
+            session_id = user_states["session_id"]
             print(session_id)
             start_new_session(user_id, session_id)  # Start a new session for the user
             print("New Session started, check mongodb line 182")
@@ -236,10 +241,9 @@ def chat():
     if not is_valid_input(user_input, valid_user_ids, keywords):
         return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
   
-    previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended = get_past_conversations_users(user_id, session_id)    
-    print("last_bot_response:", last_bot_response)
+    previous_intention, previous_follow_up_question, previous_items_recommended = get_past_conversations_users(user_id, session_id)    
 
-    user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended)
+    user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, previous_follow_up_question, previous_items_recommended)
     user_intention_dictionary = parse_user_intention(user_intention)
     print(user_intention_dictionary)
 
@@ -251,7 +255,7 @@ def chat():
     if recommendations is None:
         recommendations = previous_items_recommended
 
-    add_chat_history_user(session_id, user_input,user_intention, recommendations, bot_response)
+    add_chat_history_user(session_id, user_input, user_intention_dictionary, recommendations)
     print("Chat history updated successfully")
     
     return jsonify({'response': bot_response})
