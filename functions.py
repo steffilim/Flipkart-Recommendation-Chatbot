@@ -135,7 +135,7 @@ def getting_user_intention_dictionary(user_input, intention_chain, previous_inte
     user_intention_dictionary = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention, "follow_up_questions": past_follow_up_questions})
 
     return user_intention_dictionary
-  
+
 # Getting bot response
 def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id):
     # Fetch the catalogue & users data from Supabase
@@ -150,45 +150,34 @@ def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id)
         bot_response = user_intention_dictionary.get("Follow-Up Question")
 
     else: 
-        fields_incomplete = int(user_intention_dictionary.get("Fields Incompleted"))
+        # Set fields_incomplete to 0 if "Fields Incompleted" is None or not in the dictionary
+        fields_incomplete = int(user_intention_dictionary.get("Fields Incompleted",0))
+        item = user_intention_dictionary.get("Product Item")         
+        keen_to_share = user_intention_dictionary.get("Keen to Share")
 
-        if fields_incomplete > 2:
-            print("Fields incomplete")
+        # Check if all fields are incomplete and user prefers not to share more details
+        if fields_incomplete == 3 and keen_to_share == "No":
+            print("All fields are 'No preference'")
+            recommendations = get_dummy_recommendation(item)
+            questions = user_intention_dictionary.get("Follow-Up Question")
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+        # Case where user has incomplete fields but is willing to share more preferences
+        elif fields_incomplete == 3 and keen_to_share == "Yes":
+            print("Roughly complete")
             bot_response = user_intention_dictionary.get("Follow-Up Question")
-
         else:
             print("Roughly complete")
-            item = user_intention_dictionary.get("Product Item")
+            # Generate recommendations based on known preferences
+            recommendations = get_dummy_recommendation(item)
 
-
-
-        # calling hybrid_recommendations function 
-        #n_recommendations = 5  # number of recommendations to output (adjustable later)
-
-            """recommendations = hybrid_recommendations(    
-                item = item, 
-                user_id = user_id,  
-                orderdata = users_data,  
-                lsa_matrix = lsa_matrix,
-                content_weight = 0.6, 
-                collaborative_weight = 0.4,
-                n_recommendations = n_recommendations, 
-                
-            )"""
-            print(item)
-            recommendations =  get_dummy_recommendation(item)
-
-            """recommendations_text = "\n".join(
-                f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
-                for idx, rec in enumerate(recommendations)
-            )
-    """
-            # Getting follow-up questions from previous LLM
+            # Getting follow-up questions from previous LLM if available
             questions = user_intention_dictionary.get("Follow-Up Question")
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
 
-
     return bot_response
+ 
+
+
 
 
 
