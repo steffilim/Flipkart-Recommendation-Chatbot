@@ -93,15 +93,15 @@ def fetch_filtered_products(extracted_info):
     product_specifications = extracted_info.get("Product Details")
 
     # Convert "Not specified" to None for each field
-    if product_name == "Not specified":
+    if product_name == "No preference":
         product_name = None
-    if price_limit == "Not specified":
+    if price_limit == "No preference":
         price_limit = None
-    if brand == "Not specified":
+    if brand == "No preference":
         brand = None
-    if overall_rating == "Not specified":
+    if overall_rating == "No preference":
         overall_rating = None
-    if product_specifications == "Not specified":
+    if product_specifications == "No preference":
         product_specifications = None
 
     # Print each field and its type after processing
@@ -160,7 +160,7 @@ def get_product_details_from_supabase(uniq_ids):
     product_data = (
         supabase
         .table('flipkart_cleaned')
-        .select('uniq_id, product_name, brand, retail_price, discounted_price, description')
+        .select('uniq_id, product_name, brand, retail_price, discounted_price, discount, description, overall_rating, product_specifications, percentage_discount')
         .in_('uniq_id', uniq_ids)
         .execute()
     )
