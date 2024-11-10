@@ -198,7 +198,7 @@ def get_item_details(supabase, product_id, follow_up_question):
     return readable_output
   
 # Getting bot response
-def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_input, user_id):
+def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_input, user_id, previous_intention):
   
     # Fetch the catalogue & users data from Supabase
 
@@ -231,7 +231,7 @@ def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_i
         if fields_incomplete == 3 and keen_to_share == "No":
             recommendations = get_dummy_recommendation(item)
             questions = user_intention_dictionary.get("Follow-Up Question")
-            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions, "previous intention": previous_intention})
            
         # Case where user has incomplete fields but is willing to share more preferences
         elif fields_incomplete == 3 and keen_to_share == "Yes":
@@ -244,7 +244,7 @@ def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_i
 
             # Getting follow-up questions from previous LLM if available
             questions = user_intention_dictionary.get("Follow-Up Question")
-            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions,  "previous intention": previous_intention})
            
     return recommendations, bot_response
  
