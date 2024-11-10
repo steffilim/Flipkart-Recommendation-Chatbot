@@ -80,11 +80,12 @@ Based on the information User Query, Previous Intention and Products Recommended
    - If New: Handle the query as a fresh request for product recommendation. 
 - Related to Recommendation: Determine if the user's current query is asking to know more about an item (Yes or No) that was recommended in the python dictionary Products Recommended.
    - If Yes: 
-      - Product ID:
+      - Product Number:
          - Start by parsing the user input to identify numerical references such as "item 2".
-         - Convert this numerical reference into an index by subtracting 1 (since list indexing starts at 0 but user references start at 1).
-         - Use this index to access the corresponding product from the python dictionary of Products Recommended. 
-         - Retrieve and return the unique ID from the selected product using this index. If the user input is "tell me more about item 2", use the index to access the second product in your structured dictionary called Products Recommended and extract the unique ID.
+         - This number directly corresponds to the item's position in the recommendation list as presented to the user.
+         - Subtract 1 from the number to get the correct index for the item in the list.
+         - Use this index to retrieve the product from the dictionary of Products Recommended. 
+         - Output the product ID
       - Follow-Up Question: Ask, Would you like to discover items similar to this one?
    - If No: Take information from User Query and Previous Intention to determine the user's current needs.
       - Available in Store: State whether the item is available ('Yes' or 'No').

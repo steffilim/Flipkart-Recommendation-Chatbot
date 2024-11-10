@@ -19,7 +19,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, update_past_follow_up_question_guest
 from prompt_template import intention_template_test, refine_template, intention_template_2, intention_template
-from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data
+from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data, load_users_data
 #from recSys.contentBased import load_product_data
 
 
@@ -168,7 +168,7 @@ def chat():
 
         # updating follow-up question
         past_follow_up_question_guest = update_past_follow_up_question_guest(user_intention_dictionary)
-        recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, db, user_input, user_id = "guest")
+        recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_input, user_id = "guest")
         
         # To account for the case of the user asking for more information on a particular item
         if recommendations is None:
@@ -249,7 +249,7 @@ def chat():
 
 
     # Getting the bot response
-    recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, db, user_input, user_id)
+    recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_input, user_id)
 
     # To account for the case of the user asking for more information on a particular item
     if recommendations is None:

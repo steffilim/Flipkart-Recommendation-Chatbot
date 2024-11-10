@@ -26,19 +26,22 @@ def initialising_mongoDB():
     mydb = client[FLIPKART]
     return mydb
 
-def load_product_data():
-    supabase = initialising_supabase()
-    # Load data from the flipkart_cleaned table in supabase
-    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned').select('*').execute().data)
+def load_product_data(supabase):
 
+    # Load data from the flipkart_cleaned table in supabase
+    catalogue_data = supabase.table('flipkart_cleaned').select('*').execute().data
+    """
     # Create the 'content' column by concatenating 'description' and 'product_specifications'
     catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
      # Ensure there are no NaN values which can cause issues
     catalogue_data['content'] = catalogue_data['content'].fillna('') 
-    print("Successfully loaded DataFrame from Supabase")
+    print("Successfully loaded DataFrame from Supabase")"""
  
     return catalogue_data
- 
+
+def load_users_data(supabase): 
+    users_data = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
+    return users_data
 
 
 
@@ -117,19 +120,19 @@ def parse_user_intention(user_intention_dictionary):
 import random
 def get_dummy_recommendation(keywords_list): # getting the top 3 products based on keywords
     products = {
-        "JSBFKS234KB": {
+        "boteh2pghggcuphh": {
             "price": 1599,
             "product_name": "Rastogi Handicrafts JOINT LESS LEAK PROOF DECORATIVE 950 ml Bottle",
             "description": "AAA",
             "overall_rating": 5
         },
-        "NGEORI1otOÅ": {
+        "mngejhg7yhyzgugh": {
             "price": 1599,
             "product_name": "IPHONE 16 pro max",
             "description": "BBB",
             "overall_rating": 4
         }, 
-        "JKJKJKJKJWKERLW": {
+        "tieee2ysk3faq5zf": {
             "price": 1599,
             "product_name": "SPORTS running shoes",
             "description": "BBB",
@@ -163,8 +166,8 @@ def getting_user_intention_dictionary(user_input, intention_chain, previous_inte
 
     return user_intention_dictionary
 
-def get_item_details(db, pid, follow_up_question):
-
+def get_item_details(supabase, product_id, follow_up_question):
+    #print(catalogue)
     """
     SUPABASE IMPLEMENTATION TO GO HERE
     BUT THE FORMAT IS AS FOLLOWS:
@@ -174,16 +177,33 @@ def get_item_details(db, pid, follow_up_question):
     overall rating of the product:
     price:
     """
+    product_details = (supabase.select("product_name", "brand", "description", "overall_rating", "discounted_price").eq("pid", product_id).execute())
+    details = product_details.data
 
-    return follow_up_question
+    if details:
+        # Assuming details contain at least one item, and we are interested in the first one for demonstration
+        product = details[0]  # get the first product in the list
+        readable_output = (
+            f"Product Name: {product['product_name']}\n"
+            f"Brand: {product['brand']}\n"
+            f"Price: ₹{product['discounted_price']}\n"
+            f"Rating: {product['overall_rating']}\n"
+            f"Description: {product['description']}\n"
+            f"{follow_up_question}"
+        )
+
+
+
+
+    return readable_output
   
 # Getting bot response
-def getting_bot_response(user_intention_dictionary, chain2, db, user_input, user_id):
+def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_input, user_id):
   
     # Fetch the catalogue & users data from Supabase
-    supabase = initialising_supabase()
-    catalogue = load_product_data()
-    users_data = supabase.table('synthetic_v2').select('*').execute().data
+
+    catalogue = (supabase.table('flipkart_cleaned'))
+    users_data = (supabase.table('synthetic_v2').select('*').execute().data)
 
     item_availability = user_intention_dictionary.get("Available in Store")
     
