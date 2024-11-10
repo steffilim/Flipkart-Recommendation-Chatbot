@@ -166,35 +166,37 @@ def getting_user_intention_dictionary(user_input, intention_chain, previous_inte
 
     return user_intention_dictionary
 
-def get_item_details(supabase, product_id, follow_up_question):
-    #print(catalogue)
-    """
-    SUPABASE IMPLEMENTATION TO GO HERE
-    BUT THE FORMAT IS AS FOLLOWS:
-    product name:
-    brand: 
-    description:
-    overall rating of the product:
-    price:
-    """
-    product_details = (supabase.select("product_name", "brand", "description", "overall_rating", "discounted_price").eq("pid", product_id).execute())
-    details = product_details.data
 
-    if details:
+"""TO BE REMOVED ONCE MERGED WITH RS"""
+
+def get_item_details(uniq_ids ):
+    # Initialize Supabase connection
+    supabase = initialising_supabase()
+    
+    # Fetch full product details based on the uniq_ids from Supabase
+    product_data = (
+        supabase
+        .table('flipkart_cleaned')
+        .select('product_name, brand, retail_price, discounted_price, discount, description, product_specifications, overall_rating')
+        .eq('pid', uniq_ids)
+        .execute()
+    )
+    
+
+    # Convert the results into a DataFrame
+    product_df = pd.DataFrame(product_data.data)
         # Assuming details contain at least one item, and we are interested in the first one for demonstration
-        product = details[0]  # get the first product in the list
-        readable_output = (
-            f"Product Name: {product['product_name']}\n"
-            f"Brand: {product['brand']}\n"
-            f"Price: ₹{product['discounted_price']}\n"
-            f"Rating: {product['overall_rating']}\n"
-            f"Description: {product['description']}\n"
-            f"{follow_up_question}"
-        )
-
-
-
-
+      # get the first product in the list
+    readable_output = (
+        f"Product Name: {product_df['product_name']}\n"
+        f"Brand: {product_df['brand']}\n"
+        f"Price: ₹{product_df['discounted_price']}\n"
+        f"Rating: {product_df['overall_rating']}\n"
+        f"Description: {product_df['description']}\n"
+            
+    )
+    
+    
     return readable_output
   
 # Getting bot response
@@ -216,9 +218,10 @@ def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_i
     elif user_intention_dictionary.get("Related to Recommendation") == "Yes":
         
         product_id = user_intention_dictionary.get("Product ID")
+        follow_up = user_intention_dictionary.get("Follow-Up Question")
         #print(product_id)
-        item_recommendation = get_item_details(db, product_id, user_intention_dictionary.get("Follow-Up Question"))
-        print("Item recommendation: ", item_recommendation)
+        item_recommendation = get_item_details(product_id)
+        item_recommendation += "\n\n" + follow_up
         return None, item_recommendation
 
     else: 
