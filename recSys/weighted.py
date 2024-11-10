@@ -1,6 +1,6 @@
-from collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
+from recSys.collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
 
-from contentBased import recommend_top_products 
+from recSys.contentBased import recommend_top_products 
 
 import pandas as pd
 from sklearn.metrics import mean_squared_error
@@ -86,18 +86,39 @@ def fetch_filtered_products(extracted_info):
     # ensure correct type
     # if cannot find in dictionary, just none
     # Extract values from the dictionary with default values for any missing keys
-    product_name = extracted_info.get("product_name", None)
-    price_limit = extracted_info.get("max_price", None)
-    brand = extracted_info.get("brand", None)
+    product_name = extracted_info.get("Product Item")
+    price_limit = extracted_info.get("Budget")
+    brand = extracted_info.get("Brand")
     overall_rating = extracted_info.get("overall_rating", None)  # Default value, as not in the provided dictionary
-    product_specifications = extracted_info.get("specifications", None)
+    product_specifications = extracted_info.get("Product Details")
 
-    # Ensure price_limit is of type float if provided
-    if price_limit is not None:
+    # Convert "Not specified" to None for each field
+    if product_name == "Not specified":
+        product_name = None
+    if price_limit == "Not specified":
+        price_limit = None
+    if brand == "Not specified":
+        brand = None
+    if overall_rating == "Not specified":
+        overall_rating = None
+    if product_specifications == "Not specified":
+        product_specifications = None
+
+    # Print each field and its type after processing
+    '''
+    print("product_name:", product_name, "| Type:", type(product_name))
+    print("price_limit:", price_limit, "| Type:", type(price_limit))
+    print("brand:", brand, "| Type:", type(brand))
+    print("overall_rating:", overall_rating, "| Type:", type(overall_rating))
+    print("product_specifications:", product_specifications, "| Type:", type(product_specifications))
+    '''
+
+    if price_limit is not None and price_limit != "Not specified":
         try:
             price_limit = float(price_limit)
         except ValueError:
-            raise ValueError("price_limit must be a number")
+            print("Warning: price_limit is not a valid number:", price_limit)
+            price_limit = None
 
     return filter_products(
         product_name=product_name,
@@ -106,6 +127,10 @@ def fetch_filtered_products(extracted_info):
         overall_rating=overall_rating,
         product_specifications=product_specifications
     )
+
+'''
+fetch_filtered_products( {'Related to Follow-Up Questions': 'New', 'Available in Store': 'Yes', 'Brand': 'Alisha', 'Product Item': 'Cycling shorts', 'Product Details': 'Not specified', 'Budget': 'Not specified', 'Fields Incompleted': '2', 'To-Follow-Up': 'Yes', 'Follow-Up Question': 'Could you please specify any specific features or specifications you need for the cycling shorts? Do you have a budget range in mind for this purchase?'})
+'''
 
 ''' helper functions '''
 def concatenate_selected_dict_values(input_dict, keys_to_extract, separator=", "):
@@ -125,12 +150,20 @@ def get_user_query(extracted_info, keys = ['product_name', 'brand', 'product_spe
     user_query = concatenate_selected_dict_values(extracted_info, keys)
     return user_query
 
+# fetching only specified columns: 'uniq_id, product_name, brand, retail_price, discounted_price, description'
+
 def get_product_details_from_supabase(uniq_ids):
     # Initialize Supabase connection
     supabase = initialising_supabase()
     
     # Fetch full product details based on the uniq_ids from Supabase
-    product_data = supabase.table('flipkart_cleaned').select('*').in_('uniq_id', uniq_ids).execute()
+    product_data = (
+        supabase
+        .table('flipkart_cleaned')
+        .select('uniq_id, product_name, brand, retail_price, discounted_price, description')
+        .in_('uniq_id', uniq_ids)
+        .execute()
+    )
 
     # Convert the results into a DataFrame
     product_df = pd.DataFrame(product_data.data)
@@ -252,9 +285,11 @@ def hybrid_recommendations(extracted_info, user_id, content_weight=0.5, collabor
     product_details_df = get_product_details_from_supabase(uniq_ids)
     
     # print("End of hybrid recommendation system")
+    print("hybrid rec sys items", product_details_df['product_name'])
     return product_details_df
 
 '''test'''
+'''
 extracted_info = extracted_info = {
     "product_name": "cycling shorts",
     "price_limit": 3000,
@@ -277,7 +312,7 @@ end_time = time.time()
 # Calculate and print the elapsed time
 elapsed_time = end_time - start_time
 print(f"Execution time: {elapsed_time:.2f} seconds")
-
+'''
 
 
 

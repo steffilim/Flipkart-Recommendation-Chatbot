@@ -137,7 +137,70 @@ def getting_user_intention_dictionary(user_input, intention_chain, previous_inte
     user_intention_dictionary = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention, "follow_up_questions": past_follow_up_questions})
 
     return user_intention_dictionary
-  
+
+# Getting bot response
+def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id):
+    # Fetch the catalogue & users data from Supabase
+    supabase = initialising_supabase()
+    catalogue = load_product_data()
+    users_data = supabase.table('synthetic_v2').select('*').execute().data
+
+    item_availability = user_intention_dictionary.get("Available in Store")
+    
+    if item_availability == "No":
+        print("Item not available")
+        bot_response = user_intention_dictionary.get("Follow-Up Question")
+
+    else: 
+        fields_incomplete = int(user_intention_dictionary.get("Fields Incompleted", 10))
+
+        if fields_incomplete > 2:
+            print("Fields incomplete")
+            bot_response = user_intention_dictionary.get("Follow-Up Question")
+
+        else:
+            print("Roughly complete")
+            item = user_intention_dictionary.get("Product Item")
+
+
+
+        # calling hybrid_recommendations function 
+        #n_recommendations = 5  # number of recommendations to output (adjustable later)
+
+            """recommendations = hybrid_recommendations(    
+                item = item, 
+                user_id = user_id,  
+                orderdata = users_data,  
+                lsa_matrix = lsa_matrix,
+                content_weight = 0.6, 
+                collaborative_weight = 0.4,
+                n_recommendations = n_recommendations, 
+                
+            )"""
+
+            '''
+            print(item)
+            recommendations =  get_dummy_recommendation(item)
+            '''
+            print("user_intention_dictionary", user_intention_dictionary)
+
+            recommendations = hybrid_recommendations(user_intention_dictionary, user_id)
+
+            '''
+            recommendations_text = "\n".join(
+                f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
+                for idx, rec in enumerate(recommendations)
+            )
+            '''
+
+            # Getting follow-up questions from previous LLM
+            questions = user_intention_dictionary.get("Follow-Up Question")
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+
+
+    return bot_response
+
+'''  
 # Getting bot response
 def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id):
     # Fetch the catalogue & users data from Supabase
@@ -180,6 +243,7 @@ def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id)
             print(item)
             recommendations =  get_dummy_recommendation(item)
 
+
             """recommendations_text = "\n".join(
                 f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
                 for idx, rec in enumerate(recommendations)
@@ -191,6 +255,8 @@ def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id)
 
 
     return bot_response
+'''
+
 
 "will refine it later"
 def re_rank_with_intent(catalogue, item, user_id, content_weight, collaborative_weight, user_intention, n_recommendations=10):
