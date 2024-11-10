@@ -229,24 +229,23 @@ def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_i
 
         # Check if all fields are incomplete and user prefers not to share more details
         if fields_incomplete == 3 and keen_to_share == "No":
-            print("All fields are 'No preference'")
             recommendations = get_dummy_recommendation(item)
             questions = user_intention_dictionary.get("Follow-Up Question")
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+           
         # Case where user has incomplete fields but is willing to share more preferences
         elif fields_incomplete == 3 and keen_to_share == "Yes":
-            print("line 218")
+            recommendations = None
             bot_response = user_intention_dictionary.get("Follow-Up Question")
-            return None, bot_response
+            
         else:
-            print("line 221")
             # Generate recommendations based on known preferences
             recommendations = get_dummy_recommendation(item)
 
             # Getting follow-up questions from previous LLM if available
             questions = user_intention_dictionary.get("Follow-Up Question")
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
-
+           
     return recommendations, bot_response
  
 
