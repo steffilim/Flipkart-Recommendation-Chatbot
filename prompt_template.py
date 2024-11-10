@@ -87,7 +87,8 @@ Based on the information User Query, Previous Intention and Products Recommended
       - Follow-Up Question: Ask, Would you like to discover items similar to this one?
    - If No: Take information from User Query and Previous Intention to determine the user's current needs.
       - Available in Store: State whether the item is available ('Yes' or 'No').
-         - If No, ask: The item is not currently available. Could you please specify another type of item you are interested in?
+         - If No, 
+            - Follow-Up Question: Come up with a follow-up question that will help the user further. If it is not clear, prompt: Could you please specify another type of item you are interested in?
          - If Yes, evaluate the completeness of the product details
             - Brand: Determine if a specific brand is mentioned or preferred. If not specified, prompt: Could you please specify a brand you prefer?
             - Product Item: Identify the main product the user is inquiring about. If unclear but contextually related (e.g., holiday items), prompt: What specific items are you looking for this Christmas?
@@ -95,7 +96,7 @@ Based on the information User Query, Previous Intention and Products Recommended
             - Budget: Ascertain if the user has mentioned a budget range or price limit. If not specified, prompt: Do you have a budget range in mind for this purchase?
          - Follow-Up Question: 
             - Provide tailored follow-up questions the fields that are 'Not specified'. 
-            - If all fields are specified or adequately answered, ask: Do the options presented meet your requirements? Or which product would you like to explore further?
+            - If all fields are specified or adequately answered, give a follow up question that will help the user further. 
 
 """
 

@@ -162,7 +162,7 @@ def getting_bot_response(user_intention_dictionary, chain2, db, user_input, user
     
     
     # for unavailable items
-    if item_availability == "Not Available":
+    if item_availability == "No":
         print("Item not available")
         bot_response = user_intention_dictionary.get("Follow-Up Question")
         return None, bot_response
@@ -179,7 +179,9 @@ def getting_bot_response(user_intention_dictionary, chain2, db, user_input, user
         return None, item_recommendation
     
     else: 
-        fields_incomplete = sum(1 for key, value in user_intention_dictionary.items() if value == "Not specified")
+
+        
+        fields_incomplete = sum(1 for key in ["Brand", "Product Details", "Budget"] if user_intention_dictionary.get(key) == "Not specified")
         #fields_incomplete = (user_intention_dictionary.get("Fields Incompleted"))
 
         if fields_incomplete > 2:
