@@ -66,7 +66,6 @@ def get_popular_items(db):
 
 
 
-
 """ KEYWORD DETECTION FUNCTION """
 
 import nltk
@@ -115,8 +114,36 @@ def parse_user_intention(user_intention_dictionary):
     
     return dictionary
 
+import random
 def get_dummy_recommendation(keywords_list): # getting the top 3 products based on keywords
-    return "hello"
+    products = {
+        "JSBFKS234KB": {
+            "price": 1599,
+            "product_name": "Rastogi Handicrafts JOINT LESS LEAK PROOF DECORATIVE 950 ml Bottle",
+            "description": "AAA",
+            "overall_rating": 5
+        },
+        "NGEORI1otOÅ": {
+            "price": 1599,
+            "product_name": "IPHONE 16 pro max",
+            "description": "BBB",
+            "overall_rating": 4
+        }, 
+        "JKJKJKJKJWKERLW": {
+            "price": 1599,
+            "product_name": "SPORTS running shoes",
+            "description": "BBB",
+            "overall_rating": 4
+        }
+
+    }
+
+    selected_keys = random.sample(list(products.keys()), 2)
+    
+    # Construct a new dictionary with only the selected items
+    selected_products = {key: products[key] for key in selected_keys}
+    
+    return selected_products
 
 
 
@@ -127,17 +154,32 @@ import re
 from recSys.weighted import hybrid_recommendations
 
 # Getting user intention
-def getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_questions):
+def getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_questions,  items_recommended):
     if past_follow_up_questions is None:
         past_follow_up_questions = []
 
     
-    user_intention_dictionary = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention, "follow_up_questions": past_follow_up_questions})
+    user_intention_dictionary = intention_chain.invoke({"input": user_input, "previous_intention": previous_intention, "follow_up_questions": past_follow_up_questions, "items_recommended": items_recommended})
 
     return user_intention_dictionary
 
+def get_item_details(db, pid, follow_up_question):
+
+    """
+    SUPABASE IMPLEMENTATION TO GO HERE
+    BUT THE FORMAT IS AS FOLLOWS:
+    product name:
+    brand: 
+    description:
+    overall rating of the product:
+    price:
+    """
+
+    return follow_up_question
+  
 # Getting bot response
-def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id):
+def getting_bot_response(user_intention_dictionary, chain2, db, user_input, user_id):
+  
     # Fetch the catalogue & users data from Supabase
     supabase = initialising_supabase()
     catalogue = load_product_data()
@@ -148,6 +190,15 @@ def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id)
     if item_availability == "No":
         print("Item not available")
         bot_response = user_intention_dictionary.get("Follow-Up Question")
+        
+    # Related to Recommendation
+    elif user_intention_dictionary.get("Related to Recommendation") == "Yes":
+        
+        product_id = user_intention_dictionary.get("Product ID")
+        #print(product_id)
+        item_recommendation = get_item_details(db, product_id, user_intention_dictionary.get("Follow-Up Question"))
+        print("Item recommendation: ", item_recommendation)
+        return None, item_recommendation
 
     else: 
         # Set fields_incomplete to 0 if "Fields Incompleted" is None or not in the dictionary
@@ -174,61 +225,11 @@ def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id)
             questions = user_intention_dictionary.get("Follow-Up Question")
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
 
-    return bot_response
+    return recommendations, bot_response
  
 
 
 
 
 
-'''
-def getting_bot_response(user_intention_dictionary, chain2, db, lsa_matrix, user_id):
-    item_availability = user_intention_dictionary.get("Available in Store")
-    
 
-    if item_availability == "No":
-        print("Item not available")
-        bot_response = user_intention_dictionary.get("Follow-Up Question")
-
-    else: 
-        fields_incomplete = int(user_intention_dictionary.get("Fields Incompleted"))
-
-        if fields_incomplete > 2:
-            print("Fields incomplete")
-            bot_response = user_intention_dictionary.get("Follow-Up Question")
-
-        else:
-            print("Roughly complete")
-            item = user_intention_dictionary.get("Product Item")
-
-
-
-        # calling hybrid_recommendations function 
-        #n_recommendations = 5  # number of recommendations to output (adjustable later)
-
-            """recommendations = hybrid_recommendations(
-                catalogue = db.catalogue,    
-                item = item, 
-                user_id = user_id,  
-                orderdata = db.users, 
-                lsa_matrix = lsa_matrix,
-                content_weight = 0.6, 
-                collaborative_weight = 0.4,
-                n_recommendations = n_recommendations, 
-                
-            )"""
-            print(item)
-            recommendations =  get_dummy_recommendation(item)
-
-            """recommendations_text = "\n".join(
-                f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
-                for idx, rec in enumerate(recommendations)
-            )
-    """
-            # Getting follow-up questions from previous LLM
-            questions = user_intention_dictionary.get("Follow-Up Question")
-            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
-
-
-    return bot_response
-'''
