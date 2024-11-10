@@ -17,7 +17,7 @@ from flask import Flask, render_template, request, jsonify
 from langchain_core.prompts import ChatPromptTemplate
 
 
-from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, get_past_follow_up_question, update_past_follow_up_question_guest
+from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, update_past_follow_up_question_guest
 from prompt_template import intention_template_test, refine_template, intention_template_2, intention_template
 from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data
 #from recSys.contentBased import load_product_data
@@ -69,6 +69,7 @@ def initialise_app():
         verbose=True, 
         stream=True
     )
+    lsa_matrix= 'lsa_matrix.joblib'
 
     # CHAINING
     # refining the output based on the recommendations and keywords 

@@ -190,6 +190,7 @@ def getting_bot_response(user_intention_dictionary, chain2, db, user_input, user
     if item_availability == "No":
         print("Item not available")
         bot_response = user_intention_dictionary.get("Follow-Up Question")
+        return None, bot_response
         
     # Related to Recommendation
     elif user_intention_dictionary.get("Related to Recommendation") == "Yes":
@@ -214,10 +215,11 @@ def getting_bot_response(user_intention_dictionary, chain2, db, user_input, user
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
         # Case where user has incomplete fields but is willing to share more preferences
         elif fields_incomplete == 3 and keen_to_share == "Yes":
-            print("Roughly complete")
+            print("line 218")
             bot_response = user_intention_dictionary.get("Follow-Up Question")
+            return None, bot_response
         else:
-            print("Roughly complete")
+            print("line 221")
             # Generate recommendations based on known preferences
             recommendations = get_dummy_recommendation(item)
 
