@@ -17,13 +17,11 @@ from flask import Flask, render_template, request, jsonify
 from langchain_core.prompts import ChatPromptTemplate
 
 
+from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, get_past_follow_up_question, update_past_follow_up_question_guest
+from prompt_template import intention_template_test, refine_template, intention_template_2, intention_template
+from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data
+#from recSys.contentBased import load_product_data
 
-
-
-from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, update_past_follow_up_question_guest
-from prompt_template import intention_template_test, refine_template, intention_template_2
-from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention
-from recSys.contentBased import load_product_data
 
 
 
@@ -57,6 +55,9 @@ load_dotenv()
 # Flask routes
 
 def initialise_app():
+    supabase = initialising_supabase()
+    print("Supabase setup successful")
+
     db = initialising_mongoDB()
     print("Database setup successful")
 
@@ -79,9 +80,10 @@ def initialise_app():
     intention_chain = intention_prompt | llm | StrOutputParser()
 
 
-    return db, llm, chain2, intention_chain
+    return supabase, db, llm, chain2, intention_chain, lsa_matrix
 
-db, llm, chain2, intention_chain = initialise_app()
+supabase, db, llm, chain2, intention_chain, lsa_matrix = initialise_app()
+
 
 
 @app.route('/')
@@ -174,6 +176,7 @@ def chat():
         threading.Thread(target=add_chat_history_guest, args=(user_input, user_intention_dictionary, recommendations, convo_history_list_guest)).start()
 
 
+
         return jsonify({'response': bot_response}) 
     
     # If the user is prompted to enter user ID (after /login)
@@ -252,6 +255,7 @@ def chat():
         recommendations = previous_items_recommended
 
     add_chat_history_user(session_id, user_input, user_intention_dictionary, recommendations)
+
     print("Chat history updated successfully")
     
     return jsonify({'response': bot_response})

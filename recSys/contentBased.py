@@ -26,12 +26,13 @@ product_data_file = flipkart.catalogue
 lsa_matrix_file = 'lsa_matrix.joblib'
 """
 
+''' 
 # Function to load and preprocess the data
 def load_product_data(product_data_file):
     cursor = product_data_file.find({})
     catalogue = pd.DataFrame(list(cursor))  
     # print(catalogue)
-    ''' 
+    
     catalogue['content'] = (catalogue['product_name'].astype(str) + ' ' +
                      catalogue['product_category_tree'].astype(str) + ' ' +
                      catalogue['retail_price'].astype(str) + ' ' +
@@ -43,10 +44,11 @@ def load_product_data(product_data_file):
                      catalogue['product_specifications'].astype(str))
     
     catalogue['content'] = catalogue['content'].fillna('')  # Ensure there are no NaN values which can cause issues
-    '''
+   
     
     print("Successfully loaded DataFrame from MongoDB")
     return catalogue
+'''
 
 # df = load_product_data(flipkart.catalogue)
 # Save the DataFrame to a CSV file

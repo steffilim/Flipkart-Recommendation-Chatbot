@@ -7,9 +7,16 @@ import pymongo
 import os
 import currency
 from dotenv import load_dotenv
+from supabase import create_client
 
 INR = currency.symbol('INR')
 
+def initialising_supabase():
+    load_dotenv()
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
+    supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
+    return supabase
 
 def initialising_mongoDB():
     load_dotenv()
@@ -18,6 +25,21 @@ def initialising_mongoDB():
     client = pymongo.MongoClient(MONGODB_URI)
     mydb = client[FLIPKART]
     return mydb
+
+def load_product_data():
+    supabase = initialising_supabase()
+    # Load data from the flipkart_cleaned table in supabase
+    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned').select('*').execute().data)
+
+    # Create the 'content' column by concatenating 'description' and 'product_specifications'
+    catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
+     # Ensure there are no NaN values which can cause issues
+    catalogue_data['content'] = catalogue_data['content'].fillna('') 
+    print("Successfully loaded DataFrame from Supabase")
+ 
+    return catalogue_data
+ 
+
 
 
 def get_popular_items(db):
@@ -141,7 +163,6 @@ def getting_user_intention_dictionary(user_input, intention_chain, previous_inte
 
     return user_intention_dictionary
 
-
 def get_item_details(db, pid, follow_up_question):
 
     """
@@ -158,17 +179,18 @@ def get_item_details(db, pid, follow_up_question):
   
 # Getting bot response
 def getting_bot_response(user_intention_dictionary, chain2, db, user_input, user_id):
+  
+    # Fetch the catalogue & users data from Supabase
+    supabase = initialising_supabase()
+    catalogue = load_product_data()
+    users_data = supabase.table('synthetic_v2').select('*').execute().data
+
     item_availability = user_intention_dictionary.get("Available in Store")
     
-    
-    # for unavailable items
     if item_availability == "No":
         print("Item not available")
         bot_response = user_intention_dictionary.get("Follow-Up Question")
-        return None, bot_response
-
-    # for available items
-    
+        
     # Related to Recommendation
     elif user_intention_dictionary.get("Related to Recommendation") == "Yes":
         
@@ -177,51 +199,37 @@ def getting_bot_response(user_intention_dictionary, chain2, db, user_input, user
         item_recommendation = get_item_details(db, product_id, user_intention_dictionary.get("Follow-Up Question"))
         print("Item recommendation: ", item_recommendation)
         return None, item_recommendation
-    
+
     else: 
+        # Set fields_incomplete to 0 if "Fields Incompleted" is None or not in the dictionary
+        fields_incomplete = int(user_intention_dictionary.get("Fields Incompleted",0))
+        item = user_intention_dictionary.get("Product Item")         
+        keen_to_share = user_intention_dictionary.get("Keen to Share")
 
-        
-        fields_incomplete = sum(1 for key in ["Brand", "Product Details", "Budget"] if user_intention_dictionary.get(key) == "Not specified")
-        #fields_incomplete = (user_intention_dictionary.get("Fields Incompleted"))
-
-        if fields_incomplete > 2:
-            print("Fields incomplete")
-            bot_response = user_intention_dictionary.get("Follow-Up Question")
-            return None, bot_response
-
-        else:
-            print("Roughly complete")
-            item = user_intention_dictionary.get("Product Item")
-
-
-
-        # calling hybrid_recommendations function 
-        #n_recommendations = 5  # number of recommendations to output (adjustable later)
-
-            """recommendations = hybrid_recommendations(
-                catalogue = db.catalogue,    
-                item = item, 
-                user_id = user_id,  
-                orderdata = db.users, 
-                lsa_matrix = lsa_matrix,
-                content_weight = 0.6, 
-                collaborative_weight = 0.4,
-                n_recommendations = n_recommendations, 
-                
-            )"""
-            
-            recommendations =  get_dummy_recommendation(item)
-            print(recommendations)
-
-            """recommendations_text = "\n".join(
-                f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
-                for idx, rec in enumerate(recommendations)
-            )
-    """
-            # Getting follow-up questions from previous LLM
+        # Check if all fields are incomplete and user prefers not to share more details
+        if fields_incomplete == 3 and keen_to_share == "No":
+            print("All fields are 'No preference'")
+            recommendations = get_dummy_recommendation(item)
             questions = user_intention_dictionary.get("Follow-Up Question")
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
-            print(recommendations)
+        # Case where user has incomplete fields but is willing to share more preferences
+        elif fields_incomplete == 3 and keen_to_share == "Yes":
+            print("Roughly complete")
+            bot_response = user_intention_dictionary.get("Follow-Up Question")
+        else:
+            print("Roughly complete")
+            # Generate recommendations based on known preferences
+            recommendations = get_dummy_recommendation(item)
 
-            return recommendations, bot_response
+            # Getting follow-up questions from previous LLM if available
+            questions = user_intention_dictionary.get("Follow-Up Question")
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+
+    return recommendations, bot_response
+ 
+
+
+
+
+
 

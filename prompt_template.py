@@ -54,8 +54,10 @@ Actionable Goal + Specific Details:
 Available in Store: Yes.
 Suggested Actions or Follow-Up Questions: Would you like to see other models that fit within your budget but offer higher RAM?
 
-
 """
+
+
+
 
 intention_template_2 = """
 Context: 
@@ -71,7 +73,6 @@ User Query: {input}
 Previous Intention: {previous_intention}
 Previous Follow-Up Questions: {follow_up_questions}
 Products Recommended: {items_recommended}
-
 
 Based on the information User Query, Previous Intention and Products Recommended, identify these key components below. Do not add additional characters other than the ones provided in the template:
 - Related to Follow-Up Questions: Determine if the user's current query is a continuation ('Old') or a new line of inquiry (New) based on context from the previous interaction.
@@ -94,11 +95,19 @@ Based on the information User Query, Previous Intention and Products Recommended
             - Product Item: Identify the main product the user is inquiring about. If unclear but contextually related (e.g., holiday items), prompt: What specific items are you looking for this Christmas?
             - Product Details: Extract specific attributes or special features the user is looking for in a product. They might come in the form of a context to the Product Item. If not specified, prompt: Are there specific features or specifications you need?
             - Budget: Ascertain if the user has mentioned a budget range or price limit. If not specified, prompt: Do you have a budget range in mind for this purchase?
-         - Follow-Up Question: 
-            - Provide tailored follow-up questions the fields that are 'Not specified'. 
-            - If all fields are specified or adequately answered, give a follow up question that will help the user further. 
+            - Keen to Share: Determine whether the user is interested in sharing more details about their preferences.
+                - **Default value**: "Yes" (Assume the user is willing to share unless stated otherwise).
+                - **Set to "No"** if the user explicitly states a lack of preference, such as using phrases like "I don’t have any preference," "Anything works," "No preference," "I'm not sure," or "I don’t want to share any details." 
+                - Otherwise, set to "Yes".
+         - To-Follow-Up: Set to 'No' if 'Fields Incompleted' is lesser than 2. Otherwise, set to 'Yes'.
+         - Follow-Up Question: Adjust based on the fields that are incomplete:
+            - If 'Fields Incompleted' is 3 (i.e., all 'No preference') and 'Keen to Share' is 'No', ask: "I see you're interested in getting {{product_item}}. Since no specific preferences were mentioned, I will recommend some popular options for you."
+            - If 'Fields Incompleted' is 3 (i.e., all 'No preference') and 'Keen to Share' is 'Yes', ask: "I see you're interested in getting {{product_item}}. Could you please specify a brand, budget, or any other details? This will help me find the best options for you."
+            - If 'To-Follow-Up' is 'Yes', provide tailored follow-up questions for each missing field to help refine the search and options.
+            - If 'To-Follow-Up' is 'No', ask: "Do the options presented meet your requirements, or would you like to explore other products?"
 
 """
+
 
 
 intention_template_test = """
@@ -162,6 +171,7 @@ Looks like you are looking for laptop, I have some recommendations just for you!
 1. Product Name: Laptop
    Price: $500
    Description: 15-inch screen, 8GB RAM, 512GB SSD
+
 2. Product Name: Tablet
    Price: $300
    Description: 10-inch screen, 4GB RAM, 256GB SSD

@@ -1,7 +1,7 @@
 from recSys.collaborative import svd_recommend_surprise
 #from recSys.contentBased import get_recommendations
 #from recSys.contentBased import get_lsa_matrix
-from recSys.contentBased import load_product_data
+#from recSys.contentBased import load_product_data
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 import numpy as np
@@ -9,17 +9,104 @@ from dotenv import load_dotenv
 import os
 import pymongo
 import concurrent.futures
+from supabase import create_client
+from functions import initialising_supabase, load_product_data
 
 load_dotenv()
-MONGODB_URI = os.getenv("MONGODB_URI")
-FLIPKART = os.getenv("FLIPKART")
+#MONGODB_URI = os.getenv("MONGODB_URI")
+#FLIPKART = os.getenv("FLIPKART")
 
-client = pymongo.MongoClient(MONGODB_URI)
-flipkart = client[FLIPKART]
+#client = pymongo.MongoClient(MONGODB_URI)
+#flipkart = client[FLIPKART]
 
-product_data_file = flipkart.catalogue
+#product_data_file = flipkart.catalogue
 lsa_matrix_file = 'lsa_matrix.joblib'
 
+
+
+def hybrid_recommendations(item, user_id, orderdata, lsa_matrix, content_weight, collaborative_weight, 
+                           brand_preference=None, specs_preference=None, n_recommendations=10):
+    def fetch_content_recommendation():
+        content_recommendations = get_recommendations(item, lsa_matrix)
+
+        # Apply brand and specification filters to content-based recommendations
+        if brand_preference:
+            content_recommendations = [rec for rec in content_recommendations 
+                                       if brand_preference.lower() in rec['product_name'].lower()]
+        if specs_preference:
+            content_recommendations = [rec for rec in content_recommendations 
+                                       if specs_preference.lower() in rec['description'].lower()]
+
+        return content_recommendations
+    
+    def fetch_collaborative_recommendation():
+        collaborative_recommendations = svd_recommend_surprise(user_id, n_recommendations)
+
+        # Apply brand and specification filters to collaborative recommendations
+        if brand_preference:
+            collaborative_recommendations = collaborative_recommendations[
+                collaborative_recommendations['product_name'].str.contains(brand_preference, case=False)
+            ]
+        if specs_preference:
+            collaborative_recommendations = collaborative_recommendations[
+                collaborative_recommendations['description'].str.contains(specs_preference, case=False)
+            ]
+
+        return collaborative_recommendations
+    
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        content_recommendations_future = executor.submit(fetch_content_recommendation)
+        collaborative_recommendations_future = executor.submit(fetch_collaborative_recommendation)
+
+        content_recommendations = content_recommendations_future.result()
+        collaborative_recommendations = collaborative_recommendations_future.result()
+
+    product_info = {}
+    for item in content_recommendations:
+        product_name = item['product_name']
+        score = float(item['similarity_score']) * content_weight
+        price = item['retail_price']
+        description = item['description']
+        product_info[product_name] = [score, price, description]
+    min_rating = 0
+    max_rating = 5
+
+    for index, row in collaborative_recommendations.iterrows():
+        product_name = row['product_name']
+        raw_score = float(row['predicted_rating'])
+        normalized_score = (raw_score - min_rating) / (max_rating - min_rating)
+        score = normalized_score * collaborative_weight
+        price = row['retail_price']
+        description = row['description']
+        if product_name in product_info:
+            product_info[product_name][0] += score
+        else:
+            product_info[product_name] = [score,  price, description]
+
+    for product_name, info in product_info.items():
+        info[0] = (info[0] * max_rating) - min_rating
+    product_list = [(product_name, info) for product_name, info in product_info.items()]
+    sorted_product_list = sorted(product_list, key=lambda x: x[1][0], reverse=True)
+    sorted_product_info = {product_name: info for product_name, info in sorted_product_list}
+
+    top_recommendations = list(sorted_product_info.items())[:n_recommendations]
+    final_output = []
+    for product_name, info in top_recommendations:
+        score = info[0] 
+        price = info[1] 
+        description = info[2]
+    
+        final_output.append({
+            'product_name': product_name,
+            'price': price,
+            'description': description,
+            'predicted_rating': score  
+        })
+    return final_output
+
+
+
+'''
 def hybrid_recommendations(catalogue, item, user_id, orderdata, lsa_matrix, content_weight, collaborative_weight, 
                            brand_preference=None, specs_preference=None, n_recommendations=10):
     #lsa_matrix = get_lsa_matrix(catalogue, lsa_matrix_file)
@@ -101,7 +188,7 @@ def hybrid_recommendations(catalogue, item, user_id, orderdata, lsa_matrix, cont
             'predicted_rating': score  
         })
     return final_output
-
+'''
 """
 user_id = 'U06610'
 user_product = 'pants'
