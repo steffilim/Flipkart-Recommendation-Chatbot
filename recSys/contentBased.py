@@ -159,6 +159,7 @@ def store_product_embeddings_in_supabase(product_embeddings):
 
 ''' retrieving embeddings for a list of product_ids'''
 def get_product_embeddings(product_ids):
+    print("product_ids", product_ids)
     # Fetch embeddings for the given list of product_ids from Supabase
     supabase = initialising_supabase()
 
@@ -168,6 +169,8 @@ def get_product_embeddings(product_ids):
                        .execute()
     
     # Check if the response has data
+    df = pd.DataFrame(columns=["product_id", "embedding_list"])
+
     if response.data:
         data = response.data
         
