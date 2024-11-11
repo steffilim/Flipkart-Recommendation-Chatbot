@@ -254,7 +254,9 @@ def chat():
     # To account for the case of the user asking for more information on a particular item
     if recommendations is None:
         recommendations = previous_items_recommended
+        
 
+    
     add_chat_history_user(session_id, user_input, user_intention_dictionary, recommendations)
 
     print("Chat history updated successfully")

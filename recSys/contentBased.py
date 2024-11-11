@@ -163,13 +163,16 @@ def get_product_embeddings(product_ids):
     # Fetch embeddings for the given list of product_ids from Supabase
     supabase = initialising_supabase()
 
-    response = supabase.table("product_embeddings") \
-                       .select("product_id, embedding_list") \
-                       .eq("product_id", product_ids) \
-                       .execute()
+    for product_id in product_ids:
+        response = supabase.table("product_embeddings") \
+                           .select("product_id, embedding_list") \
+                           .eq("product_id", product_id) \
+                           .execute()
     
     # Check if the response has data
     df = pd.DataFrame(columns=["product_id", "embedding_list"])
+
+    #print(response.data)
 
     if response.data:
         data = response.data
@@ -270,6 +273,7 @@ def recommend_top_products(user_query, filtered_products, top_n=10):
 
     # Get specific product embeddings
     raw_product_embeddings = get_product_embeddings(product_ids)
+    print("line 276: ", raw_product_embeddings)
 
     # Converting it to float instead of string
     text_product_embeddings = remove_brackets_from_embedding_list(raw_product_embeddings)

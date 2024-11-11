@@ -155,15 +155,17 @@ def get_user_query(extracted_info, keys = ['product_name', 'brand', 'product_spe
 def get_product_details_from_supabase(uniq_ids):
     # Initialize Supabase connection
     supabase = initialising_supabase()
-    
+    print("line 158: ", uniq_ids)
     # Fetch full product details based on the uniq_ids from Supabase
     product_data = (
         supabase
         .table('flipkart_cleaned')
         .select('product_name, brand, retail_price, discounted_price, discount, description, product_specifications, overall_rating')
-        .eq('uniq_id', uniq_ids)
+        .in_('uniq_id', uniq_ids)
         .execute()
     )
+
+    print(product_data)
 
     # Convert the results into a DataFrame
     product_df = pd.DataFrame(product_data.data)
@@ -238,10 +240,11 @@ def normalize_collaborative_scores(collaborative_recommendations):
 def calculate_final_scores(content_recommendations, collaborative_recommendations, content_weight, collaborative_weight, top_n = 10):
     # Weight scores and perform outer merge
     content_recommendations['weighted_similarity_score'] = content_recommendations['similarity_score'] * content_weight
-    
-    collaborative_recommendations['weighted_predicted_rating'] = collaborative_recommendations['normalized_predicted_rating'] * collaborative_weight
 
-    hybrid = pd.merge(content_recommendations, collaborative_recommendations, left_on='product_id', right_on='uniq_id', how='outer')
+    collaborative_recommendations['weighted_predicted_rating'] = collaborative_recommendations['normalized_predicted_rating'] * collaborative_weight
+    print("line 245: ", collaborative_recommendations)
+    hybrid = pd.merge(content_recommendations, collaborative_recommendations, left_on='product_id', right_on='uniq_id', how='left')
+    print("line 247: ", hybrid)
     hybrid['final_score'] = hybrid['weighted_similarity_score'].fillna(0) + hybrid['weighted_predicted_rating'].fillna(0)
 
     return hybrid.nlargest(top_n, 'final_score')
@@ -262,7 +265,9 @@ def hybrid_recommendations(extracted_info, user_id, content_weight=0.5, collabor
         )
 
         content_recommendations = content_recommendations_future.result()
+        print("line 267: ", content_recommendations)
         collaborative_recommendations = collaborative_recommendations_future.result()
+        print("line 269: ", collaborative_recommendations)
 
         try:
             content_recommendations = content_recommendations_future.result()
@@ -276,13 +281,13 @@ def hybrid_recommendations(extracted_info, user_id, content_weight=0.5, collabor
 
     # Step 3: Normalize collaborative scores
     collaborative_recommendations = normalize_collaborative_scores(collaborative_recommendations)
-
     # Step 4: Calculate final scores and get top recommendations
     top_n_recommendations = calculate_final_scores(content_recommendations, collaborative_recommendations, content_weight, collaborative_weight, top_n)
-
+    print("line 284, top_n_recommendations: ", top_n_recommendations)
     # Step 5: Fetch product details
     uniq_ids = top_n_recommendations['product_id'].tolist()
     product_details_df = get_product_details_from_supabase(uniq_ids)
+    print(" weighted line 286: ", product_details_df)
     
     # print("End of hybrid recommendation system")
     print("hybrid rec sys items", product_details_df['product_name'])
