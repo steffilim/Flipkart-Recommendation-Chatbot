@@ -199,71 +199,8 @@ def get_item_details(supabase, product_id, follow_up_question):
 
     return readable_output
 
-# Getting bot response
-def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id):
-    # Fetch the catalogue & users data from Supabase
-    supabase = initialising_supabase()
-    catalogue = load_product_data()
-    users_data = supabase.table('synthetic_v2').select('*').execute().data
-
-    item_availability = user_intention_dictionary.get("Available in Store")
-    
-    if item_availability == "No":
-        print("Item not available")
-        bot_response = user_intention_dictionary.get("Follow-Up Question")
-
-    else: 
-        fields_incomplete = int(user_intention_dictionary.get("Fields Incompleted", 10))
-
-        if fields_incomplete > 2:
-            print("Fields incomplete")
-            bot_response = user_intention_dictionary.get("Follow-Up Question")
-
-        else:
-            print("Roughly complete")
-            item = user_intention_dictionary.get("Product Item")
-
-
-
-        # calling hybrid_recommendations function 
-        #n_recommendations = 5  # number of recommendations to output (adjustable later)
-
-            """recommendations = hybrid_recommendations(    
-                item = item, 
-                user_id = user_id,  
-                orderdata = users_data,  
-                lsa_matrix = lsa_matrix,
-                content_weight = 0.6, 
-                collaborative_weight = 0.4,
-                n_recommendations = n_recommendations, 
-                
-            )"""
-
-            '''
-            print(item)
-            recommendations =  get_dummy_recommendation(item)
-            '''
-            print("user_intention_dictionary", user_intention_dictionary)
-
-            recommendations = hybrid_recommendations(user_intention_dictionary, user_id)
-
-            '''
-            recommendations_text = "\n".join(
-                f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
-                for idx, rec in enumerate(recommendations)
-            )
-            '''
-
-            # Getting follow-up questions from previous LLM
-            questions = user_intention_dictionary.get("Follow-Up Question")
-            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
-
-
-    return bot_response
-
-'''  
-# Getting bot response
-def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id):
+def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_input, user_id):
+  
     # Fetch the catalogue & users data from Supabase
 
     catalogue = (supabase.table('flipkart_cleaned'))
@@ -280,9 +217,10 @@ def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id)
     elif user_intention_dictionary.get("Related to Recommendation") == "Yes":
         
         product_id = user_intention_dictionary.get("Product ID")
+        follow_up = user_intention_dictionary.get("Follow-Up Question")
         #print(product_id)
-        item_recommendation = get_item_details(db, product_id, user_intention_dictionary.get("Follow-Up Question"))
-        print("Item recommendation: ", item_recommendation)
+        item_recommendation = get_item_details(product_id)
+        item_recommendation += "\n\n" + follow_up
         return None, item_recommendation
 
     else: 
@@ -293,64 +231,23 @@ def getting_bot_response(user_intention_dictionary, chain2, lsa_matrix, user_id)
 
         # Check if all fields are incomplete and user prefers not to share more details
         if fields_incomplete == 3 and keen_to_share == "No":
-            print("All fields are 'No preference'")
-            recommendations = get_dummy_recommendation(item)
-        fields_incomplete = int(user_intention_dictionary.get("Fields Incompleted"))
-
-        if fields_incomplete > 2:
-            print("Fields incomplete")
-            bot_response = user_intention_dictionary.get("Follow-Up Question")
-
-        else:
-            print("Roughly complete")
-            item = user_intention_dictionary.get("Product Item")
-
-
-
-        # calling hybrid_recommendations function 
-        #n_recommendations = 5  # number of recommendations to output (adjustable later)
-
-            """recommendations = hybrid_recommendations(    
-                item = item, 
-                user_id = user_id,  
-                orderdata = users_data,  
-                lsa_matrix = lsa_matrix,
-                content_weight = 0.6, 
-                collaborative_weight = 0.4,
-                n_recommendations = n_recommendations, 
-                
-            )"""
-            print(item)
-            recommendations =  get_dummy_recommendation(item)
-
-
-            """recommendations_text = "\n".join(
-                f"**{idx + 1}. {rec['product_name']}** - Predicted Ratings: {rec['predicted_rating']:.2f}"
-                for idx, rec in enumerate(recommendations)
-            )
-    """
-            # Getting follow-up questions from previous LLM
+            recommendations = hybrid_recommendations(user_intention_dictionary, user_id)
             questions = user_intention_dictionary.get("Follow-Up Question")
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+           
         # Case where user has incomplete fields but is willing to share more preferences
         elif fields_incomplete == 3 and keen_to_share == "Yes":
-            print("line 218")
+            recommendations = None
             bot_response = user_intention_dictionary.get("Follow-Up Question")
-            return None, bot_response
+            
         else:
-            print("line 221")
             # Generate recommendations based on known preferences
-            recommendations = get_dummy_recommendation(item)
+            recommendations = hybrid_recommendations(user_intention_dictionary, user_id)
 
             # Getting follow-up questions from previous LLM if available
             questions = user_intention_dictionary.get("Follow-Up Question")
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
-
+           
     return recommendations, bot_response
  
-
-
-
-
-
 

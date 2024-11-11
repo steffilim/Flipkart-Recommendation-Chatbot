@@ -165,7 +165,7 @@ def get_product_embeddings(product_ids):
 
     response = supabase.table("product_embeddings") \
                        .select("product_id, embedding_list") \
-                       .in_("product_id", product_ids) \
+                       .eq("product_id", product_ids) \
                        .execute()
     
     # Check if the response has data

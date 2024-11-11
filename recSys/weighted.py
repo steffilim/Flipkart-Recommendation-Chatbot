@@ -160,8 +160,8 @@ def get_product_details_from_supabase(uniq_ids):
     product_data = (
         supabase
         .table('flipkart_cleaned')
-        .select('uniq_id, product_name, brand, retail_price, discounted_price, discount, description, overall_rating, product_specifications, percentage_discount')
-        .in_('uniq_id', uniq_ids)
+        .select('product_name, brand, retail_price, discounted_price, discount, description, product_specifications, overall_rating')
+        .eq('uniq_id', uniq_ids)
         .execute()
     )
 
