@@ -19,7 +19,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, update_past_follow_up_question_guest
 from prompt_template import intention_template_test, refine_template, intention_template_2, intention_template
-from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data, load_users_data
+from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data, load_users_data, getting_user_purchase_dictionary
 #from recSys.contentBased import load_product_data
 
 
@@ -242,7 +242,7 @@ def chat():
         return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
   
     previous_intention, previous_follow_up_question, previous_items_recommended = get_past_conversations_users(user_id, session_id)    
-
+    user_purchase_dictionary = getting_user_purchase_dictionary(user_id, supabase, chain2)
     user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, previous_follow_up_question, previous_items_recommended)
     user_intention_dictionary = parse_user_intention(user_intention)
     print(user_intention_dictionary)

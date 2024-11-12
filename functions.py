@@ -68,7 +68,59 @@ def get_popular_items(db):
 
     return response_text
 
+#Getting user puchasing history data
+def getting_user_purchase_dictionary(user_id, supabase, chain2):
+    user_purchase_data = supabase.table('synthetic_v2').select('User ID', 'uniq_id', 'Product Quantity') \
+                        .eq('User ID', user_id).execute().data
 
+    # Check if purchase history exists
+    if not user_purchase_data:
+        return f"No purchase history found for user ID {user_id}."
+
+    # Extract product IDs from purchase history
+    product_ids = [purchase['uniq_id'] for purchase in user_purchase_data]
+
+    # Query Supabase for product details based on the extracted product IDs
+    product_details = supabase.table('flipkart_cleaned').select(
+        'uniq_id', 'product_name', 'product_category_tree', 'retail_price', 
+        'description', 'brand', 'product_specifications'
+    ).in_('uniq_id', product_ids).execute().data
+
+    # Process each purchase and its product details
+    user_purchases = []
+    for purchase in user_purchase_data:
+        # Find corresponding product info for each purchase
+        product_info = next((prod for prod in product_details if prod['uniq_id'] == purchase['uniq_id']), None)
+        if product_info:
+            # Extract relevant fields
+            extracted_info = {
+                "User ID": purchase["User ID"],
+                "Product Quantity": purchase["Product Quantity"],
+                "product_name": product_info.get("product_name"),
+                "product_category_tree": product_info.get("product_category_tree"),
+                "retail_price": product_info.get("retail_price"),
+                "description": product_info.get("description"),
+                "brand": product_info.get("brand"),
+                "product_specifications": product_info.get("product_specifications")
+            }
+            
+            # Invoke chain2 for further processing or summarization (if needed)
+            product_summary = chain2.invoke({
+                "product_name": extracted_info['product_name'],
+                "category": extracted_info['product_category_tree'],
+                "price": extracted_info['retail_price'],
+                "brand": extracted_info['brand'],
+                "specifications": extracted_info['product_specifications'],
+                "description": extracted_info['description']
+            })
+
+            # Add the processed summary to extracted info
+            extracted_info["summary"] = product_summary
+            
+            # Append to the list of user purchases
+            user_purchases.append(extracted_info)
+
+    return user_purchases
 
 
 """ KEYWORD DETECTION FUNCTION """
@@ -205,6 +257,7 @@ def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_i
 
     catalogue = (supabase.table('flipkart_cleaned'))
     users_data = (supabase.table('synthetic_v2').select('*').execute().data)
+    user_purchase_dictionary = getting_user_purchase_dictionary(user_id, supabase, chain2)
 
     item_availability = user_intention_dictionary.get("Available in Store")
     
@@ -234,7 +287,7 @@ def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_i
             recommendations = hybrid_recommendations(user_intention_dictionary, user_id)
             recommendations = recommendations.to_dict(orient='records')
             questions = user_intention_dictionary.get("Follow-Up Question")
-            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions, "user purchase history": user_purchase_dictionary})
            
         # Case where user has incomplete fields but is willing to share more preferences
         elif fields_incomplete == 3 and keen_to_share == "Yes":
@@ -247,7 +300,7 @@ def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_i
             recommendations = recommendations.to_dict(orient='records')
             # Getting follow-up questions from previous LLM if available
             questions = user_intention_dictionary.get("Follow-Up Question")
-            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions, "user purchase history": user_purchase_dictionary})
            
     return recommendations, bot_response
  
