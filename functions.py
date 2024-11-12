@@ -46,20 +46,19 @@ def load_users_data(supabase):
 
 
 def get_popular_items(db):
-   
+
     # Load the dataset
-    #db = initialising_mongoDB()
-    top5 = db.Top5Products
+    supabase = initialising_supabase()
+    top5 = pd.DataFrame(supabase.table('top5products').select('*').execute().data) 
 
     # retrieving the top5 products
     popular_items = []
-    top_products = top5.find().sort("User rating for the product", -1)
+    # top_products = top5.find().sort("User rating for the product", -1)
 
-    for index, product in enumerate(top_products, start=1):
-        item_details = f"{index}. {product['product_name']} at {INR}{product['discounted_price']} \n\n Description: {product.get('description', 'No description available')} \n\n"
+    for index, product in top5.iterrows():
+        item_details = f"{index + 1}. {product['product_name']} at {INR}{product['discounted_price']} \n\n Description: {product.get('description', 'No description available')} \n\n"
         popular_items.append(item_details)
-
-    
+  
     # Join all item details into a single string
     response_text = "Here are these week's popular items:\n" + "\n".join(popular_items)
     response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for."
