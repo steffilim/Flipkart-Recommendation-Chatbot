@@ -18,7 +18,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, update_past_follow_up_question_guest
-from prompt_template import intention_template_test, refine_template, intention_template_2, intention_template
+from prompt_template import refine_template, intention_template
 from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data, load_users_data, getting_user_purchase_dictionary
 #from recSys.contentBased import load_product_data
 
@@ -78,7 +78,7 @@ def initialise_app():
     chain2 =  refine_prompt | llm | StrOutputParser()
 
     # Create a new chain for intention extraction
-    intention_prompt = ChatPromptTemplate.from_template(intention_template_2)
+    intention_prompt = ChatPromptTemplate.from_template(intention_template)
     intention_chain = intention_prompt | llm | StrOutputParser()
 
 
@@ -123,6 +123,7 @@ def chat():
             user_states["user_id"] = user_id
             user_states["password_mode"] = True  # Set password mode flag
             user_states.pop("login_mode", None)  # Remove login mode flag
+            print("line 126:")
             return jsonify({'response': 'User ID validated. Please enter your password.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
@@ -154,7 +155,7 @@ def chat():
         if user_input == "/login":
             user_states.pop("guest_mode", None)  # Remove guest mode flag
             user_states["login_mode"] = True  # Set login mode flag
-            
+            print("line 158")
             return jsonify({'response': 'Please enter your user ID to log in.'})
         
         # Get previous conversation and intention in guest mode
@@ -181,26 +182,6 @@ def chat():
 
         return jsonify({'response': bot_response}) 
     
-    # If the user is prompted to enter user ID (after /login)
-    if user_states.get("login_mode"):
-        try:
-            # Try to interpret the input as an ID
-            user_id = str(user_input)
-        except ValueError:
-            # If input is not a valid numeric ID, prompt for valid ID again
-            return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
-
-        if user_id in valid_user_ids:
-            # Valid user ID, store it and initialize a session
-            user_states["user_id"] = user_id  # Save the user ID
-            user_states.pop("login_mode", None)  # Remove login mode flag
-
-            start_new_session(user_id, session_id)
-            print("line 193")
-            return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
-        else:
-            return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
-
 
     # Get user state to check if ID has already been provided
     user_id = user_states.get("user_id")
