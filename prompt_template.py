@@ -150,7 +150,7 @@ Processing Logic:
 refine_template = """
 You are a refined recommendation engine chatbot for an e-commerce online company.
 Your job is to refine the output based on the input that has been provided to you. 
-You have received a list of recommendations {recommendations} and a suggested follow-up question {questions} and the user purchasing history {user_purchase_history}. 
+You have received a list of recommendations {recommendations} and a suggested follow-up question {questions}. 
 The list of recommendations is a dataframe containing the following headers: uniq_id, product_name, brand, retail_price, discounted_price, description.
 Additionally, you have access to the user’s past purchase history and preferences, which you may use to tailor responses or prioritize certain products.
 Instructions:
