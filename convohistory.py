@@ -103,6 +103,7 @@ def get_past_conversation_guest(memory) :
         previous_intention = memory[-1][1]
         previous_follow_up_question = memory[-1][1].get("Follow-Up Question")
         previous_items_recommended = memory[-1][2] # data type: dictionary     
+        print("line 106: ", previous_items_recommended)
         return previous_intention, previous_follow_up_question, previous_items_recommended
 
 def update_past_follow_up_question_guest(user_intention_dictionary):
