@@ -126,14 +126,18 @@ def svd_recommend_surprise_filtered(user_id, extracted_info, n_recommendations=1
     sorted_predictions = sorted(predictions, key=lambda x: x[1], reverse=True)
 
     recommended_product_ids = [prod[0] for prod in sorted_predictions[:n_recommendations]]
-
-    # Get product information for the recommended product IDs
     recommendations = catalogue[catalogue['uniq_id'].isin(recommended_product_ids)].copy()
+    recommendations['predicted_rating'] = recommendations['uniq_id'].apply(
+        lambda uid: next((pred[1] for pred in predictions if pred[0] == uid), None)
+    )
 
-    # Add predicted ratings to the recommendations
-    for idx, row in recommendations.iterrows():
-        prediction = next((pred[1] for pred in predictions if pred[0] == row['uniq_id']), None)
-        recommendations.loc[idx, 'predicted_rating'] = prediction
+    # # Get product information for the recommended product IDs
+    # recommendations = catalogue[catalogue['uniq_id'].isin(recommended_product_ids)].copy()
+
+    # # Add predicted ratings to the recommendations
+    # for idx, row in recommendations.iterrows():
+    #     prediction = next((pred[1] for pred in predictions if pred[0] == row['uniq_id']), None)
+    #     recommendations.loc[idx, 'predicted_rating'] = prediction
 
     # Now apply filters based on extracted_info
     if extracted_info.get("product_name"):

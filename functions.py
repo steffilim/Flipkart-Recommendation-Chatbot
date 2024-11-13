@@ -45,8 +45,6 @@ def load_users_data(supabase):
     users_data = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
     return users_data
 
-
-
 def get_popular_items(db):
    
     # Load the dataset
@@ -199,35 +197,37 @@ def getting_user_intention_dictionary(user_input, intention_chain, previous_inte
 
     return user_intention_dictionary
 
-def get_item_details(supabase, product_id, follow_up_question):
-    #print(catalogue)
-    """
-    SUPABASE IMPLEMENTATION TO GO HERE
-    BUT THE FORMAT IS AS FOLLOWS:
-    product name:
-    brand: 
-    description:
-    overall rating of the product:
-    price:
-    """
-    product_details = (supabase.select("product_name", "brand", "description", "overall_rating", "discounted_price").eq("pid", product_id).execute())
-    details = product_details.data
 
-    if details:
+"""TO BE REMOVED ONCE MERGED WITH RS"""
+
+def get_item_details(uniq_ids ):
+    # Initialize Supabase connection
+    supabase = initialising_supabase()
+    
+    # Fetch full product details based on the uniq_ids from Supabase
+    product_data = (
+        supabase
+        .table('flipkart_cleaned')
+        .select('product_name, brand, retail_price, discounted_price, discount, description, product_specifications, overall_rating')
+        .eq('pid', uniq_ids)
+        .execute()
+    )
+    
+
+    # Convert the results into a DataFrame
+    product_df = pd.DataFrame(product_data.data)
         # Assuming details contain at least one item, and we are interested in the first one for demonstration
-        product = details[0]  # get the first product in the list
-        readable_output = (
-            f"Product Name: {product['product_name']}\n"
-            f"Brand: {product['brand']}\n"
-            f"Price: ₹{product['discounted_price']}\n"
-            f"Rating: {product['overall_rating']}\n"
-            f"Description: {product['description']}\n"
-            f"{follow_up_question}"
-        )
-
-
-
-
+      # get the first product in the list
+    readable_output = (
+        f"Product Name: {product_df['product_name']}\n"
+        f"Brand: {product_df['brand']}\n"
+        f"Price: ₹{product_df['discounted_price']}\n"
+        f"Rating: {product_df['overall_rating']}\n"
+        f"Description: {product_df['description']}\n"
+            
+    )
+    
+    
     return readable_output
 
 def getting_bot_response(user_intention_dictionary, chain2, supabase, user_profile, user_purchases, user_id):
@@ -249,7 +249,10 @@ def getting_bot_response(user_intention_dictionary, chain2, supabase, user_profi
         
         product_id = user_intention_dictionary.get("Product ID")
         follow_up = user_intention_dictionary.get("Follow-Up Question")
+        follow_up = user_intention_dictionary.get("Follow-Up Question")
         #print(product_id)
+        item_recommendation = get_item_details(product_id)
+        item_recommendation += "\n\n" + follow_up
         item_recommendation = get_item_details(product_id)
         item_recommendation += "\n\n" + follow_up
         return None, item_recommendation
@@ -263,10 +266,13 @@ def getting_bot_response(user_intention_dictionary, chain2, supabase, user_profi
 
         # Check if all fields are incomplete and user prefers not to share more details
         if fields_incomplete == 3 and keen_to_share == "No":
-            recommendations = hybrid_recommendations(user_intention_dictionary, user_id)
-            recommendations = recommendations.to_dict(orient='records')
+            recommendations = get_dummy_recommendation(item)
             questions = user_intention_dictionary.get("Follow-Up Question")
+<<<<<<< HEAD
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions, "user_profile": user_profile, "user_purchase_history": user_purchases})
+=======
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+>>>>>>> 47078578458564437e3de5b80aff5ac1cd9efe79
            
         # Case where user has incomplete fields but is willing to share more preferences
         elif fields_incomplete == 3 and keen_to_share == "Yes":
@@ -279,7 +285,11 @@ def getting_bot_response(user_intention_dictionary, chain2, supabase, user_profi
             recommendations = recommendations.to_dict(orient='records')
             # Getting follow-up questions from previous LLM if available
             questions = user_intention_dictionary.get("Follow-Up Question")
+<<<<<<< HEAD
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions,"user_profile": user_profile, "user_purchase_history": user_purchases})
+=======
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+>>>>>>> 47078578458564437e3de5b80aff5ac1cd9efe79
            
     return recommendations, bot_response
  
