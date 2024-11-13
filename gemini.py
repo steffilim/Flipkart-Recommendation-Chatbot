@@ -41,6 +41,7 @@ previous_intention = "" # user intention
 session_id = "" # session id    
 past_follow_up_question_guest = "" # follow up question for guest users
 
+
 # INITIALISATION
 # Authenticating model
 load_dotenv()
@@ -168,7 +169,7 @@ def chat():
 
         # updating follow-up question
         past_follow_up_question_guest = update_past_follow_up_question_guest(user_intention_dictionary)
-        recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_input, user_id = "guest")
+        recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, user_profile = "None", user_purchases = "None",  user_id = "guest")
         
         # To account for the case of the user asking for more information on a particular item
         if recommendations is None:
@@ -193,6 +194,7 @@ def chat():
             # Valid user ID, store it and initialize a session
             user_states["user_id"] = user_id  # Save the user ID
             user_states.pop("login_mode", None)  # Remove login mode flag
+
             start_new_session(user_id, session_id)
             print("line 193")
             return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
@@ -203,6 +205,8 @@ def chat():
     # Get user state to check if ID has already been provided
     user_id = user_states.get("user_id")
     session_id = user_states.get("session_id")
+    user_profile = []
+    user_purchases = []
 
     # If user ID is not set, expect user to input the ID or choose guest mode
     if not user_id:
@@ -227,11 +231,11 @@ def chat():
             user_states.pop("guest_mode", None)  # Ensure guest mode flag is removed
             user_states["password_mode"] = True  # Set password mode flag
             user_states["session_id"] = str(uuid4())  # Generate a unique session ID
-            print(user_states["session_id"])
             session_id = user_states["session_id"]
-            print(session_id)
+
             start_new_session(user_id, session_id)
             print("line 219")
+            user_profile, user_purchases = getting_user_purchase_dictionary(user_id, supabase)
             return jsonify({'response': 'User ID validated. Please enter your password.'})
 
         else:
@@ -242,14 +246,13 @@ def chat():
         return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
   
     previous_intention, previous_follow_up_question, previous_items_recommended = get_past_conversations_users(user_id, session_id)    
-    user_purchase_dictionary = getting_user_purchase_dictionary(user_id, supabase, chain2)
     user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, previous_follow_up_question, previous_items_recommended)
     user_intention_dictionary = parse_user_intention(user_intention)
     print(user_intention_dictionary)
 
 
     # Getting the bot response
-    recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_input, user_id)
+    recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, user_profile, user_purchases,  user_id)
 
     # To account for the case of the user asking for more information on a particular item
     if recommendations is None:

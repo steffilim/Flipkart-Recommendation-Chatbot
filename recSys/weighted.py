@@ -146,7 +146,7 @@ def concatenate_selected_dict_values(input_dict, keys_to_extract, separator=", "
     
     return result
 
-def get_user_query(extracted_info, keys = ['product_name', 'brand', 'product_specifications']):
+def get_user_query(extracted_info, keys = ['Product Item', 'Brand', 'Product Details']):
     user_query = concatenate_selected_dict_values(extracted_info, keys)
     return user_query
 
@@ -243,7 +243,7 @@ def calculate_final_scores(content_recommendations, collaborative_recommendation
 
     collaborative_recommendations['weighted_predicted_rating'] = collaborative_recommendations['normalized_predicted_rating'] * collaborative_weight
     print("line 245: ", collaborative_recommendations)
-    hybrid = pd.merge(content_recommendations, collaborative_recommendations, left_on='product_id', right_on='uniq_id', how='left')
+    hybrid = pd.merge(content_recommendations, collaborative_recommendations, left_on='product_id', right_on='uniq_id', how='outer')
     print("line 247: ", hybrid)
     hybrid['final_score'] = hybrid['weighted_similarity_score'].fillna(0) + hybrid['weighted_predicted_rating'].fillna(0)
 
