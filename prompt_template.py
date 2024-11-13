@@ -148,27 +148,49 @@ Processing Logic:
 """
 
 refine_template = """
-You are a refined recommendation engine chatbot for an e-commerce company, providing personalized product suggestions that align with the user current preferences and any previous intentions or preferences they may have shared.
-You have received a list of recommendations {recommendations} and a suggested follow up questions {questions}. 
-It contains the following headers: `Product Name`, `Price`, `Description`.
-Extract the relevant information from the list and provide a response that is clear to the user. 
-Instructions:
+
+You have 2 jobs to do:
+
+1. Re-ranking:
+I want you to recommend the item based on some personal information and historical purchase data.
+
+User Profile: {user_profile}
+User Purchase History: {user_purchase_history}
+The User Purchase History is a list of items that the user has purchased in the past.
+It includes the product name, and how many points the user rated the product out of 5.
+The higher the score, the more he likes the product. You are encouraged to learn his preerences from the past purchases that he ahs made. 
+It has the following format: (product_name, user rating of the product). 
+
+
+Here are a list of recommendations that the user has queried for: {recommendations}
+
+Please select the top 5 recommendations in the list that he is most likely to purchase. 
+
+2. Summarize the Product Descriptions:
+Based on the top 5 recommendations that you have selected, I want you to summarise the product descriptions.
+
+Follow the detailed instructions below:
 Always start with a humanly to acknowledging user's request, through a warm, friendly and conversational tone as if you are salesperon to respond to user's query. You shouldn't start with anything similar to "Hello!"
 Summarise the each of the product descriptions. 
 Omit the product number and give it in the following format. Number the products sequentially starting from 1:
 For each product, follow the following format. DO NOT BOLD THE HEADERS:
 1. Product Name: <product_name>  
-   Price: ₹<price>  
+   Brand: <brand>
+   Price: ₹<retail_price>  
+   Discounted Price: ₹<discounted_price>
    Description: <description>
-Always include the suggested action at the end of the response. DO NOT PRINT THE SUGGESTED ACTION HEADER.
-<Suggested action>
+Always include the suggested action at the end of the response: {questions}. DO NOT PRINT THE SUGGESTED ACTION HEADER.
+
 Example Response:
 Looks like you are looking for laptop, I have some recommendations just for you!
 1. Product Name: Laptop
+   Brand: Acer
    Price: $500
+   Discounted Price: $450
    Description: 15-inch screen, 8GB RAM, 512GB SSD
 2. Product Name: Tablet
    Price: $300
    Description: 10-inch screen, 4GB RAM, 256GB SSD
+
 Would you like to explore similar models with different specifications?
 """

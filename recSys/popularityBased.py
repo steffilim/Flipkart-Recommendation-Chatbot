@@ -31,7 +31,7 @@ def load_product_data():
     return catalogue_data
 
 def get_trending_products():
-    supabase = initialising_supabase()
+    # supabase = initialising_supabase()
     # Fetch the catalogue & order data from Supabase
     catalogue = load_product_data()
     orderdata = load_order_data()   
@@ -49,7 +49,7 @@ def get_trending_products():
     print(detailed_top_products)
     return detailed_top_products
 
-get_trending_products()
+# get_trending_products()
 
 # # finding the product name and saving it into the top_5_most_popular dataframe
 # detailed_top_products = pd.merge(top_5_most_popular, catalog, on='Product ID', how='left')

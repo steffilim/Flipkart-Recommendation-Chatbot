@@ -5,11 +5,13 @@ import pandas as pd
 from pymongo import MongoClient
 import pymongo
 import os
-import currency
+from datetime import datetime, timedelta
+from forex_python.converter import CurrencyCodes
 from dotenv import load_dotenv
 from supabase import create_client
 
-INR = currency.symbol('INR')
+currency = CurrencyCodes()
+INR = currency.get_symbol('INR')
 
 def initialising_supabase():
     load_dotenv()
@@ -43,8 +45,6 @@ def load_users_data(supabase):
     users_data = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
     return users_data
 
-
-
 def get_popular_items(db):
 
     # Load the dataset
@@ -66,6 +66,40 @@ def get_popular_items(db):
     return response_text
 
 
+# Getting User profile and User purchase history
+def getting_user_purchase_dictionary(user_id, supabase):
+    user_profile = supabase.table('synthetic_v2').select('User Age', 'User Occupation', 'User Interests').eq('User ID', user_id).execute().data
+
+    user_purchase_data = supabase.table('synthetic_v2').select('uniq_id', 'User rating for the product') \
+                        .eq('User ID', user_id).execute().data
+    
+    
+    # Check if purchase history exists
+    if not user_purchase_data:
+        return f"No purchase history found for user ID {user_id}."
+
+    # Extract product IDs from purchase history
+    product_ids = [purchase['uniq_id'] for purchase in user_purchase_data]
+
+    # Query Supabase for product details based on the extracted product IDs
+    product_details = supabase.table('flipkart_cleaned') \
+                        .select('product_name, uniq_id') \
+                        .in_('uniq_id', product_ids) \
+                        .execute().data
+
+    purchase_history_merge = pd.merge(pd.DataFrame(user_purchase_data), pd.DataFrame(product_details), how='inner', on='uniq_id')
+    
+
+    # Process each purchase and its product details
+    user_purchases = []
+    for items in purchase_history_merge.iterrows():
+        user_purchases.append((items[1]['product_name'], items[1]['User rating for the product']))
+        
+    
+    print("line 94, user_purchases: ", user_purchases)
+    return user_profile, user_purchases
+   
+    
 
 
 """ KEYWORD DETECTION FUNCTION """
@@ -73,10 +107,7 @@ def get_popular_items(db):
 import nltk
 from rake_nltk import Rake
 from nltk.corpus import words, wordnet
-"""nltk.download('words')
-nltk.download('stopwords')
-nltk.download('punkt_tab')
-nltk.download('wordnet')"""
+
 # Function to check if the user's input is valid
 def is_valid_input(user_input, valid_user_ids, keywords):
     # Convert both user IDs and keywords to set for fast membership checking
@@ -197,9 +228,8 @@ def get_item_details(uniq_ids ):
     
     
     return readable_output
-  
-# Getting bot response
-def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_input, user_id):
+
+def getting_bot_response(user_intention_dictionary, chain2, supabase, user_profile, user_purchases, user_id):
   
     # Fetch the catalogue & users data from Supabase
 
@@ -218,7 +248,10 @@ def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_i
         
         product_id = user_intention_dictionary.get("Product ID")
         follow_up = user_intention_dictionary.get("Follow-Up Question")
+        follow_up = user_intention_dictionary.get("Follow-Up Question")
         #print(product_id)
+        item_recommendation = get_item_details(product_id)
+        item_recommendation += "\n\n" + follow_up
         item_recommendation = get_item_details(product_id)
         item_recommendation += "\n\n" + follow_up
         return None, item_recommendation
@@ -228,12 +261,13 @@ def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_i
         fields_incomplete = int(user_intention_dictionary.get("Fields Incompleted",0))
         item = user_intention_dictionary.get("Product Item")         
         keen_to_share = user_intention_dictionary.get("Keen to Share")
+        
 
         # Check if all fields are incomplete and user prefers not to share more details
         if fields_incomplete == 3 and keen_to_share == "No":
             recommendations = get_dummy_recommendation(item)
             questions = user_intention_dictionary.get("Follow-Up Question")
-            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions, "user_profile": user_profile, "user_purchase_history": user_purchases})
            
         # Case where user has incomplete fields but is willing to share more preferences
         elif fields_incomplete == 3 and keen_to_share == "Yes":
@@ -242,17 +276,12 @@ def getting_bot_response(user_intention_dictionary, chain2, db, supabase, user_i
             
         else:
             # Generate recommendations based on known preferences
-            recommendations = get_dummy_recommendation(item)
-
+            recommendations = hybrid_recommendations(user_intention_dictionary, user_id)
+            recommendations = recommendations.to_dict(orient='records')
             # Getting follow-up questions from previous LLM if available
             questions = user_intention_dictionary.get("Follow-Up Question")
-            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
+            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions,"user_profile": user_profile, "user_purchase_history": user_purchases})
            
     return recommendations, bot_response
  
-
-
-
-
-
 
