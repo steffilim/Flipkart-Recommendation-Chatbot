@@ -268,11 +268,7 @@ def getting_bot_response(user_intention_dictionary, chain2, supabase, user_profi
         if fields_incomplete == 3 and keen_to_share == "No":
             recommendations = get_dummy_recommendation(item)
             questions = user_intention_dictionary.get("Follow-Up Question")
-<<<<<<< HEAD
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions, "user_profile": user_profile, "user_purchase_history": user_purchases})
-=======
-            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
->>>>>>> 47078578458564437e3de5b80aff5ac1cd9efe79
            
         # Case where user has incomplete fields but is willing to share more preferences
         elif fields_incomplete == 3 and keen_to_share == "Yes":
@@ -285,11 +281,7 @@ def getting_bot_response(user_intention_dictionary, chain2, supabase, user_profi
             recommendations = recommendations.to_dict(orient='records')
             # Getting follow-up questions from previous LLM if available
             questions = user_intention_dictionary.get("Follow-Up Question")
-<<<<<<< HEAD
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions,"user_profile": user_profile, "user_purchase_history": user_purchases})
-=======
-            bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions})
->>>>>>> 47078578458564437e3de5b80aff5ac1cd9efe79
            
     return recommendations, bot_response
  
