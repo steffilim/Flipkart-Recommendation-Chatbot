@@ -236,7 +236,7 @@ def fetch_collaborative_recommendation(user_id, extracted_info, brand_preference
 
     filtered_products_df = pd.DataFrame(filtered_products)
     
-    collaborative_recommendations = svd_recommend_surprise(user_id, filtered_products_df)
+    collaborative_recommendations = svd_recommend_surprise(user_id, filtered_products_df, extracted_info)
 
     '''
     # Apply brand and specification filters
