@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from forex_python.converter import CurrencyCodes
 from dotenv import load_dotenv
 from supabase import create_client
+import ast
 
 currency = CurrencyCodes()
 INR = currency.get_symbol('INR')
@@ -31,7 +32,7 @@ def initialising_mongoDB():
 def load_product_data(supabase):
 
     # Load data from the flipkart_cleaned table in supabase
-    catalogue_data = supabase.table('flipkart_cleaned').select('*').execute().data
+    catalogue_data = supabase.table('flipkart_cleaned_2k').select('*').execute().data
     """
     # Create the 'content' column by concatenating 'description' and 'product_specifications'
     catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
@@ -42,7 +43,7 @@ def load_product_data(supabase):
     return catalogue_data
 
 def load_users_data(supabase): 
-    users_data = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
+    users_data = pd.DataFrame(supabase.table('synthetic_v2_2k').select('*').execute().data)
     return users_data
 
 def get_most_recent_purchase(user_id):
@@ -57,7 +58,7 @@ def get_most_recent_purchase(user_id):
 
 def get_similar_products(uniq_id):
     supabase = initialising_supabase()
-    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned').select('*').execute().data)
+    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned_2k').select('*').execute().data)
     catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
     catalogue_data['content'] = catalogue_data['content']. fillna("")
     catalogue_data['overall_rating'] = pd.to_numeric(catalogue_data['overall_rating'], errors='coerce')
@@ -66,12 +67,12 @@ def get_similar_products(uniq_id):
     print("getting similar products...")
     if product_row.empty:
         return []
-    product_category_tree = product_row.iloc[0]['product_category_tree']
-    print(product_category_tree)
+    product_category_tree = ast.literal_eval(product_row.iloc[0]['product_category_tree'])[0]
+    print("Product category tree first entry:", product_category_tree)
     similar_products = catalogue_data[
-        (catalogue_data['product_category_tree'] == product_category_tree) &
+        (catalogue_data['product_category_tree'].apply(lambda x: ast.literal_eval(x)[0] if x else "") == product_category_tree) &
         (catalogue_data['uniq_id'] != uniq_id)
-    ].nlargest(5, 'overall_rating')
+    ].nlargest(3, 'overall_rating')
 
     print(similar_products)
     return similar_products
@@ -90,7 +91,6 @@ def recommend_similar_products(user_id):
             f"Description: {row['description']}\n"
             for idx, (_, row) in enumerate(similar_products.iterrows())
         ]
-        
         # Combine recommendations into a single response text
         response_text = "Welcome back! Here are some products you might be interested in:\n" + "\n".join(recommendations)
         response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for. You may enter /logout to log out."
@@ -124,9 +124,9 @@ def get_popular_items(db):
 
 # Getting User profile and User purchase history
 def getting_user_purchase_dictionary(user_id, supabase):
-    user_profile = supabase.table('synthetic_v2').select('User Age', 'User Occupation', 'User Interests').eq('User ID', user_id).execute().data
+    user_profile = supabase.table('synthetic_v2_2k').select('User Age', 'User Occupation', 'User Interests').eq('User ID', user_id).execute().data
 
-    user_purchase_data = supabase.table('synthetic_v2').select('uniq_id', 'User rating for the product') \
+    user_purchase_data = supabase.table('synthetic_v2_2k').select('uniq_id', 'User rating for the product') \
                         .eq('User ID', user_id).execute().data
     
     
@@ -138,7 +138,7 @@ def getting_user_purchase_dictionary(user_id, supabase):
     product_ids = [purchase['uniq_id'] for purchase in user_purchase_data]
 
     # Query Supabase for product details based on the extracted product IDs
-    product_details = supabase.table('flipkart_cleaned') \
+    product_details = supabase.table('flipkart_cleaned_2k') \
                         .select('product_name, uniq_id') \
                         .in_('uniq_id', product_ids) \
                         .execute().data
@@ -262,7 +262,7 @@ def get_item_details(uniq_ids ):
     # Fetch full product details based on the uniq_ids from Supabase
     product_data = (
         supabase
-        .table('flipkart_cleaned')
+        .table('flipkart_cleaned_2k')
         .select('product_name, brand, retail_price, discounted_price, discount, description, product_specifications, overall_rating')
         .eq('pid', uniq_ids)
         .execute()
@@ -289,8 +289,8 @@ def getting_bot_response(user_intention_dictionary, chain2, supabase, user_profi
   
     # Fetch the catalogue & users data from Supabase
 
-    catalogue = (supabase.table('flipkart_cleaned'))
-    users_data = (supabase.table('synthetic_v2').select('*').execute().data)
+    catalogue = (supabase.table('flipkart_cleaned_2k'))
+    users_data = (supabase.table('synthetic_v2_2k').select('*').execute().data)
 
     item_availability = user_intention_dictionary.get("Available in Store")
     
