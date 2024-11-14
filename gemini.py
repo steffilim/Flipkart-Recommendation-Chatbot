@@ -217,7 +217,7 @@ def chat():
 
     # If user ID is not set, expect user to input the ID or choose guest mode
     if not user_id:
-        popular_items_recommendation = get_popular_items(db)
+        popular_items_recommendation = get_popular_items()
         if user_input.lower() == "guest":
 
             user_states["guest_mode"] = True  # Set guest mode flag
