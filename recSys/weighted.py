@@ -1,6 +1,6 @@
-from collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
+from recSys.collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
 
-from contentBased import recommend_top_products 
+from recSys.contentBased import recommend_top_products 
 
 import pandas as pd
 from sklearn.metrics import mean_squared_error
@@ -36,7 +36,7 @@ def initialising_supabase():
 def load_product_data():
     supabase = initialising_supabase()
     # Load data from the flipkart_cleaned table in supabase
-    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned').select('*').execute().data)
+    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned_2k').select('*').execute().data)
 
     # Create the 'content' column by concatenating 'description' and 'product_specifications'
     catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
@@ -50,7 +50,7 @@ def load_product_data():
 def load_order_data():
     supabase = initialising_supabase()
     # Load data from the flipkart_cleaned table in supabase
-    order_data = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
+    order_data = pd.DataFrame(supabase.table('synthetic_v2_2k').select('*').execute().data)
 
     # sfully loaded order from Supabase")
  
@@ -60,7 +60,7 @@ def load_order_data():
 def filter_products(product_name=None, price_limit=None, brand=None, product_specifications=None):
     # Build the SQL query dynamically based on the filters provided
     supabase = initialising_supabase()
-    query = supabase.table("flipkart_cleaned").select("*")
+    query = supabase.table("flipkart_cleaned_2k").select("*")
     
     if product_name and isinstance(product_name, str) and product_name.strip():
         query = query.ilike("product_name", f"%{product_name}%")
@@ -124,7 +124,7 @@ def fetch_filtered_products(extracted_info):
         brand=brand,
         product_specifications=product_specifications
     )
-
+    print("filtered length", len(filtered_products))
     return filtered_products
 
 '''
@@ -375,7 +375,7 @@ def hybrid_recommendations(extracted_info, table_name, user_id, content_weight, 
     supabase = initialising_supabase()
 
     filtered_products = filter_products(table_name, **extracted_info)
-    orderdata = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
+    orderdata = pd.DataFrame(supabase.table('synthetic_v2_2k').select('*').execute().data)
 
     def fetch_content_recommendation():
         print("inside content recommender")
