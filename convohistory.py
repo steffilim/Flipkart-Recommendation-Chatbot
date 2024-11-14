@@ -1,7 +1,9 @@
 import os
 from dotenv import load_dotenv
 
+import pymongo
 from pymongo import MongoClient
+from pymongo import DESCENDING
 
 from typing import List, Tuple
 import datetime
@@ -110,3 +112,45 @@ def update_past_follow_up_question_guest(user_intention_dictionary):
     # function to update the follow up questions such that it can be passed on to the LLM during the next user prompt loop
     follow_up_question = user_intention_dictionary.get("Follow-Up Question")
     return follow_up_question
+
+def get_past_conversations_to_display(user_id):
+    # Retrieve all convo history for that user, sort it by timestamp
+    all_sessions = db.chatSession.find(
+        {"user_id": user_id},
+        sort=[("created_at", pymongo.ASCENDING)]   
+    )
+
+    conversation_history = []
+    
+    # Loop through each session to retrieve messages
+    for session in all_sessions:
+        message_list = session.get("message_list", [])
+        
+        for message in message_list:
+            user_input = message.get("user_input", "")
+            follow_up = message.get("follow up", "").strip()
+
+            # Format the recommendations provided by the bot since its not saved in the database
+            items_recommended = message.get("items_recommended", [])
+            if items_recommended:
+                # Generate intro text dynamically based on product context
+                intro_text = "Based on your past preferences, here are some recommendations:"
+                recommended_items = "\n".join([
+                    f"Product Name: {item.get('product_name', 'N/A')}, "
+                    f"Brand: {item.get('brand', 'N/A')}, "
+                    f"Price: ₹{item.get('retail_price', 'N/A')} "
+                    f"(Discounted Price: ₹{item.get('discounted_price', 'N/A')} after {item.get('discount', 'N/A')}% discount)"
+                    for item in items_recommended
+                ])
+                bot_message = f"{intro_text}\n\n{recommended_items}\n\n{follow_up}"
+            else:
+                # If no items are recommended, only include the follow-up question
+                bot_message = follow_up
+
+            # Add structured messages to the conversation history
+            conversation_history.append({
+                "user": user_input,
+                "bot": bot_message
+            })
+    
+    return conversation_history 

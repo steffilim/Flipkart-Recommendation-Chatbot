@@ -17,7 +17,7 @@ from flask import Flask, render_template, request, jsonify
 from langchain_core.prompts import ChatPromptTemplate
 
 
-from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, update_past_follow_up_question_guest
+from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, update_past_follow_up_question_guest, get_past_conversations_to_display
 from prompt_template import refine_template, intention_template
 from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data, load_users_data, getting_user_purchase_dictionary
 #from recSys.contentBased import load_product_data
@@ -136,9 +136,28 @@ def chat():
 
             user_states["session_id"] = str(uuid4())  # Generate a unique session ID            
             session_id = user_states["session_id"]
-            start_new_session(user_id, session_id)            
-            user_states.pop("password_mode", None)  # Remove password mode flag
-            return jsonify({'response': 'Password validated. You are now logged in. You may enter /logout to exit. Please enter your query.'})
+
+            # Retrieve the past conversation messages 
+            past_conversations = get_past_conversations_to_display(user_states["user_id"])
+            # If user dont have any past conversations, clear the chat and start fresh
+            if not past_conversations:
+                start_new_session(user_id, session_id)            
+                user_states.pop("password_mode", None)  # Remove password mode flag
+                
+                # Clear chat and display the default login message
+                return jsonify({
+                    'clear_chat': True,  
+                    'message': 'Password validated. You are now logged in.\nYou may enter /logout to exit. Please enter your query.'
+                })
+            else:
+                # Continue with past conversation handling
+                start_new_session(user_id, session_id)
+                user_states.pop("password_mode", None)
+                
+                return jsonify({
+                    'past_conversations': past_conversations,
+                    'message': 'Password validated. You are now logged in.\nYou may enter /logout to exit. Please enter your query.'
+                })
         else:
             return jsonify({'response': 'Incorrect password. Please try again.'})
 
