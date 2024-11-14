@@ -266,7 +266,8 @@ def getting_bot_response(user_intention_dictionary, chain2, supabase, user_profi
 
         # Check if all fields are incomplete and user prefers not to share more details
         if fields_incomplete == 3 and keen_to_share == "No":
-            recommendations = get_dummy_recommendation(item)
+            recommendations = hybrid_recommendations(user_intention_dictionary, user_id)
+            recommendations = recommendations.to_dict(orient='records')
             questions = user_intention_dictionary.get("Follow-Up Question")
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions, "user_profile": user_profile, "user_purchase_history": user_purchases})
            
