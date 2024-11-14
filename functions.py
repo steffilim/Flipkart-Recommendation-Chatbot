@@ -45,6 +45,61 @@ def load_users_data(supabase):
     users_data = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
     return users_data
 
+def get_most_recent_purchase(user_id):
+    supabase = initialising_supabase()
+    users_data = load_users_data(supabase)
+    users_data = users_data[users_data['User ID'] == user_id].sort_values(by='Order Date', ascending=False)
+    if not users_data.empty:
+        most_recent_uniq_id = users_data.iloc[0]['uniq_id']
+    else:
+        return None, None
+    return most_recent_uniq_id, users_data.iloc[0]['Order Date']
+
+def get_similar_products(uniq_id):
+    supabase = initialising_supabase()
+    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned').select('*').execute().data)
+    catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
+    catalogue_data['content'] = catalogue_data['content']. fillna("")
+    catalogue_data['overall_rating'] = pd.to_numeric(catalogue_data['overall_rating'], errors='coerce')
+    catalogue_data['overall_rating'].fillna(2, inplace=True)
+    product_row = catalogue_data[catalogue_data['uniq_id'] == uniq_id]
+    print("getting similar products...")
+    if product_row.empty:
+        return []
+    product_category_tree = product_row.iloc[0]['product_category_tree']
+    print(product_category_tree)
+    similar_products = catalogue_data[
+        (catalogue_data['product_category_tree'] == product_category_tree) &
+        (catalogue_data['uniq_id'] != uniq_id)
+    ].nlargest(5, 'overall_rating')
+
+    print(similar_products)
+    return similar_products
+
+def recommend_similar_products(user_id):
+    # supabase = initialising_supabase()
+    most_recent_uniq_id, order_date = get_most_recent_purchase(user_id)
+    if most_recent_uniq_id is None:
+        return "No purchase history found for this user."
+    similar_products = get_similar_products(most_recent_uniq_id)
+    print(similar_products)
+    if isinstance(similar_products, pd.DataFrame) and not similar_products.empty:
+        recommendations = []
+        recommendations = [
+            f"{idx + 1}. {row['product_name']} at ₹{row['discounted_price']}\n\n"
+            f"Description: {row['description']}\n"
+            for idx, (_, row) in enumerate(similar_products.iterrows())
+        ]
+        
+        # Combine recommendations into a single response text
+        response_text = "Welcome back! Here are some products you might be interested in:\n" + "\n".join(recommendations)
+        response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for. You may enter /logout to log out."
+        return response_text
+    else:
+        return "Welcome back! What are you looking for today?"
+
+
+
 def get_popular_items(db):
    
     # Load the dataset
