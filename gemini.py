@@ -106,7 +106,7 @@ def index():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    
+
     user_data = request.get_json()
     user_input = user_data.get('message')
     user_id = user_states.get("user_id")
@@ -116,15 +116,14 @@ def chat():
     if user_states.get("login_mode"):
         try:
             user_id = str(user_input)
-            
+
         except ValueError:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
 
         if user_id in valid_user_ids:
-            user_states["user_id"] = user_id  # Save the user ID
+            user_states["user_id"] = user_id
             user_states["password_mode"] = True  # Set password mode flag
             user_states.pop("login_mode", None)  # Remove login mode flag
-            print("line 126:")
             return jsonify({'response': 'User ID validated. Please enter your password.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
@@ -134,15 +133,10 @@ def chat():
         if user_input == "pw123":  # Hardcoded password check
               # Start a new session for the user
             print("line 132")
-            user_states["user_id"] = user_id  # Save the user ID
-            user_states.pop("guest_mode", None)  # Ensure guest mode flag is removed
-            user_states["password_mode"] = True  # Set password mode flag
-            user_states["session_id"] = str(uuid4())  # Generate a unique session ID
-            session_id = user_states["session_id"]
 
-            start_new_session(user_id, session_id)
-            print("line 219")
-            user_profile, user_purchases = getting_user_purchase_dictionary(user_id, supabase)
+            user_states["session_id"] = str(uuid4())  # Generate a unique session ID            
+            session_id = user_states["session_id"]
+            start_new_session(user_id, session_id)            
             user_states.pop("password_mode", None)  # Remove password mode flag
             return jsonify({'response': 'Password validated. You are now logged in. You may enter /logout to exit. Please enter your query.'})
         else:
@@ -155,7 +149,7 @@ def chat():
         user_states.pop("user_id", None)  # Remove user ID
         user_states.pop("session_id", None)  # Remove session ID
         user_states["guest_mode"] = True  # Set guest mode flag
-        
+
         return jsonify({'response': 'You have logged out and are now in guest mode. You may enter /login to log in again.'})
 
     # Check if the user is in guest mode
@@ -165,9 +159,9 @@ def chat():
         if user_input == "/login":
             user_states.pop("guest_mode", None)  # Remove guest mode flag
             user_states["login_mode"] = True  # Set login mode flag
-            print("line 158")
+
             return jsonify({'response': 'Please enter your user ID to log in.'})
-        
+
         # Get previous conversation and intention in guest mode
         if not is_valid_input(user_input, valid_user_ids, keywords):
             return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
@@ -193,19 +187,62 @@ def chat():
         return jsonify({'response': bot_response}) 
     
 
+    
+
     # Get user state to check if ID has already been provided
     
     user_profile = []
     user_purchases = []
 
+   # If the user is prompted to enter user ID (after /login)
+    if user_states.get("login_mode"):
+        try:
+            # Try to interpret the input as an ID
+            user_id = str(user_input)
+        except ValueError:
+            # If input is not a valid numeric ID, prompt for valid ID again
+            return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
+
+        if user_id in valid_user_ids:
+            # Valid user ID, store it and initialize a session
+            user_states["user_id"] = user_id  # Save the user ID
+            user_states.pop("login_mode", None)  # Remove login mode flag
+            return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
+        else:
+            return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
+
+
+    # Get user state to check if ID has already been provided
+    user_id = user_states.get("user_id")
+    session_id = user_states.get("session_id")
+
     # If user ID is not set, expect user to input the ID or choose guest mode
     if not user_id:
         popular_items_recommendation = get_popular_items(db)
         if user_input.lower() == "guest":
-            print("line 196")
+
             user_states["guest_mode"] = True  # Set guest mode flag
             return jsonify({'response': popular_items_recommendation})
-        
+
+        try:
+
+            # Try to interpret the input as an ID
+            user_id = str(user_input)
+
+        except ValueError:
+            return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
+
+        if user_input in valid_user_ids:
+
+                # Valid user ID, store it and initialize a session
+            user_states["user_id"] = user_id  # Save the user ID
+            user_states.pop("guest_mode", None)  # Ensure guest mode flag is removed
+            user_states["password_mode"] = True  # Set password mode flag
+            
+            return jsonify({'response': 'User ID validated. Please enter your password.'})
+
+        else:
+            return jsonify({'response': 'Invalid ID. Please enter a valid numeric ID, or type "guest" to continue without logging in.'})
 
     # Getting information from the user
     if not is_valid_input(user_input, valid_user_ids, keywords):
@@ -225,7 +262,7 @@ def chat():
         recommendations = previous_items_recommended
         
 
-    
+    print(session_id)
     add_chat_history_user(session_id, user_input, user_intention_dictionary, recommendations)
 
     print("Chat history updated successfully")
