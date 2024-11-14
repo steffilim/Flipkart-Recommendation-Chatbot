@@ -286,11 +286,8 @@ def recommend_top_products(user_query, filtered_products, top_n=10):
         product = filtered_products[idx]
         similarity_score = similarities[idx]
         top_products_with_scores.append({
-            'product_id': product['uniq_id'],
-            'product_name': product.get('product_name', 'N/A'),
+            'uniq_id': product['uniq_id'],
             'similarity_score': similarity_score,
-            'price': product.get('retail_price', 'N/A'),
-            'description': product.get('description', 'N/A')
         })
 
     # Convert to DataFrame

@@ -51,6 +51,65 @@ def load_order_data():
     return order_data
 
 
+from surprise import Dataset, Reader, SVD
+
+def create_svd_model(orderdata):
+    """
+    Creates and trains an SVD model based on provided order data.
+    
+    Parameters:
+    - orderdata (DataFrame): A DataFrame containing user-product ratings.
+    
+    Returns:
+    - svd (SVD): Trained SVD model.
+    """
+    reader = Reader(rating_scale=(0, 5))
+    dataset = Dataset.load_from_df(orderdata[['User ID', 'uniq_id', 'User rating for the product']], reader)
+    trainset = dataset.build_full_trainset()
+
+    svd = SVD()
+    svd.fit(trainset)
+    print("SVD model created and trained.")
+    return svd
+
+
+def filter_and_recommend_products(user_id, svd, filtered_catalog, orderdata, n_recommendations=10):
+    """
+    Filters products based on user criteria and generates recommendations using a trained SVD model.
+    
+    Parameters:
+    - user_id (str): The user ID for whom recommendations are being generated.
+    - svd (SVD): A trained SVD model.
+    - filtered_catalog (DataFrame): Filtered catalog of products.
+    - orderdata (DataFrame): Order data containing user-product interactions.
+    - n_recommendations (int): Number of recommendations to return.
+    
+    Returns:
+    - recommendations_df (DataFrame): Recommended products with predicted ratings.
+    """
+    # Filter unrated products for the given user
+    user_ratings = orderdata[orderdata['User ID'] == user_id]
+    user_rated_products = user_ratings['uniq_id'].values
+    filtered_product_ids = filtered_catalog['uniq_id'].unique()
+    unrated_products = [prod for prod in filtered_product_ids if prod not in user_rated_products]
+
+    # Predict ratings for unrated products
+    predictions = []
+    for product_id in unrated_products:
+        pred = svd.predict(user_id, product_id)
+        predictions.append((product_id, pred.est))
+
+    sorted_predictions = sorted(predictions, key=lambda x: x[1], reverse=True)
+    recommended_product_ids = [prod[0] for prod in sorted_predictions[:n_recommendations]]
+    
+    # Get product information and include predicted ratings
+    recommendations = filtered_catalog[filtered_catalog['uniq_id'].isin(recommended_product_ids)].copy()
+    for idx, row in recommendations.iterrows():
+        prediction = next((pred[1] for pred in predictions if pred[0] == row['uniq_id']), None)
+        recommendations.loc[idx, 'predicted_rating'] = prediction
+    recommendations_df = recommendations[['uniq_id', 'product_name', 'description', 'product_category_tree', 'predicted_rating', 'retail_price']]
+    
+    return recommendations_df
 
 def svd_recommend_surprise(user_id, catalogue, n_recommendations=20):
     print("SVD")
@@ -88,10 +147,20 @@ def svd_recommend_surprise(user_id, catalogue, n_recommendations=20):
     # Get product information and include predicted ratings
     recommendations = catalogue[catalogue['uniq_id'].isin(recommended_product_ids)].copy()
     #print(recommendations)
+
+    recommendations['predicted_rating'] = [
+        next((pred[1] for pred in predictions if pred[0] == row['uniq_id']), None)
+        for idx, row in recommendations.iterrows()
+    ]
+
+    recommendations_df = recommendations[['uniq_id', 'predicted_rating']]
+
+    '''
     for idx, row in recommendations.iterrows():
         prediction = next((pred[1] for pred in predictions if pred[0] == row['uniq_id']), None)
         recommendations.loc[idx, 'predicted_rating'] = prediction
     recommendations_df = recommendations[['uniq_id', 'product_name', 'description', 'product_category_tree', 'predicted_rating', 'retail_price']]
+    '''
     
     return recommendations_df
 
