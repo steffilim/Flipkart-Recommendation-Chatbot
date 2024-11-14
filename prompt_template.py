@@ -82,9 +82,26 @@ For each product, follow the following format. DO NOT BOLD THE HEADERS:
 Product Name: <product_name>  
 Brand: <brand>
 Price: ₹<retail_price>  
-Discounted Price: ₹<discounted_price>
 Description: <description>
 Always include the suggested action at the end of the response: {questions}. DO NOT PRINT THE SUGGESTED ACTION HEADER.
+
+Sample Example 1: 
+Input: Recommendation 1, Recommendation 2
+Output:
+1. Product Name: Recommendation 1
+   Brand: Brand 1
+   Price: ₹1000
+   Description: This is a product description.
+
+2. Product Name: Recommendation 2
+   Brand: Brand 2
+   Price: ₹2000
+   Description: This is another product description.
+<Follow-up question>
+
+
+
+
 
 
 """
