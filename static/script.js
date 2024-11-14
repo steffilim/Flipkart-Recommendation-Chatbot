@@ -30,21 +30,38 @@ function sendMessage() {
     })
     .then(response => response.json())
     .then(data => {
+        if (data.clear_chat) {
+            clearChatLog(); // Clear chat if no past conversations
+        }
+        if (data.past_conversations && data.past_conversations.length > 0) {
+            displayPastConversations(data.past_conversations);
+            // Append the success message after displaying past conversations
+            botSendMessage('Password validated. You are now logged in.\nYou may enter /logout to exit. Please enter your query.');
+        } else if (data.clear_chat && data.message) {
+            // For users with no past history, show the success message
+            botSendMessage(data.message);
+        } else {
+            botSendMessage(data.response);
+        }
         // Check if the response indicates that we are still in password mode
-        if (data.response.includes('Please enter your password.') || data.response.includes('Incorrect password.')) {
+        if (data.response && (data.response.includes('Please enter your password.') || data.response.includes('Incorrect password.'))) {
             document.getElementById('user-input').type = 'password';  // Ensure input is masked
             isPasswordMode = true;  // Keep password mode active
         } else {
             document.getElementById('user-input').type = 'text';  // Unmask input field
             isPasswordMode = false;  // Reset password mode flag
         }
-        botSendMessage(data.response);
     })
     .catch(error => {
         console.error('Error:', error);
     });
 
     document.getElementById('user-input').value = '';
+}
+
+function clearChatLog() {
+    let chatLog = document.getElementById('chat-log');
+    chatLog.innerHTML = '';  // Clear the entire chat log
 }
 
 function appendMessage(message, className, sender) {
@@ -89,3 +106,17 @@ document.getElementById('chat-header').addEventListener('click', function () {
 
     chatContainer.classList.toggle('folded');
 });
+
+function displayPastConversations(conversations) {
+    let chatLog = document.getElementById('chat-log');
+    chatLog.innerHTML = ''; // Clear old messages
+
+    conversations.forEach(chat => {
+        if (chat.user) {
+            appendMessage(chat.user, 'user-message', 'User');
+        }
+        if (chat.bot) {
+            appendMessage(chat.bot, 'bot-message', 'Flippey');
+        }
+    });
+}
