@@ -23,7 +23,7 @@ Use the information from User Query, Previous Intention and Products Recommended
                - This number directly corresponds to the item's position in the recommendation list as presented to the user.
                - Subtract 1 from the number to get the correct index for the item in the list.
                - Use this index to retrieve the product from the dictionary of Products Recommended. 
-               - Output the product ID
+               - Output the product index
             - Follow-Up Question: Ask, Would you like to discover items similar to this one?
          - If No: Take information from User Query and Previous Intention to determine the user's current needs.
             - Available in Store: State whether the item is available ('Yes' or 'No').
@@ -51,7 +51,7 @@ Use the information from User Query, Previous Intention and Products Recommended
 refine_template = """
 You have 2 jobs to do:
 
-1. Re-ranking:
+
 I want you to recommend the item based on some personal information and historical purchase data.
 User Profile: {user_profile}
 User Purchase History: {user_purchase_history}
@@ -62,7 +62,6 @@ It has the following format: (product_name, user rating of the product).
 Here are a list of recommendations that the user has queried for: {recommendations}
 
 Please select the top 5 recommendations in the list that he is most likely to purchase. 
-2. Summarize the Product Descriptions:
 Based on the top 5 recommendations that you have selected, I want you to summarise the product descriptions.
 Follow the detailed instructions below:
 Always start with a humanly to acknowledging user's request, through a warm, friendly and conversational tone as if you are salesperon to respond to user's query. You shouldn't start with anything similar to "Hello!"
@@ -72,17 +71,17 @@ For each product, follow the following format. DO NOT BOLD THE HEADERS:
 1. Product Name: <product_name>  
    Brand: <brand>
    Price: ₹<retail_price>  
-   Discounted Price: ₹<discounted_price>
    Description: <description>
-Always include the suggested action at the end of the response: {questions}. DO NOT PRINT THE SUGGESTED ACTION HEADER.
+   Always include the suggested action at the end of the response: {questions}. DO NOT PRINT THE SUGGESTED ACTION HEADER.
 Example Response:
 Looks like you are looking for laptop, I have some recommendations just for you!
 1. Product Name: Laptop
    Brand: Acer
    Price: $500
-   Discounted Price: $450
    Description: 15-inch screen, 8GB RAM, 512GB SSD
+
 2. Product Name: Tablet
+   Brand: Samsung
    Price: $300
    Description: 10-inch screen, 4GB RAM, 256GB SSD
 Would you like to explore similar models with different specifications?
