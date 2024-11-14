@@ -14,6 +14,7 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer, util
 import torch
 from supabase import create_client, Client
+# from weighted import filter_products, fetch_filtered_products
 # from functions import initialising_supabase, load_product_data
 
 # lsa_matrix = load(lsa_matrix_file)
@@ -50,45 +51,6 @@ def load_order_data():
  
     return order_data
 
-'''
-def load_data(table_name, n_rows):
-    supabase = initialising_supabase()
-
-    all_data = []
-    batch_size = 1000  # Maximum rows Supabase allows per request
-    start = 0
-
-    while start < n_rows:
-        # Fetch a batch of data
-        response = supabase.table(table_name).select("*").range(start, start + batch_size - 1).execute()
-        
-        # If there's no data, break out of the loop
-        if not response.data:
-            break
-
-        # Append the batch to the all_data list
-        all_data.extend(response.data)
-        start += batch_size  # Move to the next batch
-
-        # print(f"Loaded {len(all_data)} rows so far...")  # Monitor loading progress
-
-    # Convert the combined data to a DataFrame
-    catalogue = pd.DataFrame(all_data)
-
-    # converting overall_rating to numeric
-    # catalogue['overall_rating'] = pd.to_numeric(database['overall_rating'], errors='coerce')
-
-    catalogue['content'] = catalogue['description'].astype(str) + catalogue['product_specifications'].astype(str)
-
-    # print("Shape of catalogue:", catalogue.shape)  # Check final shape after combining batches
-    # print("Successfully loaded 'flipkart_cleaned' from Supabase")
-    return catalogue
-
-# Load the data
-# df = load_product_data()
-# print("Final shape:", df.shape)
-'''
-
 # Load the Sentence Transformer model
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 # model.save("sentenceTransformer")
@@ -96,6 +58,19 @@ model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 ''' computing embeddings '''
 # precompute product embeddings
 def precompute_product_embeddings(df, batch_size=1000, print_interval=100):
+    """
+    Precomputes embeddings for product descriptions using a sentence transformer model.
+    
+    Args:
+        df (pd.DataFrame): DataFrame containing product information with 'content' and 'uniq_id' columns
+        batch_size (int): Number of products to process in each batch
+        print_interval (int): Interval for printing progress updates
+    
+    Returns:
+        list: List of dictionaries containing product IDs and their corresponding embeddings
+    """
+    print("Starting precompute_product_embeddings")
+
     product_descriptions = df['content'].tolist()
     product_ids = df['uniq_id'].tolist()
     total_products = len(product_descriptions)
@@ -120,7 +95,9 @@ def precompute_product_embeddings(df, batch_size=1000, print_interval=100):
         # Print progress for every print_interval items processed
         if (end % print_interval == 0) or (end == total_products):
             print(f"Processed {end}/{total_products} products...")
-    
+
+        print("precompute_product_embeddings end")
+
     return product_embeddings
 
 # storing on local drive
@@ -160,29 +137,57 @@ def store_product_embeddings_in_supabase(product_embeddings):
 ''' retrieving embeddings for a list of product_ids'''
 def get_product_embeddings(product_ids):
     print("product_ids", product_ids)
-    # Fetch embeddings for the given list of product_ids from Supabase
-    supabase = initialising_supabase()
+    '''
+    Fetch embeddings for the given list of product_ids from Supabase   
 
+    Args:
+        product_ids (list of string): List of product IDs to fetch embeddings for.
+                                    Product IDs cannot be empty strings.
+    Returns:
+        pandas.DataFrame: DataFrame containing product_id and embedding_list columns.
+        Returns empty DataFrame if no matches found or if input list is empty.
+    Raises:
+        TypeError: If product_ids is not a list
+        ValueError: If any product_id in the list is not a string or is an empty string
+    '''
+    supabase = initialising_supabase()
+    
+    # Input validation
+    if not isinstance(product_ids, list):
+        raise TypeError("product_ids must be a list")
+
+    # Return empty DataFrame immediately if empty list
+    if not product_ids:
+        print("Empty input list provided")
+        return pd.DataFrame(columns=["product_id", "embedding_list"])
+    
+    # Validate all items are strings
+    if not all(isinstance(pid, str) for pid in product_ids):
+        raise ValueError("All product IDs must be strings")
+    
+    # Initialize response outside the loop
+    response = None
+    
+    '''
     for product_id in product_ids:
         response = supabase.table("product_embeddings") \
                            .select("product_id, embedding_list") \
                            .eq("product_id", product_id) \
                            .execute()
-    
-    # Check if the response has data
+    '''
+
+    response = supabase.table("product_embeddings") \
+                      .select("product_id, embedding_list") \
+                      .in_("product_id", product_ids) \
+                      .execute()
+        
     df = pd.DataFrame(columns=["product_id", "embedding_list"])
 
-    #print(response.data)
-
-    if response.data:
-        data = response.data
-        
-        # Convert response data to DataFrame
-        df = pd.DataFrame(data)
-        # print('in get_product_embeddings function: matching product ids found, returning')
+    if response and response.data:
+        df = pd.DataFrame(response.data)
     else:
-        # If no data is returned, return an empty DataFrame with the expected columns
         print('no matching data found in product embeddings')
+    
     return df
 
 ''' convertion of embeddings list 'text' to 'float' (cannot save as array of 32 bits in supabase)'''
@@ -217,55 +222,34 @@ def check_if_embedding_list_is_float(df):
         )
     return df
 
-''' filter function '''
-# Function to Filter Products based on keywords - for features that have a 'hard' limit
-
-def filter_products(product_name=None, price_limit=None, brand=None, overall_rating=None, product_specifications=None):
-    # Build the SQL query dynamically based on the filters provided
-    query = supabase.table("flipkart_cleaned").select("*")
-    
-    if product_name and isinstance(product_name, str) and product_name.strip():
-        query = query.ilike("product_name", f"%{product_name}%")
-    
-    if price_limit is not None:
-        query = query.lte("retail_price", price_limit)
-    
-    if brand and isinstance(brand, str) and brand.strip():
-        query = query.ilike("brand", f"%{brand}%")
-    
-    if overall_rating is not None:
-        query = query.gte("overall_rating", overall_rating)
-    
-    if product_specifications and isinstance(product_specifications, str) and product_specifications.strip():
-        query = query.ilike("product_specifications", f"%{product_specifications}%")
-    
-    # Execute the query and get the results
-    response = query.execute()
-    return response.data
-
+''' recommendation function '''
 def recommend_top_products(user_query, filtered_products, top_n=10):
+    '''
+    Recommend top N products based on similarity to the user's query.
+
+    Args:
+        user_query (str): The query input by the user, e.g., "I want a red shoe".
+                          Should be a non-empty string.
+        filtered_products (list of dict): List of dictionaries, where each dictionary contains 
+                                          product information (e.g., 'uniq_id', 'product_name', 
+                                          'retail_price', 'description'). Each dictionary must 
+                                          contain a valid 'uniq_id' as a unique identifier.
+        top_n (int, optional): Number of top recommended products to return. Default is 10.
+
+    Returns:
+        pandas.DataFrame: DataFrame containing columns 'product_id', 'product_name', 
+                          'similarity_score', 'price', and 'description' for the top N recommended 
+                          products based on similarity to the user query.
+
+    Raises:
+        ValueError: If user_query is not a string or is empty.
+        TypeError: If filtered_products is not a list of dictionaries, or if any dictionary 
+                   does not contain a 'uniq_id'.
+    '''
+
     supabase = initialising_supabase()
-    '''
-    user_query: string e.g. "i want a red shoe"
-    # product_embeddings: embeddings of filtered products
-    filtered_products: list of dictionary
-    top_n = top n recommendations
-    '''
-    '''
-    1. get a list of product ids from the filtered products
-    2. use that list to get product embeddings
-    3. calculate cosine similarity of user query with product embeddings obtained
-    4. return top_n most similar 
-    '''
-    # Generate embedding for the user query
-    # query_embedding = model.encode(user_query, convert_to_tensor=True)
 
     query_embedding = model.encode([user_query])[0]  
-    # print("query embedding length ", len(query_embedding))
-    # print("query embedding ", query_embedding)
-
-    # Move query embedding to CPU
-    # query_embedding = query_embedding.cpu()
 
     # Get product IDs from filtered products
     product_ids = [product['uniq_id'] for product in filtered_products]
@@ -273,7 +257,7 @@ def recommend_top_products(user_query, filtered_products, top_n=10):
 
     # Get specific product embeddings
     raw_product_embeddings = get_product_embeddings(product_ids)
-    print("line 276: ", raw_product_embeddings)
+    print("line 260: ", raw_product_embeddings)
 
     # Converting it to float instead of string
     text_product_embeddings = remove_brackets_from_embedding_list(raw_product_embeddings)
@@ -319,33 +303,25 @@ def recommend_top_products(user_query, filtered_products, top_n=10):
 # Example extracted information from user input
 extracted_info = {
     "product_name": "cycling shorts",
-    "price_limit": 3000,
+    "max_price": 3000,
     "brand": "alisha",
-    "overall_rating": '0',
-    "product_specifications": ''
+    "specifications": "No preference"
 }
 
 # filtering of products
 
 # Start the timer
-# start_time = time.time()
+start_time = time.time()
 
-filtered_products = filter_products("flipkart_cleaned", product_name="cycling shorts", price_limit=3000, brand="alisha", overall_rating='0',product_specifications='')
+filtered_products = fetch_filtered_products(extracted_info)
 
-# filter_time = time.time()
-# Calculate the elapsed time
-# filtered_time = filter_time - start_time
-# print(f"Time taken to run the filter function: {filtered_time:.4f} seconds")
-
-# getting recommendations
-user_query = "i want red shoes"
-top_products = recommend_top_products(user_query, filtered_products)
+top_products = recommend_top_products(extracted_info, filtered_products)
 # End the timer
-# end_time = time.time()
+end_time = time.time()
 
 # Calculate the elapsed time
-# elapsed_time = end_time - filter_time
-# print(f"Time taken to run the recommendation function: {elapsed_time:.4f} seconds")
+elapsed_time = end_time - filter_time
+print(f"Time taken to run the recommendation function: {elapsed_time:.4f} seconds")
 top_products
 '''
 

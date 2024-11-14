@@ -1,6 +1,6 @@
-from recSys.collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
+from collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
 
-from recSys.contentBased import recommend_top_products 
+from contentBased import recommend_top_products 
 
 import pandas as pd
 from sklearn.metrics import mean_squared_error
@@ -57,7 +57,7 @@ def load_order_data():
     return order_data
 
 ''' filter products '''
-def filter_products(product_name=None, price_limit=None, brand=None, overall_rating=None, product_specifications=None):
+def filter_products(product_name=None, price_limit=None, brand=None, product_specifications=None):
     # Build the SQL query dynamically based on the filters provided
     supabase = initialising_supabase()
     query = supabase.table("flipkart_cleaned").select("*")
@@ -71,9 +71,6 @@ def filter_products(product_name=None, price_limit=None, brand=None, overall_rat
     if brand and isinstance(brand, str) and brand.strip():
         query = query.ilike("brand", f"%{brand}%")
     
-    if overall_rating is not None:
-        query = query.gte("overall_rating", overall_rating)
-    
     if product_specifications and isinstance(product_specifications, str) and product_specifications.strip():
         query = query.ilike("product_specifications", f"%{product_specifications}%")
     
@@ -86,11 +83,12 @@ def fetch_filtered_products(extracted_info):
     # ensure correct type
     # if cannot find in dictionary, just none
     # Extract values from the dictionary with default values for any missing keys
-    product_name = extracted_info.get("Product Item")
-    price_limit = extracted_info.get("Budget")
-    brand = extracted_info.get("Brand")
-    overall_rating = extracted_info.get("overall_rating", None)  # Default value, as not in the provided dictionary
-    product_specifications = extracted_info.get("Product Details")
+    product_name = extracted_info.get("product_name")
+    price_limit = extracted_info.get("max_price")
+    brand = extracted_info.get("brand")
+    product_specifications = extracted_info.get("specifications")
+
+    # print(product_name, price_limit, brand, product_specifications)
 
     # Convert "Not specified" to None for each field
     if product_name == "No preference":
@@ -99,8 +97,6 @@ def fetch_filtered_products(extracted_info):
         price_limit = None
     if brand == "No preference":
         brand = None
-    if overall_rating == "No preference":
-        overall_rating = None
     if product_specifications == "No preference":
         product_specifications = None
 
@@ -120,35 +116,34 @@ def fetch_filtered_products(extracted_info):
             print("Warning: price_limit is not a valid number:", price_limit)
             price_limit = None
 
-    return filter_products(
+    # print(product_name, price_limit, brand, product_specifications)
+
+    filtered_products = filter_products(
         product_name=product_name,
         price_limit=price_limit,
         brand=brand,
-        overall_rating=overall_rating,
         product_specifications=product_specifications
     )
+
+    return filtered_products
 
 '''
 fetch_filtered_products( {'Related to Follow-Up Questions': 'New', 'Available in Store': 'Yes', 'Brand': 'Alisha', 'Product Item': 'Cycling shorts', 'Product Details': 'Not specified', 'Budget': 'Not specified', 'Fields Incompleted': '2', 'To-Follow-Up': 'Yes', 'Follow-Up Question': 'Could you please specify any specific features or specifications you need for the cycling shorts? Do you have a budget range in mind for this purchase?'})
 '''
 
 ''' helper functions '''
-def concatenate_selected_dict_values(input_dict, keys_to_extract, separator=", "):
+def get_user_query(extracted_info, keys=['product_name', 'brand', 'specifications'], separator=', '):
     result = ''
     
     # Iterate over the list of keys to extract values
-    for key in keys_to_extract:
-        if key in input_dict:
-            result += str(input_dict[key]) + separator
+    for key in keys:
+        # Check if key exists and its value is not 'No preference'
+        if key in extracted_info and extracted_info[key] != 'No preference':
+            result += str(extracted_info[key]) + separator
     
     # Remove the trailing separator
     result = result.rstrip(separator)
-    
     return result
-
-def get_user_query(extracted_info, keys = ['product_name', 'brand', 'product_specifications']):
-    user_query = concatenate_selected_dict_values(extracted_info, keys)
-    return user_query
 
 # fetching only specified columns: 'uniq_id, product_name, brand, retail_price, discounted_price, description'
 
