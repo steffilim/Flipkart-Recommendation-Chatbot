@@ -136,8 +136,11 @@ def chat():
             user_states.pop("password_mode", None)  # Remove password mode flag
             # return jsonify({'response': 'Password validated. You are now logged in. You may enter /logout to exit. Please enter your query.'})
             user_id = user_states["user_id"]
+
             recommendations = recommend_similar_products(user_id)
-            return jsonify({'response': recommendations})
+            response_text = "Welcome back! Here are some products you might be interested in:\n" + "\n".join(recommendations)
+            response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for. You may enter /logout to log out."
+            return jsonify({'response': response_text})
         else:
             return jsonify({'response': 'Incorrect password. Please try again.'})
 
