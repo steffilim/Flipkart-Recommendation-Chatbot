@@ -61,7 +61,7 @@ def get_popular_items(db):
   
     # Join all item details into a single string
     response_text = "Here are these week's popular items:\n" + "\n".join(popular_items)
-    response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for."
+    response_text += "\n\nFeel free to provide me the description of the item you are looking for."
 
     return response_text
 
