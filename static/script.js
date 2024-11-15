@@ -36,7 +36,7 @@ function sendMessage() {
         if (data.past_conversations && data.past_conversations.length > 0) {
             displayPastConversations(data.past_conversations);
             // Append the success message after displaying past conversations
-            botSendMessage('Password validated. You are now logged in.\nYou may enter /logout to exit. Please enter your query.');
+            botSendMessage('Password validated. You are now logged in. You may enter /logout to exit. Please enter your query.');
         } else if (data.clear_chat && data.message) {
             // For users with no past history, show the success message
             botSendMessage(data.message);
