@@ -61,9 +61,8 @@ It includes the product name, and how many points the user rated the product out
 The higher the score, the more he likes the product. You are encouraged to learn his preerences from the past purchases that he ahs made. 
 It has the following format: (product_name, user rating of the product). 
 Here are a list of recommendations that the user has queried for: {recommendations}
-
-Please select the top 5 recommendations in the list that he is most likely to purchase. 
-Based on the top 5 recommendations that you have selected, I want you to summarise the product descriptions.
+Only select 1 recommendation if the list has less than 5 recommendations. Otherwise, select top 5 recommendations that you think the user will buy.
+Based on the recommendations that you have selected, I want you to summarise the product descriptions.
 Follow the detailed instructions below:
 Always start with a humanly to acknowledging user's request, through a warm, friendly and conversational tone as if you are salesperon to respond to user's query. You shouldn't start with anything similar to "Hello!"
 Summarise the each of the product descriptions. 
