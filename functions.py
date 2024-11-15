@@ -64,11 +64,11 @@ def get_similar_products(uniq_id):
     catalogue_data['overall_rating'] = pd.to_numeric(catalogue_data['overall_rating'], errors='coerce')
     catalogue_data['overall_rating'].fillna(2, inplace=True)
     product_row = catalogue_data[catalogue_data['uniq_id'] == uniq_id]
-    print("getting similar products...")
+    # print("getting similar products...")
     if product_row.empty:
         return []
     product_category_tree = ast.literal_eval(product_row.iloc[0]['product_category_tree'])[0]
-    print("Product category tree first entry:", product_category_tree)
+    # print("Product category tree first entry:", product_category_tree)
     similar_products = catalogue_data[
         (catalogue_data['product_category_tree'].apply(lambda x: ast.literal_eval(x)[0] if x else "") == product_category_tree) &
         (catalogue_data['uniq_id'] != uniq_id)
@@ -314,7 +314,14 @@ def getting_bot_response(user_intention_dictionary, chain2, supabase, db, user_p
         # Check if all fields are incomplete and user prefers not to share more details
         if fields_incomplete == 3 and keen_to_share == "No":
             recommendations = hybrid_recommendations(user_intention_dictionary, user_id)
-            recommendations = recommendations.to_dict(orient='records')
+
+            # Set recommendations to None if it is an empty DataFrame
+            if recommendations.empty:
+                recommendations = None
+            else:
+                # Convert to dictionary format if recommendations is not empty
+                recommendations = recommendations.to_dict(orient='records')
+            
             questions = user_intention_dictionary.get("Follow-Up Question")
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions, "user_profile": user_profile, "user_purchase_history": user_purchases})
            
@@ -326,7 +333,14 @@ def getting_bot_response(user_intention_dictionary, chain2, supabase, db, user_p
         else:
             # Generate recommendations based on known preferences
             recommendations = hybrid_recommendations(user_intention_dictionary, user_id)
-            recommendations = recommendations.to_dict(orient='records')
+
+            # Set recommendations to None if it is an empty DataFrame
+            if recommendations.empty:
+                recommendations = None
+            else:
+                # Convert to dictionary format if recommendations is not empty
+                recommendations = recommendations.to_dict(orient='records')
+
             # Getting follow-up questions from previous LLM if available
             questions = user_intention_dictionary.get("Follow-Up Question")
             bot_response = chain2.invoke({"recommendations": recommendations, "questions": questions,"user_profile": user_profile, "user_purchase_history": user_purchases})
