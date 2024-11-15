@@ -252,17 +252,18 @@ def getting_user_intention_dictionary(user_input, intention_chain, previous_inte
     return user_intention_dictionary
 
 
-"""TO BE REMOVED ONCE MERGED WITH RS"""
 
-def get_item_details(db, uniq_ids, session_id ):
+
+def get_item_details(db, product_index, session_id ):
     # Initialize Supabase connection
     supabase = initialising_supabase()
     
     # fetching from mongodb
+
     chat_session = db.chatSession
     chat_session_data = chat_session.find_one({"session_id": session_id}).get("message_list")
     last_recommendation = chat_session_data[-1].get("items_recommended")
-    item_of_interest = last_recommendation[int(uniq_ids)]
+    item_of_interest = last_recommendation[int(product_index)]
 
     # Get item of interest from mongodb
 
@@ -274,12 +275,26 @@ def get_item_details(db, uniq_ids, session_id ):
         f"Description: {item_of_interest['description']}\n\n"
         f"Product Details: {item_of_interest['product_specifications']}\n"
     )
-
-
     
     return readable_output
 
-def getting_bot_response(user_intention_dictionary, chain2, supabase, db, user_profile, user_purchases, user_id, session_id):
+def get_item_details_guest(convo_history_list_guest, product_index):
+    product_index = int(product_index)
+    item_recommendation = convo_history_list_guest[product_index]
+    print("line 283: ", item_recommendation)
+
+    readable_output = (
+        f"Product Name: {item_recommendation['product_name']}\n"
+        f"Brand: {item_recommendation['brand']}\n"
+        f"Price: ₹{item_recommendation['discounted_price']}\n"
+        f"Rating: {item_recommendation['overall_rating']}\n\n"
+        f"Description: {item_recommendation['description']}\n\n"
+        f"Product Details: {item_recommendation['product_specifications']}\n"
+    )
+
+    return readable_output
+
+def getting_bot_response(user_intention_dictionary, chain2, supabase, db, previous_items_recommended, user_profile, user_purchases, user_id, session_id):
   
     # Fetch the catalogue & users data from Supabase
 
@@ -301,7 +316,10 @@ def getting_bot_response(user_intention_dictionary, chain2, supabase, db, user_p
         follow_up = user_intention_dictionary.get("Follow-Up Question")
 
         #print(product_id)
-        item_recommendation = get_item_details(db, product_id, session_id)
+        if session_id == "guest":
+            item_recommendation = get_item_details_guest(previous_items_recommended, product_id)
+        else:
+            item_recommendation = get_item_details(db, product_id, session_id)
         item_recommendation += "\n\n" + follow_up
 
         return None, item_recommendation
