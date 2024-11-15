@@ -349,28 +349,28 @@ def hybrid_recommendations(extracted_info, user_id, content_weight=20, collabora
     return product_details_df
 
 '''test'''
-import time
-extracted_info = {
-    "Product Item": "skirt",
-    "Budget": "2000",
-    "Brand": "",
-    "Product Details": "No preference"
-}
+# import time
+# extracted_info = {
+#     "Product Item": "skirt",
+#     "Budget": "2000",
+#     "Brand": "",
+#     "Product Details": "No preference"
+# }
 
-user_id = "U00964"
-content_weight = 0.9
-collaborative_weight = 0
+# user_id = "U00964"
+# content_weight = 0.9
+# collaborative_weight = 0
 
 # Start timer
-start_time = time.time()
+# start_time = time.time()
 
-recs = hybrid_recommendations(extracted_info, user_id, content_weight, collaborative_weight, brand_preference=None, specs_preference=None)
+# recs = hybrid_recommendations(extracted_info, user_id, content_weight, collaborative_weight, brand_preference=None, specs_preference=None)
 
-# End timer
-end_time = time.time()
-# Calculate and print the elapsed time
-elapsed_time = end_time - start_time
-print(f"Execution time: {elapsed_time:.2f} seconds")
+# # End timer
+# end_time = time.time()
+# # Calculate and print the elapsed time
+# elapsed_time = end_time - start_time
+# print(f"Execution time: {elapsed_time:.2f} seconds")
 
 
 
