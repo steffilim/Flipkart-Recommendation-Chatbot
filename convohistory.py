@@ -83,8 +83,9 @@ def add_chat_history_guest(user_input, user_intention_dictionary, recommendation
     if user_intention_dictionary.get("Related to Follow-Up Questions") == "Old":
         #print(recommendations)
         follow_up_question = user_intention_dictionary.get("Follow-Up Question")
-        convo_history_list_guest = convo_history_list_guest[:-2] # removing the last element from the list
         convo_history_list_guest.append((user_input, user_intention_dictionary, recommendations, follow_up_question))
+        convo_history_list_guest = convo_history_list_guest[1:] # removing the last element from the list
+       
         
        
 
@@ -102,10 +103,12 @@ def get_past_conversation_guest(memory) :
         return "", "", ""
     else: 
         # previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended
+        print("line 106: ", memory)
         previous_intention = memory[-1][1]
         previous_follow_up_question = memory[-1][1].get("Follow-Up Question")
-        previous_items_recommended = memory[-1][2] # data type: dictionary     
-        print("line 106: ", previous_items_recommended)
+        previous_items_recommended = memory[-1][2]
+        print("line 107: ", previous_follow_up_question) # data type: dictionary     
+        
         return previous_intention, previous_follow_up_question, previous_items_recommended
 
 def update_past_follow_up_question_guest(user_intention_dictionary):

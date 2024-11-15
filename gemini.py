@@ -82,10 +82,12 @@ def initialise_app():
     intention_prompt = ChatPromptTemplate.from_template(intention_template)
     intention_chain = intention_prompt | llm | StrOutputParser()
 
+    convo_history_list_guest = [] # convo history list for guest users
 
-    return supabase, db, llm, chain2, intention_chain, lsa_matrix
 
-supabase, db, llm, chain2, intention_chain, lsa_matrix = initialise_app()
+    return supabase, db, llm, chain2, intention_chain, lsa_matrix, convo_history_list_guest
+
+supabase, db, llm, chain2, intention_chain, lsa_matrix, convo_history_list_guest = initialise_app()
 
 
 
@@ -184,6 +186,7 @@ def chat():
     # Check if the user is in guest mode
     if user_states.get("guest_mode"):
         past_follow_up_question_guest = ""
+     
 
         if user_input == "/login":
             user_states.pop("guest_mode", None)  # Remove guest mode flag
@@ -196,21 +199,21 @@ def chat():
             return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
 
         previous_intention, previous_follow_up_question, previous_items_recommended = get_past_conversation_guest(convo_history_list_guest)
-
+        print("previous_items: ", previous_items_recommended)
         user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_question_guest, previous_items_recommended)
         user_intention_dictionary = parse_user_intention(user_intention)
         #print("line 172:", user_intention_dictionary)
 
         # updating follow-up question
         past_follow_up_question_guest = update_past_follow_up_question_guest(user_intention_dictionary)
-        recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, db, user_profile = "None", user_purchases = "None", user_id = "guest", session_id = "guest")
+        recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, db, previous_items_recommended, user_profile = "None", user_purchases = "None", user_id = "guest", session_id = "guest")
         
         # To account for the case of the user asking for more information on a particular item
         if recommendations is None:
             recommendations = previous_items_recommended
         
-        threading.Thread(target=add_chat_history_guest, args=(user_input, user_intention_dictionary, recommendations, convo_history_list_guest)).start()
-
+        add_chat_history_guest(user_input, user_intention_dictionary, recommendations, convo_history_list_guest)
+        print("line 189:, ", convo_history_list_guest)
 
 
         return jsonify({'response': bot_response}) 
@@ -284,7 +287,7 @@ def chat():
 
 
     # Getting the bot response
-    recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, db, user_profile, user_purchases, user_id, session_id)
+    recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, db, previous_items_recommended, user_profile, user_purchases, user_id, session_id)
 
     # To account for the case of the user asking for more information on a particular item
     if recommendations is None:
