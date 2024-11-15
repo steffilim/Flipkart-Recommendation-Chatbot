@@ -1,6 +1,6 @@
-from recSys.collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
+from collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
 
-from recSys.contentBased import recommend_top_products 
+from contentBased import recommend_top_products 
 
 import pandas as pd
 from sklearn.metrics import mean_squared_error
@@ -14,6 +14,7 @@ from supabase import create_client
 # from functions import initialising_supabase, load_product_data
 from sklearn.preprocessing import MinMaxScaler 
 import time
+import random
 
 #MONGODB_URI = os.getenv("MONGODB_URI")
 #FLIPKART = os.getenv("FLIPKART")
@@ -36,7 +37,7 @@ def initialising_supabase():
 def load_product_data():
     supabase = initialising_supabase()
     # Load data from the flipkart_cleaned table in supabase
-    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned').select('*').execute().data)
+    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned_2k').select('*').execute().data)
 
     # Create the 'content' column by concatenating 'description' and 'product_specifications'
     catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
@@ -50,17 +51,17 @@ def load_product_data():
 def load_order_data():
     supabase = initialising_supabase()
     # Load data from the flipkart_cleaned table in supabase
-    order_data = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
+    order_data = pd.DataFrame(supabase.table('synthetic_v2_2k').select('*').execute().data)
 
     # sfully loaded order from Supabase")
  
     return order_data
 
 ''' filter products '''
-def filter_products(product_name=None, price_limit=None, brand=None, overall_rating=None, product_specifications=None):
+def filter_products(product_name=None, price_limit=None, brand=None, product_specifications=None):
     # Build the SQL query dynamically based on the filters provided
     supabase = initialising_supabase()
-    query = supabase.table("flipkart_cleaned").select("*")
+    query = supabase.table("flipkart_cleaned_2k").select("*")
     
     if product_name and isinstance(product_name, str) and product_name.strip():
         query = query.ilike("product_name", f"%{product_name}%")
@@ -70,9 +71,6 @@ def filter_products(product_name=None, price_limit=None, brand=None, overall_rat
     
     if brand and isinstance(brand, str) and brand.strip():
         query = query.ilike("brand", f"%{brand}%")
-    
-    if overall_rating is not None:
-        query = query.gte("overall_rating", overall_rating)
     
     if product_specifications and isinstance(product_specifications, str) and product_specifications.strip():
         query = query.ilike("product_specifications", f"%{product_specifications}%")
@@ -89,8 +87,9 @@ def fetch_filtered_products(extracted_info):
     product_name = extracted_info.get("Product Item")
     price_limit = extracted_info.get("Budget")
     brand = extracted_info.get("Brand")
-    overall_rating = extracted_info.get("overall_rating", None)  # Default value, as not in the provided dictionary
     product_specifications = extracted_info.get("Product Details")
+
+    # print(product_name, price_limit, brand, product_specifications)
 
     # Convert "Not specified" to None for each field
     if product_name == "No preference":
@@ -99,8 +98,6 @@ def fetch_filtered_products(extracted_info):
         price_limit = None
     if brand == "No preference":
         brand = None
-    if overall_rating == "No preference":
-        overall_rating = None
     if product_specifications == "No preference":
         product_specifications = None
 
@@ -120,52 +117,83 @@ def fetch_filtered_products(extracted_info):
             print("Warning: price_limit is not a valid number:", price_limit)
             price_limit = None
 
-    return filter_products(
+    # print(product_name, price_limit, brand, product_specifications)
+
+    filtered_products = filter_products(
         product_name=product_name,
         price_limit=price_limit,
         brand=brand,
-        overall_rating=overall_rating,
         product_specifications=product_specifications
     )
+    print("filtered length", len(filtered_products))
+    return filtered_products
 
 '''
 fetch_filtered_products( {'Related to Follow-Up Questions': 'New', 'Available in Store': 'Yes', 'Brand': 'Alisha', 'Product Item': 'Cycling shorts', 'Product Details': 'Not specified', 'Budget': 'Not specified', 'Fields Incompleted': '2', 'To-Follow-Up': 'Yes', 'Follow-Up Question': 'Could you please specify any specific features or specifications you need for the cycling shorts? Do you have a budget range in mind for this purchase?'})
 '''
 
 ''' helper functions '''
-def concatenate_selected_dict_values(input_dict, keys_to_extract, separator=", "):
+def get_user_query(extracted_info, keys=['product_name', 'brand', 'specifications'], separator=', '):
     result = ''
     
     # Iterate over the list of keys to extract values
-    for key in keys_to_extract:
-        if key in input_dict:
-            result += str(input_dict[key]) + separator
+    for key in keys:
+        # Check if key exists and its value is not 'No preference'
+        if key in extracted_info and extracted_info[key] != 'No preference':
+            result += str(extracted_info[key]) + separator
     
     # Remove the trailing separator
     result = result.rstrip(separator)
-    
     return result
 
-def get_user_query(extracted_info, keys = ['Product Item', 'Brand', 'Product Details']):
-    user_query = concatenate_selected_dict_values(extracted_info, keys)
-    return user_query
-
 # fetching only specified columns: 'uniq_id, product_name, brand, retail_price, discounted_price, description'
+def get_product_details_from_supabase(uniq_ids, columns = None):
+    """
+    Fetch full product details from Supabase based on provided unique IDs and selected columns.
 
-def get_product_details_from_supabase(uniq_ids):
+    Args:
+        uniq_ids (list of str): List of unique product IDs to fetch details for.
+                                If empty, an empty DataFrame is returned.
+        columns (list of str, optional): List of columns to select from the database.
+                                         Defaults to common product detail columns.
+
+    Returns:
+        pandas.DataFrame: DataFrame containing the requested product details.
+                          Returns an empty DataFrame if `uniq_ids` is empty.
+    
+    Raises:
+        TypeError: If `uniq_ids` is not a list.
+        ValueError: If any ID in `uniq_ids` is not a string or if `columns` is not a list.
+    """
+    print("get product details from supabase")
+    # Ensure uniq_ids is a list
+    if not isinstance(uniq_ids, list):
+        raise TypeError("uniq_ids must be a list of strings.")
+
+    # Return an empty DataFrame if uniq_ids is empty
+    if not uniq_ids:
+        return pd.DataFrame(columns=columns if columns else [])
+
+    # Default columns if none are provided
+    if columns is None:
+        columns = ['uniq_id', 'product_name', 'brand', 'retail_price', 'discounted_price', 
+                   'discount', 'description', 'product_specifications', 'overall_rating']
+    
+    # Ensure columns is a list of strings
+    if not all(isinstance(col, str) for col in columns):
+        raise ValueError("columns must be a list of strings.")
+
     # Initialize Supabase connection
     supabase = initialising_supabase()
-    print("line 158: ", uniq_ids)
+
     # Fetch full product details based on the uniq_ids from Supabase
     product_data = (
         supabase
         .table('flipkart_cleaned')
-        .select('product_name, brand, retail_price, discounted_price, discount, description, product_specifications, overall_rating')
+        .select(', '.join(columns))
         .in_('uniq_id', uniq_ids)
         .execute()
     )
-
-    print(product_data)
 
     # Convert the results into a DataFrame
     product_df = pd.DataFrame(product_data.data)
@@ -174,13 +202,16 @@ def get_product_details_from_supabase(uniq_ids):
 
 ''' content based '''
 def fetch_content_recommendation(extracted_info, brand_preference=None, specs_preference=None):
-
-    supabase = initialising_supabase()
     print("Inside content recommender")
-    
+
+    supabase = initialising_supabase() 
+
     user_query = get_user_query(extracted_info)
 
     filtered_products = fetch_filtered_products(extracted_info)
+
+    if len(filtered_products) > 40:
+        filtered_products = random.sample(filtered_products, 40)
 
     content_recommendations = recommend_top_products(user_query, filtered_products)
     
@@ -206,11 +237,23 @@ def fetch_content_recommendation(extracted_info, brand_preference=None, specs_pr
 def fetch_collaborative_recommendation(user_id, extracted_info, brand_preference=None, specs_preference=None):
     print("Inside collaborative recommender")
 
+    '''
+    # filtering done inside collab.py instead
     filtered_products = fetch_filtered_products(extracted_info)
 
     filtered_products_df = pd.DataFrame(filtered_products)
+
+    num_rows = filtered_products_df.shape[0]
     
-    collaborative_recommendations = svd_recommend_surprise(user_id, filtered_products_df)
+    if num_rows > 40:
+        result_df = filtered_products_df.sample(n=40) 
+    else:
+        result_df = filtered_products_df
+    '''
+
+    catalogue = load_product_data()
+
+    collaborative_recommendations = svd_recommend_surprise(user_id, catalogue, extracted_info)
 
     '''
     # Apply brand and specification filters
@@ -237,88 +280,97 @@ def normalize_collaborative_scores(collaborative_recommendations):
         collaborative_recommendations['normalized_predicted_rating'] = 0  # Fallback
     return collaborative_recommendations
 
-def calculate_final_scores(content_recommendations, collaborative_recommendations, content_weight, collaborative_weight, top_n = 10):
+def calculate_final_scores(content_recommendations, collaborative_recommendations, content_weight=20, collaborative_weight=0.3, top_n = 10):
     # Weight scores and perform outer merge
-    content_recommendations['weighted_similarity_score'] = content_recommendations['similarity_score'] * content_weight
+    content_recommendations['weighted_similarity_score'] = (content_recommendations['similarity_score'] + 1) * content_weight
 
     collaborative_recommendations['weighted_predicted_rating'] = collaborative_recommendations['normalized_predicted_rating'] * collaborative_weight
-    print("line 245: ", collaborative_recommendations)
-    hybrid = pd.merge(content_recommendations, collaborative_recommendations, left_on='product_id', right_on='uniq_id', how='outer')
-    print("line 247: ", hybrid)
+    # print("line 245: ", collaborative_recommendations)
+    hybrid = pd.merge(content_recommendations, collaborative_recommendations, on='uniq_id', how='outer')
+
+    hybrid = hybrid.fillna(0)
+
+    # print("line 247: ", hybrid)
     hybrid['final_score'] = hybrid['weighted_similarity_score'].fillna(0) + hybrid['weighted_predicted_rating'].fillna(0)
 
     return hybrid.nlargest(top_n, 'final_score')
 
 ''' hybrid recommendation system '''
-def hybrid_recommendations(extracted_info, user_id, content_weight=0.5, collaborative_weight=0.5, brand_preference=None, specs_preference=None, top_n=10):
+def hybrid_recommendations(extracted_info, user_id, content_weight=20, collaborative_weight=0.5, brand_preference=None, specs_preference=None, top_n=10):
     # Step 1: Fetch filtered products and order data
     filtered_products = fetch_filtered_products(extracted_info)
     orderdata = load_order_data()
 
     # Step 2: Fetch content and collaborative recommendations concurrently
     with ThreadPoolExecutor() as executor:
-        content_recommendations_future = executor.submit(
+        content_future = executor.submit(
             fetch_content_recommendation, extracted_info, brand_preference, specs_preference
         )
-        collaborative_recommendations_future = executor.submit(
+        collaborative_future = executor.submit(
             fetch_collaborative_recommendation, user_id, extracted_info, brand_preference, specs_preference
         )
 
-        content_recommendations = content_recommendations_future.result()
-        print("line 267: ", content_recommendations)
-        collaborative_recommendations = collaborative_recommendations_future.result()
-        print("line 269: ", collaborative_recommendations)
-
         try:
-            content_recommendations = content_recommendations_future.result()
+            content_recommendations = content_future.result()
+            # print("line 267: ", content_recommendations)
         except Exception as e:
             print(f"Error in content recommendations: {e}")
+            content_recommendations = []  # Default or empty value if there's an error
 
         try:
-            collaborative_recommendations = collaborative_recommendations_future.result()
+            collaborative_recommendations = collaborative_future.result()
+            # print("line 269: ", collaborative_recommendations)
         except Exception as e:
             print(f"Error in collaborative recommendations: {e}")
+            collaborative_recommendations = []  # Default or empty value if there's an error
 
-    # Step 3: Normalize collaborative scores
-    collaborative_recommendations = normalize_collaborative_scores(collaborative_recommendations)
+    # Step 3: Normalize collaborative scores if available
+    if not collaborative_recommendations.empty:
+        collaborative_recommendations = normalize_collaborative_scores(collaborative_recommendations)
+    print("collaborative recs", collaborative_recommendations)
+
     # Step 4: Calculate final scores and get top recommendations
-    top_n_recommendations = calculate_final_scores(content_recommendations, collaborative_recommendations, content_weight, collaborative_weight, top_n)
+    top_n_recommendations = calculate_final_scores(
+        content_recommendations, collaborative_recommendations, content_weight, collaborative_weight, top_n
+    )
     print("line 284, top_n_recommendations: ", top_n_recommendations)
-    # Step 5: Fetch product details
-    uniq_ids = top_n_recommendations['product_id'].tolist()
-    product_details_df = get_product_details_from_supabase(uniq_ids)
-    print(" weighted line 286: ", product_details_df)
+
+    # Step 5: Fetch product details based on top recommendations
+    '''
+    uniq_ids = [rec['uniq_id'] for rec in top_n_recommendations]  # If structured as a list of dicts
+    '''
     
-    # print("End of hybrid recommendation system")
-    print("hybrid rec sys items", product_details_df['product_name'])
+    uniq_ids = top_n_recommendations['uniq_id'].tolist()  # Extract 'uniq_id' as a list from DataFrame
+
+    product_details_df = get_product_details_from_supabase(uniq_ids)
+    # print(" weighted line 286: ", product_details_df)
+
+    print("hybrid rec sys items", product_details_df['product_name'] if not product_details_df.empty else "No products found")
     return product_details_df
 
 '''test'''
-'''
-extracted_info = extracted_info = {
-    "product_name": "cycling shorts",
-    "price_limit": 3000,
-    "brand": "alisha",
-    "overall_rating": '0',
-    "product_specifications": ''
-}
-user_id = 'U01357'
-content_weight = 0.6
-collaborative_weight = 0.4
+# import time
+# extracted_info = {
+#     "Product Item": "skirt",
+#     "Budget": "2000",
+#     "Brand": "",
+#     "Product Details": "No preference"
+# }
+
+# user_id = "U00964"
+# content_weight = 0.9
+# collaborative_weight = 0
 
 # Start timer
-start_time = time.time()
+# start_time = time.time()
 
-prods = hybrid_recommendations(extracted_info, user_id, content_weight, collaborative_weight, brand_preference = None, specs_preference = None)
-print("products", prods)
+# recs = hybrid_recommendations(extracted_info, user_id, content_weight, collaborative_weight, brand_preference=None, specs_preference=None)
 
-# End timer
-end_time = time.time()
-# Calculate and print the elapsed time
-elapsed_time = end_time - start_time
-print(f"Execution time: {elapsed_time:.2f} seconds")
-'''
-
+# # End timer
+# end_time = time.time()
+# # Calculate and print the elapsed time
+# elapsed_time = end_time - start_time
+# print(f"Execution time: {elapsed_time:.2f} seconds")
 
 
 
@@ -339,7 +391,7 @@ def hybrid_recommendations(extracted_info, table_name, user_id, content_weight, 
     supabase = initialising_supabase()
 
     filtered_products = filter_products(table_name, **extracted_info)
-    orderdata = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
+    orderdata = pd.DataFrame(supabase.table('synthetic_v2_2k').select('*').execute().data)
 
     def fetch_content_recommendation():
         print("inside content recommender")

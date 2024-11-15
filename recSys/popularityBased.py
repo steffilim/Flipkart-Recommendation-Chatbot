@@ -13,7 +13,7 @@ from functions import initialising_supabase
 def load_order_data():
     supabase = initialising_supabase()
     # Load data from the flipkart_cleaned table in supabase
-    order_data = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
+    order_data = pd.DataFrame(supabase.table('synthetic_v2_2k').select('*').execute().data)
 
     print("Successfully loaded order from Supabase")
  
@@ -22,7 +22,7 @@ def load_order_data():
 def load_product_data():
     supabase = initialising_supabase()
     # Load data from the flipkart_cleaned table in supabase
-    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned').select('*').execute().data)
+    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned_2k').select('*').execute().data)
     # Create the 'content' column by concatenating 'description'
     catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
     # Ensure there are no NaN values which can cause issues

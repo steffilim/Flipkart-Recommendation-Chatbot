@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from forex_python.converter import CurrencyCodes
 from dotenv import load_dotenv
 from supabase import create_client
+import ast
 
 currency = CurrencyCodes()
 INR = currency.get_symbol('INR')
@@ -31,7 +32,7 @@ def initialising_mongoDB():
 def load_product_data(supabase):
 
     # Load data from the flipkart_cleaned table in supabase
-    catalogue_data = supabase.table('flipkart_cleaned').select('*').execute().data
+    catalogue_data = supabase.table('flipkart_cleaned_2k').select('*').execute().data
     """
     # Create the 'content' column by concatenating 'description' and 'product_specifications'
     catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
@@ -42,35 +43,87 @@ def load_product_data(supabase):
     return catalogue_data
 
 def load_users_data(supabase): 
-    users_data = pd.DataFrame(supabase.table('synthetic_v2').select('*').execute().data)
+    users_data = pd.DataFrame(supabase.table('synthetic_v2_2k').select('*').execute().data)
     return users_data
 
-def get_popular_items(db):
+def get_most_recent_purchase(user_id):
+    supabase = initialising_supabase()
+    users_data = load_users_data(supabase)
+    users_data = users_data[users_data['User ID'] == user_id].sort_values(by='Order Date', ascending=False)
+    if not users_data.empty:
+        most_recent_uniq_id = users_data.iloc[0]['uniq_id']
+    else:
+        return None, None
+    return most_recent_uniq_id, users_data.iloc[0]['Order Date']
 
-    # Load the dataset
+def get_similar_products(uniq_id):
+    supabase = initialising_supabase()
+    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned_2k').select('*').execute().data)
+    catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
+    catalogue_data['content'] = catalogue_data['content']. fillna("")
+    catalogue_data['overall_rating'] = pd.to_numeric(catalogue_data['overall_rating'], errors='coerce')
+    catalogue_data['overall_rating'].fillna(2, inplace=True)
+    product_row = catalogue_data[catalogue_data['uniq_id'] == uniq_id]
+    print("getting similar products...")
+    if product_row.empty:
+        return []
+    product_category_tree = ast.literal_eval(product_row.iloc[0]['product_category_tree'])[0]
+    print("Product category tree first entry:", product_category_tree)
+    similar_products = catalogue_data[
+        (catalogue_data['product_category_tree'].apply(lambda x: ast.literal_eval(x)[0] if x else "") == product_category_tree) &
+        (catalogue_data['uniq_id'] != uniq_id)
+    ].nlargest(3, 'overall_rating')
+
+    print(similar_products)
+    return similar_products
+
+def recommend_similar_products(user_id):
+    # supabase = initialising_supabase()
+    most_recent_uniq_id, order_date = get_most_recent_purchase(user_id)
+    if most_recent_uniq_id is None:
+        return "No purchase history found for this user."
+    similar_products = get_similar_products(most_recent_uniq_id)
+    print(similar_products)
+    if isinstance(similar_products, pd.DataFrame) and not similar_products.empty:
+        recommendations = []
+        recommendations = [
+            f"{idx + 1}. {row['product_name']} at ₹{row['discounted_price']}\n\n"
+            f"Description: {row['description']}\n"
+            for idx, (_, row) in enumerate(similar_products.iterrows())
+        ]
+        # Combine recommendations into a single response text
+        response_text = recommendations
+        return response_text
+    else:
+        return "Welcome back! What are you looking for today?"
+
+
+def popular_items():
     supabase = initialising_supabase()
     top5 = pd.DataFrame(supabase.table('top5products').select('*').execute().data) 
 
-    # retrieving the top5 products
     popular_items = []
     # top_products = top5.find().sort("User rating for the product", -1)
 
     for index, product in top5.iterrows():
         item_details = f"{index + 1}. {product['product_name']} at {INR}{product['discounted_price']} \n\n Description: {product.get('description', 'No description available')} \n\n"
         popular_items.append(item_details)
-  
-    # Join all item details into a single string
-    response_text = "Here are these week's popular items:\n" + "\n".join(popular_items)
-    response_text += "\n\nFeel free to let me know what item you are looking for!"
+    return popular_items
+
+def get_popular_items():
+
+    popularitems = popular_items()
+    response_text = "Here are these week's popular items:\n" + "\n".join(popularitems)
+    response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for."
 
     return response_text
 
 
 # Getting User profile and User purchase history
 def getting_user_purchase_dictionary(user_id, supabase):
-    user_profile = supabase.table('synthetic_v2').select('User Age', 'User Occupation', 'User Interests').eq('User ID', user_id).execute().data
+    user_profile = supabase.table('synthetic_v2_2k').select('User Age', 'User Occupation', 'User Interests').eq('User ID', user_id).execute().data
 
-    user_purchase_data = supabase.table('synthetic_v2').select('uniq_id', 'User rating for the product') \
+    user_purchase_data = supabase.table('synthetic_v2_2k').select('uniq_id', 'User rating for the product') \
                         .eq('User ID', user_id).execute().data
     
     
@@ -82,7 +135,7 @@ def getting_user_purchase_dictionary(user_id, supabase):
     product_ids = [purchase['uniq_id'] for purchase in user_purchase_data]
 
     # Query Supabase for product details based on the extracted product IDs
-    product_details = supabase.table('flipkart_cleaned') \
+    product_details = supabase.table('flipkart_cleaned_2k') \
                         .select('product_name, uniq_id') \
                         .in_('uniq_id', product_ids) \
                         .execute().data
@@ -199,42 +252,37 @@ def getting_user_intention_dictionary(user_input, intention_chain, previous_inte
 
 """TO BE REMOVED ONCE MERGED WITH RS"""
 
-def get_item_details(uniq_ids ):
+def get_item_details(db, uniq_ids, session_id ):
     # Initialize Supabase connection
     supabase = initialising_supabase()
     
-    # Fetch full product details based on the uniq_ids from Supabase
-    product_data = (
-        supabase
-        .table('flipkart_cleaned')
-        .select('product_name, brand, retail_price, discounted_price, discount, description, product_specifications, overall_rating')
-        .eq('pid', uniq_ids)
-        .execute()
-    )
-    
+    # fetching from mongodb
+    chat_session = db.chatSession
+    chat_session_data = chat_session.find_one({"session_id": session_id}).get("message_list")
+    last_recommendation = chat_session_data[-1].get("items_recommended")
+    item_of_interest = last_recommendation[int(uniq_ids)]
 
-    # Convert the results into a DataFrame
-    product_df = pd.DataFrame(product_data.data)
-        # Assuming details contain at least one item, and we are interested in the first one for demonstration
-      # get the first product in the list
+    # Get item of interest from mongodb
+
     readable_output = (
-        f"Product Name: {product_df['product_name']}\n"
-        f"Brand: {product_df['brand']}\n"
-        f"Price: ₹{product_df['discounted_price']}\n"
-        f"Rating: {product_df['overall_rating']}\n"
-        f"Description: {product_df['description']}\n"
-            
+        f"Product Name: {item_of_interest['product_name']}\n"
+        f"Brand: {item_of_interest['brand']}\n"
+        f"Price: ₹{item_of_interest['discounted_price']}\n"
+        f"Rating: {item_of_interest['overall_rating']}\n\n"
+        f"Description: {item_of_interest['description']}\n\n"
+        f"Product Details: {item_of_interest['product_specifications']}\n"
     )
-    
+
+
     
     return readable_output
 
-def getting_bot_response(user_intention_dictionary, chain2, supabase, user_profile, user_purchases, user_id):
+def getting_bot_response(user_intention_dictionary, chain2, supabase, db, user_profile, user_purchases, user_id, session_id):
   
     # Fetch the catalogue & users data from Supabase
 
-    catalogue = (supabase.table('flipkart_cleaned'))
-    users_data = (supabase.table('synthetic_v2').select('*').execute().data)
+    catalogue = (supabase.table('flipkart_cleaned_2k'))
+    users_data = (supabase.table('synthetic_v2_2k').select('*').execute().data)
 
     item_availability = user_intention_dictionary.get("Available in Store")
     
@@ -247,13 +295,13 @@ def getting_bot_response(user_intention_dictionary, chain2, supabase, user_profi
     elif user_intention_dictionary.get("Related to Recommendation") == "Yes":
         
         product_id = user_intention_dictionary.get("Product ID")
+        print("line 305: ", product_id)
         follow_up = user_intention_dictionary.get("Follow-Up Question")
-        follow_up = user_intention_dictionary.get("Follow-Up Question")
+
         #print(product_id)
-        item_recommendation = get_item_details(product_id)
+        item_recommendation = get_item_details(db, product_id, session_id)
         item_recommendation += "\n\n" + follow_up
-        item_recommendation = get_item_details(product_id)
-        item_recommendation += "\n\n" + follow_up
+
         return None, item_recommendation
 
     else: 

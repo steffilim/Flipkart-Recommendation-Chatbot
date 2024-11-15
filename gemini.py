@@ -19,7 +19,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, update_past_follow_up_question_guest, get_past_conversations_to_display
 from prompt_template import refine_template, intention_template
-from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data, load_users_data, getting_user_purchase_dictionary
+from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data, load_users_data, getting_user_purchase_dictionary, recommend_similar_products
 #from recSys.contentBased import load_product_data
 
 
@@ -30,7 +30,8 @@ from functions import is_valid_input, getting_bot_response, get_popular_items, g
 app = Flask(__name__)
 
 # Dummy user IDs for validation
-valid_user_ids = ["U03589", "U08573", "U07482", "U07214", "U08218"]
+# valid_user_ids = ["U03589", "U08573", "U07482", "U07214", "U08218", "U01357"]
+valid_user_ids = ["U01394", "U01357", "U01290", "U01385"]
 keywords = ["/logout", "/login", "guest", "Guest"]
 password = "pw123"  # Hardcoded password
 
@@ -143,20 +144,29 @@ def chat():
             if not past_conversations:
                 start_new_session(user_id, session_id)            
                 user_states.pop("password_mode", None)  # Remove password mode flag
+                user_id = user_states["user_id"]
+
+                recommendations = recommend_similar_products(user_id)
+                response_text = "Welcome back! Here are some products you might be interested in:\n" + "\n".join(recommendations)
+                response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for. You may enter /logout to log out."
                 
                 # Clear chat and display the default login message
                 return jsonify({
                     'clear_chat': True,  
-                    'message': 'Password validated. You are now logged in.\nYou may enter /logout to exit. Please enter your query.'
+                    'response': response_text
                 })
             else:
                 # Continue with past conversation handling
                 start_new_session(user_id, session_id)
                 user_states.pop("password_mode", None)
-                
+                user_id = user_states["user_id"]
+
+                recommendations = recommend_similar_products(user_id)
+                response_text = "Welcome back! Here are some products you might be interested in:\n" + "\n".join(recommendations)
+                response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for. You may enter /logout to log out."
                 return jsonify({
                     'past_conversations': past_conversations,
-                    'message': 'Password validated. You are now logged in.\nYou may enter /logout to exit. Please enter your query.'
+                    'response': response_text
                 })
         else:
             return jsonify({'response': 'Incorrect password. Please try again.'})
@@ -193,7 +203,7 @@ def chat():
 
         # updating follow-up question
         past_follow_up_question_guest = update_past_follow_up_question_guest(user_intention_dictionary)
-        recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, user_profile = "None", user_purchases = "None",  user_id = "guest")
+        recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, db, user_profile = "None", user_purchases = "None", user_id = "guest", session_id = "guest")
         
         # To account for the case of the user asking for more information on a particular item
         if recommendations is None:
@@ -237,7 +247,7 @@ def chat():
 
     # If user ID is not set, expect user to input the ID or choose guest mode
     if not user_id:
-        popular_items_recommendation = get_popular_items(db)
+        popular_items_recommendation = get_popular_items()
         if user_input.lower() == "guest":
 
             user_states["guest_mode"] = True  # Set guest mode flag
@@ -274,7 +284,7 @@ def chat():
 
 
     # Getting the bot response
-    recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, user_profile, user_purchases,  user_id)
+    recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, db, user_profile, user_purchases, user_id, session_id)
 
     # To account for the case of the user asking for more information on a particular item
     if recommendations is None:

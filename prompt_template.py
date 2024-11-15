@@ -13,7 +13,6 @@ User Query: {input}
 Previous Intention: {previous_intention}
 Previous Follow-Up Questions: {follow_up_questions}
 Products Recommended: {items_recommended}
-
 Use the information from User Query, Previous Intention and Products Recommended, identify these key components below. Use previous inputs to maintain context. Do not add additional characters other than the ones provided in the template:
 - Related to Follow-Up Questions: Determine if the user's current query is a continuation ('Old') or a new line of inquiry (New) based on context from the previous interaction.
    - If New: Handle the query as a fresh request for product recommendation. 
@@ -25,7 +24,7 @@ Use the information from User Query, Previous Intention and Products Recommended
                - This number directly corresponds to the item's position in the recommendation list as presented to the user.
                - Subtract 1 from the number to get the correct index for the item in the list.
                - Use this index to retrieve the product from the dictionary of Products Recommended. 
-               - Output the product ID
+               - Output the product index
             - Follow-Up Question: Ask, Would you like to discover items similar to this one?
          - If No: Take information from User Query and Previous Intention to determine the user's current needs.
             - Available in Store: State whether the item is available ('Yes' or 'No').
@@ -46,33 +45,25 @@ Use the information from User Query, Previous Intention and Products Recommended
                      - If 'Fields Incompleted' is 3 (i.e., all 'No preference') and 'Keen to Share' is 'Yes', ask: "I see you're interested in getting {{product_item}}. Could you please specify a brand, budget, or any other details? This will help me find the best options for you."
                      - If 'To-Follow-Up' is 'Yes', provide tailored follow-up questions for each missing field to help refine the search and options.
                      - If 'To-Follow-Up' is 'No', ask: "Do the options presented meet your requirements, or would you like to explore other products?"
-
 """
 
 
 
 refine_template = """
-
 You have 2 jobs to do:
 
-1. Re-ranking:
-I want you to recommend the item based on some personal information and historical purchase data.
 
+I want you to recommend the item based on some personal information and historical purchase data.
 User Profile: {user_profile}
 User Purchase History: {user_purchase_history}
 The User Purchase History is a list of items that the user has purchased in the past.
 It includes the product name, and how many points the user rated the product out of 5.
 The higher the score, the more he likes the product. You are encouraged to learn his preerences from the past purchases that he ahs made. 
 It has the following format: (product_name, user rating of the product). 
-
-
 Here are a list of recommendations that the user has queried for: {recommendations}
 
 Please select the top 5 recommendations in the list that he is most likely to purchase. 
-
-2. Summarize the Product Descriptions:
 Based on the top 5 recommendations that you have selected, I want you to summarise the product descriptions.
-
 Follow the detailed instructions below:
 Always start with a humanly to acknowledging user's request, through a warm, friendly and conversational tone as if you are salesperon to respond to user's query. You shouldn't start with anything similar to "Hello!"
 Summarise the each of the product descriptions. 
