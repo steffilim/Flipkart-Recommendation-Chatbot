@@ -103,7 +103,7 @@ def index():
         else:
             welcome_message = f"Welcome back! You are logged in as User ID: {user_id}. You may enter /logout to log out."
     else:
-        welcome_message = "Welcome! Please enter your User ID or enter 'guest' to enable guest mode."
+        welcome_message = "Welcome! Please enter your User ID or enter guest to enable guest mode."
 
     return render_template('index.html', welcome_message=welcome_message)
 
