@@ -31,7 +31,7 @@ app = Flask(__name__)
 
 # Dummy user IDs for validation
 # valid_user_ids = ["U03589", "U08573", "U07482", "U07214", "U08218", "U01357"]
-valid_user_ids = ["U01394", "U01357", "U01290", "U01385"]
+valid_user_ids = ["U01394", "U01357", "U01290", "U01385", "U12345"]
 keywords = ["/logout", "/login", "guest", "Guest"]
 password = "pw123"  # Hardcoded password
 
