@@ -1,5 +1,7 @@
-from .collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
-from .contentBased import recommend_top_products 
+from recSys.collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
+
+from recSys.contentBased import recommend_top_products 
+
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 import numpy as np
@@ -297,6 +299,12 @@ def calculate_final_scores(content_recommendations, collaborative_recommendation
 def hybrid_recommendations(extracted_info, user_id, content_weight=20, collaborative_weight=0.5, brand_preference=None, specs_preference=None, top_n=10):
     # Step 1: Fetch filtered products and order data
     filtered_products = fetch_filtered_products(extracted_info)
+
+    # check if filtered_products is empty
+    if not filtered_products:
+        print("no filtered products, returning empty dataframe")
+        return pd.DataFrame()
+    
     orderdata = load_order_data()
 
     # Step 2: Fetch content and collaborative recommendations concurrently
@@ -325,18 +333,15 @@ def hybrid_recommendations(extracted_info, user_id, content_weight=20, collabora
     # Step 3: Normalize collaborative scores if available
     if not collaborative_recommendations.empty:
         collaborative_recommendations = normalize_collaborative_scores(collaborative_recommendations)
-    print("collaborative recs", collaborative_recommendations)
+    # print("collaborative recs", collaborative_recommendations)
 
     # Step 4: Calculate final scores and get top recommendations
     top_n_recommendations = calculate_final_scores(
         content_recommendations, collaborative_recommendations, content_weight, collaborative_weight, top_n
     )
-    print("line 284, top_n_recommendations: ", top_n_recommendations)
+    # print("line 284, top_n_recommendations: ", top_n_recommendations)
 
     # Step 5: Fetch product details based on top recommendations
-    '''
-    uniq_ids = [rec['uniq_id'] for rec in top_n_recommendations]  # If structured as a list of dicts
-    '''
     
     uniq_ids = top_n_recommendations['uniq_id'].tolist()  # Extract 'uniq_id' as a list from DataFrame
 
@@ -344,6 +349,7 @@ def hybrid_recommendations(extracted_info, user_id, content_weight=20, collabora
     # print(" weighted line 286: ", product_details_df)
 
     print("hybrid rec sys items", product_details_df['product_name'] if not product_details_df.empty else "No products found")
+
     return product_details_df
 
 '''test'''
