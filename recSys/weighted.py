@@ -1,7 +1,5 @@
-from collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
-
-from contentBased import recommend_top_products 
-
+from .collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
+from .contentBased import recommend_top_products 
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 import numpy as np
