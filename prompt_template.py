@@ -29,7 +29,7 @@ Use the information from User Query, Previous Intention and Products Recommended
          - If No: Take information from User Query and Previous Intention to determine the user's current needs.
             - Available in Store: State whether the item is available ('Yes' or 'No').
                - If No, 
-                  - Follow-Up Question: Come up with a follow-up question that will help the user further. If it is not clear, prompt: Could you please specify another type of item you are interested in?
+                  - Follow-Up Question: Come up with a follow-up question that will help the user further. If it is not clear, prompt: We don't sell this item unfortunately. Could you please specify another type of item you are interested in?
                - If Yes, track and update the following fields from one query to the next unless explicitly changed by the user:
                   - Brand: Determine if a specific brand is mentioned or preferred. If not specified, prompt: Could you please specify a brand you prefer?
                   - Product Item: Identify the main product the user is inquiring about. If unclear but contextually related (e.g., holiday items), prompt: What specific items are you looking for this Christmas?
