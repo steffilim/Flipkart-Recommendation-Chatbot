@@ -37,7 +37,7 @@ def load_product_data():
      # Ensure there are no NaN values which can cause issues
     catalogue_data['content'] = catalogue_data['content'].fillna('') 
 
-    print("Successfully loaded product data from Supabase")
+    # print("Successfully loaded product data from Supabase")
  
     return catalogue_data
 catalogue = load_product_data()
@@ -46,7 +46,7 @@ def load_order_data():
     # Load data from the flipkart_cleaned table in supabase
     order_data = pd.DataFrame(supabase.table('synthetic_v2_2k').select('*').execute().data)
 
-    print("Successfully loaded order from Supabase")
+    # print("Successfully loaded order from Supabase")
  
     return order_data
 orderdata = load_order_data()
@@ -126,7 +126,7 @@ def svd_recommend_surprise(user_id, catalogue, user_intention_dictionary, n_reco
     print("SVD")
     supabase = initialising_supabase()
      # Fetch the catalogue & users data from Supabase
-    catalogue = load_product_data()
+    catalogue = catalogue
     orderdata = load_order_data()
 
     reader = Reader(rating_scale=(0, 5))

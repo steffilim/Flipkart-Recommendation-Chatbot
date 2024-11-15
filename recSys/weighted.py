@@ -1,6 +1,6 @@
-from recSys.collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
+from collaborative import svd_recommend_surprise, svd_recommend_surprise_filtered
 
-from recSys.contentBased import recommend_top_products 
+from contentBased import recommend_top_products 
 
 import pandas as pd
 from sklearn.metrics import mean_squared_error
@@ -14,6 +14,7 @@ from supabase import create_client
 # from functions import initialising_supabase, load_product_data
 from sklearn.preprocessing import MinMaxScaler 
 import time
+import random
 
 #MONGODB_URI = os.getenv("MONGODB_URI")
 #FLIPKART = os.getenv("FLIPKART")
@@ -208,6 +209,10 @@ def fetch_content_recommendation(extracted_info, brand_preference=None, specs_pr
     user_query = get_user_query(extracted_info)
 
     filtered_products = fetch_filtered_products(extracted_info)
+
+    if len(filtered_products) > 40:
+        filtered_products = random.sample(filtered_products, 40)
+
     content_recommendations = recommend_top_products(user_query, filtered_products)
     
     # print("content rec ends")
@@ -232,11 +237,23 @@ def fetch_content_recommendation(extracted_info, brand_preference=None, specs_pr
 def fetch_collaborative_recommendation(user_id, extracted_info, brand_preference=None, specs_preference=None):
     print("Inside collaborative recommender")
 
+    '''
+    # filtering done inside collab.py instead
     filtered_products = fetch_filtered_products(extracted_info)
 
     filtered_products_df = pd.DataFrame(filtered_products)
+
+    num_rows = filtered_products_df.shape[0]
     
-    collaborative_recommendations = svd_recommend_surprise(user_id, filtered_products_df, extracted_info)
+    if num_rows > 40:
+        result_df = filtered_products_df.sample(n=40) 
+    else:
+        result_df = filtered_products_df
+    '''
+
+    catalogue = load_product_data()
+
+    collaborative_recommendations = svd_recommend_surprise(user_id, catalogue, extracted_info)
 
     '''
     # Apply brand and specification filters
@@ -268,12 +285,12 @@ def calculate_final_scores(content_recommendations, collaborative_recommendation
     content_recommendations['weighted_similarity_score'] = (content_recommendations['similarity_score'] + 1) * content_weight
 
     collaborative_recommendations['weighted_predicted_rating'] = collaborative_recommendations['normalized_predicted_rating'] * collaborative_weight
-    print("line 245: ", collaborative_recommendations)
+    # print("line 245: ", collaborative_recommendations)
     hybrid = pd.merge(content_recommendations, collaborative_recommendations, on='uniq_id', how='outer')
 
     hybrid = hybrid.fillna(0)
 
-    print("line 247: ", hybrid)
+    # print("line 247: ", hybrid)
     hybrid['final_score'] = hybrid['weighted_similarity_score'].fillna(0) + hybrid['weighted_predicted_rating'].fillna(0)
 
     return hybrid.nlargest(top_n, 'final_score')
@@ -295,14 +312,14 @@ def hybrid_recommendations(extracted_info, user_id, content_weight=20, collabora
 
         try:
             content_recommendations = content_future.result()
-            print("line 267: ", content_recommendations)
+            # print("line 267: ", content_recommendations)
         except Exception as e:
             print(f"Error in content recommendations: {e}")
             content_recommendations = []  # Default or empty value if there's an error
 
         try:
             collaborative_recommendations = collaborative_future.result()
-            print("line 269: ", collaborative_recommendations)
+            # print("line 269: ", collaborative_recommendations)
         except Exception as e:
             print(f"Error in collaborative recommendations: {e}")
             collaborative_recommendations = []  # Default or empty value if there's an error
@@ -326,35 +343,34 @@ def hybrid_recommendations(extracted_info, user_id, content_weight=20, collabora
     uniq_ids = top_n_recommendations['uniq_id'].tolist()  # Extract 'uniq_id' as a list from DataFrame
 
     product_details_df = get_product_details_from_supabase(uniq_ids)
-    print(" weighted line 286: ", product_details_df)
+    # print(" weighted line 286: ", product_details_df)
 
     print("hybrid rec sys items", product_details_df['product_name'] if not product_details_df.empty else "No products found")
     return product_details_df
 
 '''test'''
-import time
-extracted_info = {
-    "Product Item": "skirt",
-    "Budget": "2000",
-    "Brand": "",
-    "Product Details": "No preference"
-}
+# import time
+# extracted_info = {
+#     "Product Item": "skirt",
+#     "Budget": "2000",
+#     "Brand": "",
+#     "Product Details": "No preference"
+# }
 
-user_id = "U00964"
-content_weight = 0.9
-collaborative_weight = 0
+# user_id = "U00964"
+# content_weight = 0.9
+# collaborative_weight = 0
 
 # Start timer
-start_time = time.time()
+# start_time = time.time()
 
-recs = hybrid_recommendations(extracted_info, user_id, content_weight, collaborative_weight, brand_preference=None, specs_preference=None)
+# recs = hybrid_recommendations(extracted_info, user_id, content_weight, collaborative_weight, brand_preference=None, specs_preference=None)
 
-# End timer
-end_time = time.time()
-# Calculate and print the elapsed time
-elapsed_time = end_time - start_time
-print(f"Execution time: {elapsed_time:.2f} seconds")
-
+# # End timer
+# end_time = time.time()
+# # Calculate and print the elapsed time
+# elapsed_time = end_time - start_time
+# print(f"Execution time: {elapsed_time:.2f} seconds")
 
 
 
