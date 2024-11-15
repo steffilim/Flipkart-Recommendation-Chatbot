@@ -223,7 +223,7 @@ def check_if_embedding_list_is_float(df):
     return df
 
 ''' recommendation function '''
-def recommend_top_products(user_query, filtered_products, top_n=10):
+def recommend_top_products(user_query, filtered_products, top_n=20):
     '''
     Recommend top N products based on similarity to the user's query.
 
