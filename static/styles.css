@@ -150,3 +150,32 @@ button {
     font-size: 14px;
     color: #555; /* Slightly lighter text color for instruction */
 }
+
+.typing-indicator {
+    display: inline-block;
+    font-size: 16px;
+    color: #333;
+    font-weight: bold;
+  }
+  
+  .typing-indicator::after {
+    content: '';
+    display: inline-block;
+    animation: dots 1.5s steps(3, end) infinite;
+  }
+  
+  @keyframes dots {
+    0% {
+      content: '';
+    }
+    33% {
+      content: '.';
+    }
+    66% {
+      content: '..';
+    }
+    100% {
+      content: '...';
+    }
+  }
+  

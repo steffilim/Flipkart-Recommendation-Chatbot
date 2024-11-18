@@ -19,6 +19,7 @@ function sendMessage() {
     let displayInput = isPasswordMode ? '*'.repeat(userInput.length) : userInput;
 
     appendMessage(displayInput, 'user-message', 'User');
+    showTypingIndicator();
 
     // Send the user input to the backend for processing
     fetch('/chat', {
@@ -30,6 +31,7 @@ function sendMessage() {
     })
     .then(response => response.json())
     .then(data => {
+        hideTypingIndicator();
         if (data.clear_chat) {
             clearChatLog(); // Clear chat if no past conversations
         }
@@ -53,6 +55,7 @@ function sendMessage() {
         }
     })
     .catch(error => {
+        hideTypingIndicator();
         console.error('Error:', error);
     });
 
@@ -119,4 +122,30 @@ function displayPastConversations(conversations) {
             appendMessage(chat.bot, 'bot-message', 'Flippey');
         }
     });
+}
+
+function showTypingIndicator() {
+    let typingIndicator = document.createElement('div');
+    typingIndicator.id = 'loading-indicator';
+    typingIndicator.classList.add('typing-indicator');
+    typingIndicator.textContent = 'Flippey is typing';
+    document.getElementById('chat-log').appendChild(typingIndicator);
+
+    let dots = '';
+    let dotCount = 0;
+    let typingAnimation = setInterval(() => {
+        dotCount = (dotCount + 1) % 4; 
+        dots = '.'.repeat(dotCount);
+        typingIndicator.textContent = `Flippey is typing${dots}`;
+    }, 300);  
+
+    typingIndicator.dataset.intervalId = typingAnimation;  
+}
+
+function hideTypingIndicator() {
+    let typingIndicator = document.getElementById('loading-indicator');
+    if (typingIndicator) {
+        clearInterval(typingIndicator.dataset.intervalId); // Stop animation
+        typingIndicator.remove();
+    }
 }
