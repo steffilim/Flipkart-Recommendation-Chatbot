@@ -97,13 +97,24 @@ function appendMessage(message, className, sender) {
     setTimeout(() => {
         chatLog.scrollTop = chatLog.scrollHeight;
     }, 100); // Small delay to ensure the DOM is updated
+    return messageContainer;
 }
 
 function botSendMessage(message, sessionDate = null) {
+    let messageElement;
+    
     if (sessionDate) {
         appendMessage(sessionDate, 'session-date', '');  // Add date before welcome message
     }
-    appendMessage(message, 'bot-message', 'Flippey');
+    messageElement = appendMessage(message, 'bot-message', 'Flippey');
+
+    // Scroll to the top of welcome message
+    setTimeout(() => {
+        if (message.includes("Welcome back!")) {
+            console.log("Scrolling to Welcome Message:", messageElement); // Check if its scrolling to the correct position
+            messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 300) // Allow the DOM to render fully
 }
 
 // Toggle Chat Functionality
