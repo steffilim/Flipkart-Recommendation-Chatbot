@@ -88,11 +88,41 @@ for user_id in sampled_users:
                 "Rank": rank
             })
 
-# Convert results to a DataFrame
-recommendations_df = pd.DataFrame(results)
+def load_rankings_data():
+    supabase = initialising_supabase()
+    rankings_data = pd.DataFrame(supabase.table('rankings').select('*').execute().data)
+    print("Successfully loaded ranking data from Supabase")
+    return rankings_data
 
-# Convert results to a DataFrame
-recommendations_df = pd.DataFrame(results)
+ranking_data = load_rankings_data()
 
-# Display the DataFrame
-print(recommendations_df)
+def calculate_dcg_binary(relevance, rank):
+    if np.sum(relevance) == 0:
+        return 0.0
+    return np.sum(relevance / np.log2(rank + 1))
+
+
+def calculate_ndcg_binary(ranking_data):
+    # Ensure Relevance and Rank columns are numeric
+    ranking_data["Relevance"] = pd.to_numeric(ranking_data["Relevance"], errors='coerce').fillna(0)
+    ranking_data["Rank"] = pd.to_numeric(ranking_data["Rank"], errors='coerce').fillna(0)
+
+    scores = {}
+    for user, group in ranking_data.groupby("User ID"):
+        relevance = group["Relevance"].values
+        rank = group["Rank"].values
+        dcg = calculate_dcg_binary(relevance, rank)
+        idcg = calculate_dcg_binary(np.sort(relevance)[::-1], np.arange(1, len(relevance) + 1))
+
+        ndcg = dcg / idcg if idcg > 0 else 0.0
+
+        scores[user] = {
+            "DCG": dcg,
+            "IDCG": idcg,
+            "NDCG": ndcg,
+        }
+
+    return scores
+
+scores = calculate_ndcg_binary(ranking_data)
+print(scores)
