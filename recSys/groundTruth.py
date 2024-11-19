@@ -6,8 +6,14 @@ from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 from supabase import create_client
-from functions import initialising_supabase
 from weighted import hybrid_recommendations
+
+def initialising_supabase():
+    load_dotenv()
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
+    supabase = create_client(SUPABASE_URL, SUPABASE_API_KEY)
+    return supabase
 
 def load_order_data():
     supabase = initialising_supabase()
@@ -34,61 +40,59 @@ product_data = load_product_data()
 def sampling_of_users(order_data):
     random.seed(1234)
     user_ids = order_data['User ID'].unique()
-    sampled_users = random.sample(list(user_ids), 20)
+    sampled_users = random.sample(list(user_ids), 5)
     return sampled_users
 
-queries=[["laptop", "Acer"], ["skirt", "red"], ["phone", "Samsung"], ["furniture", "wood"], ["accessories", "silver"]]
-
-def ranking(product, user_profile):
-    discounted_price = -product['discounted_price']  # Negative to prioritize higher prices
-    rating = product['overall_rating']
-    matches_interest = user_profile['User Interests'] in product['product_category_tree']
-    return (discounted_price, rating, matches_interest)
-
-def generate_user_ranking(product_list, user_profile):
-    # Sort using the ranking_key function without lambda
-    ranked_products = sorted(product_list, key=lambda product: ranking(product, user_profile))
-    return [prod['uniq_id'] for prod in ranked_products]
-
-ground_truth_data = []
-
-def generate_ground_truth_data(order_data, sampled_users, queries, num_products=10):
-    ground_truth_data = []
-
-    for user_id in sampled_users:
-        # Get user profile from order data
-        user_profile = order_data[order_data['User ID'] == user_id].iloc[0]
-        
-        for query_keywords in queries:
-            query = " ".join(query_keywords)  # Convert list of keywords into a single query string
-            
-            initial_recommendations = hybrid_recommendations(
-                item=query,
-                user_id=user_id,
-                orderdata=order_data,
-                lsa_matrix=None,  # Pass your LSA matrix if applicable
-                content_weight=0.5,
-                collaborative_weight=0.5,
-                brand_preference=user_profile.get('User Interests'),  # Example use of user profile
-                specs_preference=None,
-                n_recommendations=9
-            )
-            
-            # Generate user-preferred ranking
-            user_ranked_list = generate_user_ranking(initial_recommendations, user_profile)
-            
-            # Store ground truth data entry
-            ground_truth_data.append({
-                "user_id": user_id,
-                "query": query,
-                "generated_ranked_list": [prod['uniq_id'] for prod in initial_recommendations],
-                "user_preferred_rank": user_ranked_list
-            })
-
-
-    # Convert to DataFrame and return
-    ground_truth_df = pd.DataFrame(ground_truth_data)
-    return ground_truth_df
+formatted_queries = [
+    {"Product Item": "watch", "Budget": "No preference", "Brand": "No preference", "Product Details": "No preference"},
+    {"Product Item": "skirt", "Budget": "No preference", "Brand": "No preference", "Product Details": "No preference"},
+    {"Product Item": "battery", "Budget": "No preference", "Brand": "No preference", "Product Details": "No preference"},
+    {"Product Item": "boots", "Budget": "No preference", "Brand": "No preference", "Product Details": "No preference"},
+    {"Product Item": "necklace", "Budget": "No preference", "Brand": "No preference", "Product Details": "No preference"},
+    {"Product Item": "watch", "Budget": "7000", "Brand": "No preference", "Product Details": "No preference"},
+    {"Product Item": "skirt", "Budget": "No preference", "Brand": "No preference", "Product Details": "red"},
+    {"Product Item": "battery", "Budget": "5000", "Brand": "No preference", "Product Details": "No preference"},
+    {"Product Item": "boots", "Budget": "No preference", "Brand": "No preference", "Product Details": "black"},
+    {"Product Item": "necklace", "Budget": "No preference", "Brand": "No preference", "Product Details": "silver"}
+]
 
 sampled_users = sampling_of_users(order_data)
-round_truth_df = generate_ground_truth_data(order_data, sampled_users, queries)
+
+results = []
+
+# Loop over each user and each query
+for user_id in sampled_users:
+    for query in formatted_queries:
+        # Call hybrid_recommendations for the current user and query
+        print("this is the query:")
+        print(query)
+        recommendations = hybrid_recommendations(
+            extracted_info=query,
+            user_id=user_id,
+            content_weight=20,
+            collaborative_weight=0.5,
+            brand_preference=query.get("Brand"),
+            specs_preference=query.get("Product Details"),
+            top_n=10
+        )
+        print(recommendations)
+        # Add each recommendation to the results
+        for rank, (_, row) in enumerate(recommendations.iterrows(), start=1):
+            results.append({
+                "User ID": user_id,
+                "Query": query,
+                "Product ID": row['uniq_id'],
+                "Recommended Product": row['product_name'],
+                "Product Description": row['description'],
+                "Product Specification": row['product_specifications'],
+                "Rank": rank
+            })
+
+# Convert results to a DataFrame
+recommendations_df = pd.DataFrame(results)
+
+# Convert results to a DataFrame
+recommendations_df = pd.DataFrame(results)
+
+# Display the DataFrame
+print(recommendations_df)
