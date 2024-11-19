@@ -6,7 +6,7 @@ import json
 
 test_cases = [
     {
-        "query": "I'm looking for a necklace.",
+        "query": "I want a vase.",
         "previous_intention": "",
         "follow_up_questions": "",
         "items_recommended": [],
@@ -15,13 +15,13 @@ test_cases = [
             'Related to Recommendation': 'No',
             'Available in Store': 'Yes',
             'Brand': 'No preference',
-            'Product Item': 'Necklace',
+            'Product Item': 'Vase',
             'Product Details': 'No preference',
             'Budget': 'No preference',
             'Keen to Share': 'Yes',
             'Fields Incompleted': '3',
             'To-Follow-Up': 'Yes',
-            'Follow-Up Question': "I see you're interested in getting a necklace. Could you please specify a brand, budget, or any other details? This will help me find the best options for you."
+            'Follow-Up Question': "I see you're interested in getting a vase. Could you please specify a brand, budget, or any other details? This will help me find the best options for you."
         }
     },
     {
@@ -44,7 +44,7 @@ test_cases = [
         }
     },
     {
-        "query": "My budget is around 3000.",
+        "query": "My budget is 3000.",
         "previous_intention": "Looking for a necklace",
         "follow_up_questions": "I see you're interested in getting a necklace. Could you please specify a brand, budget, or any other details? This will help me find the best options for you.",
         "items_recommended": [],
@@ -64,8 +64,8 @@ test_cases = [
     },
     {
         "query": "I want it in silver",
-        "previous_intention": "Looking for a necklace with budget of around 3000",
-        "follow_up_questions": "Could you please specify a brand or any specific features for the necklace?",
+        "previous_intention": "Looking for a necklace with budget of 3000",
+        "follow_up_questions": "Could you please specify a brand or any specific features you are looking for in a necklace?",
         "items_recommended": [],
         "expected_user_intention": {
             'Related to Follow-Up Questions': 'Old',
@@ -78,13 +78,13 @@ test_cases = [
             'Keen to Share': 'Yes',
             'Fields Incompleted': '1',
             'To-Follow-Up': 'Yes',
-            'Follow-Up Question': "Could you please specify a brand or any specific features you are looking for in a necklace?"
+            'Follow-Up Question': "Could you please specify a brand you prefer?"
         }
     },
     {
         "query": "I would prefer the brand Swarovski",
-        "previous_intention": "Looking for a gold-plated necklace with budget of around 3000",
-        "follow_up_questions": "Do you have any preferred brand?",
+        "previous_intention": "Looking for a silver necklace with budget of 3000",
+        "follow_up_questions": "Could you please specify a brand you prefer?",
         "items_recommended": [],
         "expected_user_intention": {
             'Related to Follow-Up Questions': 'Old',
@@ -98,6 +98,45 @@ test_cases = [
             'Fields Incompleted': '0',
             'To-Follow-Up': 'No',
             'Follow-Up Question': "Do the options presented meet your requirements, or would you like to explore other products?"
+        }
+    },
+    {
+        "query": "hi im looking for running shoes",
+        "previous_intention": "",
+        "follow_up_questions": "",
+        "items_recommended": [],
+        "expected_user_intention": {
+            'Related to Follow-Up Questions': 'New',
+            'Related to Recommendation': 'No',
+            'Available in Store': 'Yes',
+            'Brand': 'No preference',
+            'Product Item': 'running shoes',
+            'Product Details': 'No preference',
+            'Budget': 'No preference',
+            'Keen to Share': 'Yes',
+            'Fields Incompleted': '3',
+            'To-Follow-Up': 'No',
+            'Follow-Up Question': "I see you're interested in getting running shoes. Could you please specify a brand, budget, or any other details? This will help me find the best options for you."
+        }
+    }
+    ,
+    {
+        "query": "my preferred brand is atis amco",
+        "previous_intention": "Looking for running shoes",
+        "follow_up_questions": "I see you're interested in getting running shoes. Could you please specify a brand, budget, or any other details? This will help me find the best options for you.",
+        "items_recommended": [],
+        "expected_user_intention": {
+            'Related to Follow-Up Questions': 'Old',
+            'Related to Recommendation': 'No',
+            'Available in Store': 'Yes',
+            'Brand': 'atis amco',
+            'Product Item': 'running shoes',
+            'Product Details': 'No preference',
+            'Budget': 'No preference',
+            'Keen to Share': 'Yes',
+            'Fields Incompleted': '2',
+            'To-Follow-Up': 'No',
+            'Follow-Up Question': "Could you please specify a budget range or any specific features you need in your running shoes?"
         }
     }
 ]
