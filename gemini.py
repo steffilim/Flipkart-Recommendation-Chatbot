@@ -1,6 +1,7 @@
 # current updated version of the gemini chatbot
 import os
 import pandas as pd
+from datetime import datetime
 
 from uuid import uuid4 
 from dotenv import load_dotenv
@@ -31,7 +32,7 @@ app = Flask(__name__)
 
 # Dummy user IDs for validation
 # valid_user_ids = ["U03589", "U08573", "U07482", "U07214", "U08218", "U01357"]
-valid_user_ids = ["U01394", "U01357", "U01290", "U01385", "U12345"]
+valid_user_ids = ["U01394", "U01357", "U01290", "U01385", "U12345", "U01809"]
 keywords = ["/logout", "/login", "guest", "Guest"]
 password = "pw123"  # Hardcoded password
 
@@ -142,6 +143,8 @@ def chat():
 
             # Retrieve the past conversation messages 
             past_conversations = get_past_conversations_to_display(user_states["user_id"])
+            session_date = datetime.now().strftime("--- Session started on %d %B %Y, %H:%M ---") 
+
             # If user dont have any past conversations, clear the chat and start fresh
             if not past_conversations:
                 start_new_session(user_id, session_id)            
@@ -155,7 +158,8 @@ def chat():
                 # Clear chat and display the default login message
                 return jsonify({
                     'clear_chat': True,  
-                    'response': response_text
+                    'response': response_text,
+                    'session_date': session_date
                 })
             else:
                 # Continue with past conversation handling
@@ -168,7 +172,8 @@ def chat():
                 response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for. You may enter /logout to log out."
                 return jsonify({
                     'past_conversations': past_conversations,
-                    'response': response_text
+                    'response': response_text,
+                    'session_date': session_date
                 })
         else:
             return jsonify({'response': 'Incorrect password. Please try again.'})

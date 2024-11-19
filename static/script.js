@@ -34,11 +34,14 @@ function sendMessage() {
         hideTypingIndicator();
         if (data.clear_chat) {
             clearChatLog(); // Clear chat if no past conversations
+            if (data.session_date) {
+                appendMessage(data.session_date, 'session-date', '');
+            }
         }
         if (data.past_conversations && data.past_conversations.length > 0) {
             displayPastConversations(data.past_conversations);
             // Append the success message after displaying past conversations
-            botSendMessage(data.response);
+            botSendMessage(data.response, data.session_date);
         } else {
             botSendMessage(data.response || data.message);  
         }
@@ -96,7 +99,10 @@ function appendMessage(message, className, sender) {
     }, 100); // Small delay to ensure the DOM is updated
 }
 
-function botSendMessage(message) {
+function botSendMessage(message, sessionDate = null) {
+    if (sessionDate) {
+        appendMessage(sessionDate, 'session-date', '');  // Add date before welcome message
+    }
     appendMessage(message, 'bot-message', 'Flippey');
 }
 
@@ -111,7 +117,15 @@ function displayPastConversations(conversations) {
     let chatLog = document.getElementById('chat-log');
     chatLog.innerHTML = ''; // Clear old messages
 
+    let displayedSessions = new Set();
+
     conversations.forEach(chat => {
+        if (!displayedSessions.has(chat.session_id)) {
+            displayedSessions.add(chat.session_id);
+            if (chat.session_date) {
+                appendMessage(chat.session_date, 'session-date', '');
+            }
+        }
         if (chat.user) {
             appendMessage(chat.user, 'user-message', 'User');
         }
