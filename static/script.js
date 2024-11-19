@@ -38,12 +38,9 @@ function sendMessage() {
         if (data.past_conversations && data.past_conversations.length > 0) {
             displayPastConversations(data.past_conversations);
             // Append the success message after displaying past conversations
-            botSendMessage('You are now logged in! Do let me know what other product you are interested in! :)');
-        } else if (data.clear_chat && data.message) {
-            // For users with no past history, show the success message
-            botSendMessage(data.message);
-        } else {
             botSendMessage(data.response);
+        } else {
+            botSendMessage(data.response || data.message);  
         }
         // Check if the response indicates that we are still in password mode
         if (data.response && (data.response.includes('Please enter your password.') || data.response.includes('Incorrect password.'))) {
