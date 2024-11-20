@@ -1,5 +1,4 @@
 from recSys.collaborative import svd_recommend_surprise
-
 from recSys.contentBased import recommend_top_products 
 
 import pandas as pd
@@ -15,6 +14,22 @@ from functions.databaseFunctions import *
 
 ''' filter products '''
 def filter_products(product_name=None, price_limit=None, brand=None, product_specifications=None):
+    """
+    Filters products from the database based on the specified criteria.
+
+    Args:
+        product_name (str, optional): The name or part of the product name to search for.
+        price_limit (float, optional): The maximum price for the products.
+        brand (str, optional): The brand of the products to search for.
+        product_specifications (str, optional): Additional specifications to filter products.
+
+    Returns:
+        list[dict]: A list of dictionaries containing the filtered product data.
+    
+    Raises:
+        Exception: If there's an error in the database query or connection.
+    """
+
     # Build the SQL query dynamically based on the filters provided
     supabase = initialising_supabase()
     query = supabase.table("flipkart_cleaned_2k").select("*")
@@ -36,6 +51,17 @@ def filter_products(product_name=None, price_limit=None, brand=None, product_spe
     return response.data
 
 def fetch_filtered_products(extracted_info):
+    """
+    Fetches filtered products based on extracted information.
+
+    Args:
+        extracted_info (dict): Dictionary containing user preferences such as 
+                               'Product Item', 'Budget', 'Brand', and 'Product Details'.
+
+    Returns:
+        list[dict]: A list of dictionaries containing the filtered product data.
+    """
+
     # Extract values from the dictionary with default values for any missing keys
     product_name = extracted_info.get("Product Item")
     price_limit = extracted_info.get("Budget")
@@ -68,12 +94,20 @@ def fetch_filtered_products(extracted_info):
     print("filtered length", len(filtered_products))
     return filtered_products
 
-'''
-fetch_filtered_products( {'Related to Follow-Up Questions': 'New', 'Available in Store': 'Yes', 'Brand': 'Alisha', 'Product Item': 'Cycling shorts', 'Product Details': 'Not specified', 'Budget': 'Not specified', 'Fields Incompleted': '2', 'To-Follow-Up': 'Yes', 'Follow-Up Question': 'Could you please specify any specific features or specifications you need for the cycling shorts? Do you have a budget range in mind for this purchase?'})
-'''
-
 ''' helper functions '''
 def get_user_query(extracted_info, keys=['product_name', 'brand', 'specifications'], separator=', '):
+    """
+    Constructs a user query string based on provided keys and values in extracted_info.
+
+    Args:
+        extracted_info (dict): Dictionary of extracted user preferences.
+        keys (list[str], optional): List of keys to include in the query. Defaults to ['product_name', 'brand', 'specifications'].
+        separator (str, optional): Separator to use between concatenated query terms. Defaults to ', '.
+
+    Returns:
+        str: A concatenated string of the user query.
+    """
+
     result = ''
     
     # Iterate over the list of keys to extract values
@@ -105,7 +139,7 @@ def get_product_details_from_supabase(uniq_ids, columns = None):
         TypeError: If `uniq_ids` is not a list.
         ValueError: If any ID in `uniq_ids` is not a string or if `columns` is not a list.
     """
-    print("get product details from supabase")
+
     # Ensure uniq_ids is a list
     if not isinstance(uniq_ids, list):
         raise TypeError("uniq_ids must be a list of strings.")
@@ -141,7 +175,17 @@ def get_product_details_from_supabase(uniq_ids, columns = None):
     return product_df
 
 ''' content based '''
-def fetch_content_recommendation(extracted_info, brand_preference=None, specs_preference=None):
+def fetch_content_recommendation(extracted_info):
+    """
+    Fetches content-based recommendations based on user query and filtered products.
+
+    Args:
+        extracted_info (dict): Dictionary of user preferences for filtering and recommendations.
+
+    Returns:
+        pandas.DataFrame: DataFrame of content-based recommendations.
+    """
+
     print("Inside content recommender")
 
     supabase = initialising_supabase() 
@@ -158,7 +202,18 @@ def fetch_content_recommendation(extracted_info, brand_preference=None, specs_pr
     return content_recommendations
 
 ''' collaborative '''
-def fetch_collaborative_recommendation(user_id, extracted_info, brand_preference=None, specs_preference=None):
+def fetch_collaborative_recommendation(user_id, extracted_info):
+    """
+    Fetches collaborative filtering recommendations based on user data.
+
+    Args:
+        user_id (str): User ID for fetching collaborative filtering data.
+        extracted_info (dict): User preferences for additional context.
+
+    Returns:
+        pandas.DataFrame: DataFrame of collaborative filtering recommendations.
+    """
+
     print("Inside collaborative recommender")
 
     catalogue = load_product_data()
@@ -169,6 +224,15 @@ def fetch_collaborative_recommendation(user_id, extracted_info, brand_preference
 
 ''' hybridisation helper functions '''
 def normalize_collaborative_scores(collaborative_recommendations):
+    """
+    Normalizes collaborative recommendation scores using Min-Max scaling.
+
+    Args:
+        collaborative_recommendations (pandas.DataFrame): DataFrame of collaborative recommendations with 'predicted_rating'.
+
+    Returns:
+        pandas.DataFrame: Updated DataFrame with normalized 'predicted_rating'.
+    """
 
     if not collaborative_recommendations.empty and 'predicted_rating' in collaborative_recommendations.columns:
         scaler = MinMaxScaler()
@@ -176,11 +240,24 @@ def normalize_collaborative_scores(collaborative_recommendations):
             collaborative_recommendations[['predicted_rating']]
         )
     else:
-        print("Warning: No valid predicted_rating found in collaborative filtering data.")
         collaborative_recommendations['normalized_predicted_rating'] = 0  # Fallback
     return collaborative_recommendations
 
 def calculate_final_scores(content_recommendations, collaborative_recommendations, content_weight=20, collaborative_weight=0.3, top_n=10):
+    """
+    Calculates final hybrid scores by combining content and collaborative recommendations.
+
+    Args:
+        content_recommendations (pandas.DataFrame): Content-based recommendation scores.
+        collaborative_recommendations (pandas.DataFrame): Collaborative recommendation scores.
+        content_weight (float, optional): Weight for content recommendation scores. Defaults to 20.
+        collaborative_weight (float, optional): Weight for collaborative recommendation scores. Defaults to 0.3.
+        top_n (int, optional): Number of top recommendations to return. Defaults to 10.
+
+    Returns:
+        pandas.DataFrame: DataFrame of top recommendations ranked by final score.
+    """
+
     # Weight scores
     content_recommendations['weighted_similarity_score'] = (
         content_recommendations.get('similarity_score', 0) + 1
@@ -191,7 +268,6 @@ def calculate_final_scores(content_recommendations, collaborative_recommendation
             collaborative_recommendations['normalized_predicted_rating'] * collaborative_weight
         )
     else:
-        print("Warning: No 'normalized_predicted_rating' in collaborative recommendations.")
         collaborative_recommendations['weighted_predicted_rating'] = 0
 
     # Perform outer merge
@@ -201,7 +277,21 @@ def calculate_final_scores(content_recommendations, collaborative_recommendation
     return hybrid.nlargest(top_n, 'final_score')
 
 ''' hybrid recommendation system '''
-def hybrid_recommendations(extracted_info, user_id, content_weight=20, collaborative_weight=0.5, brand_preference=None, specs_preference=None, top_n=10):
+def hybrid_recommendations(extracted_info, user_id, content_weight=20, collaborative_weight=0.5, top_n=10):
+    """
+    Generates hybrid recommendations by combining content-based and collaborative filtering approaches.
+
+    Args:
+        extracted_info (dict): User preferences for filtering and recommendations.
+        user_id (str): User ID for collaborative filtering.
+        content_weight (float, optional): Weight for content-based scores. Defaults to 20.
+        collaborative_weight (float, optional): Weight for collaborative scores. Defaults to 0.5.
+        top_n (int, optional): Number of top recommendations to return. Defaults to 10.
+
+    Returns:
+        pandas.DataFrame: DataFrame containing detailed information about the top recommended products.
+    """
+
     # Step 1: Fetch filtered products and order data
     filtered_products = fetch_filtered_products(extracted_info)
 
@@ -215,10 +305,10 @@ def hybrid_recommendations(extracted_info, user_id, content_weight=20, collabora
     # Step 2: Fetch content and collaborative recommendations concurrently
     with ThreadPoolExecutor() as executor:
         content_future = executor.submit(
-            fetch_content_recommendation, extracted_info, brand_preference, specs_preference
+            fetch_content_recommendation, extracted_info
         )
         collaborative_future = executor.submit(
-            fetch_collaborative_recommendation, user_id, extracted_info, brand_preference, specs_preference
+            fetch_collaborative_recommendation, user_id, extracted_info
         )
 
         try:

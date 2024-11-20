@@ -8,6 +8,19 @@ import os
 from functions.databaseFunctions import *
 
 def filter_products(product_name=None, price_limit=None, brand=None, product_specifications=None):
+    """
+    Filters products from the database based on given criteria.
+
+    Args:
+        product_name (str, optional): The name or part of the name of the product to search for.
+        price_limit (float, optional): The maximum price of the product.
+        brand (str, optional): The brand name to filter by.
+        product_specifications (str, optional): Specific product details to match.
+
+    Returns:
+        list[dict]: A list of dictionaries containing product details that match the criteria.
+    """
+
     # Build the SQL query dynamically based on the filters provided
     supabase = initialising_supabase()
     query = supabase.table("flipkart_cleaned_2k").select("*")
@@ -29,16 +42,25 @@ def filter_products(product_name=None, price_limit=None, brand=None, product_spe
     return response.data
 
 def fetch_filtered_products(extracted_info):
-    # ensure correct inputs
-    # ensure correct type
-    # if cannot find in dictionary, just none
+    """
+    Fetches products from the database based on extracted user preferences.
+
+    Args:
+        extracted_info (dict): A dictionary containing user preferences with keys:
+            - "Product Item" (str): The product name or category.
+            - "Budget" (float or str): The maximum budget for the product.
+            - "Brand" (str): The preferred brand.
+            - "Product Details" (str): Specific product features or specifications.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the filtered products.
+    """
+
     # Extract values from the dictionary with default values for any missing keys
     product_name = extracted_info.get("Product Item")
     price_limit = extracted_info.get("Budget")
     brand = extracted_info.get("Brand")
     product_specifications = extracted_info.get("Product Details")
-
-    # print(product_name, price_limit, brand, product_specifications)
 
     # Convert "Not specified" to None for each field
     if product_name == "No preference":
@@ -67,6 +89,23 @@ def fetch_filtered_products(extracted_info):
     return pd.DataFrame(filtered_products)
 
 def svd_recommend_surprise(user_id, catalogue, user_intention_dictionary, n_recommendations=20):
+    """
+    Recommends products to a user based on collaborative filtering using the SVD algorithm.
+
+    Args:
+        user_id (str): The ID of the user for whom recommendations are generated.
+        catalogue (pd.DataFrame): A DataFrame containing product details (catalogue).
+        user_intention_dictionary (dict): A dictionary of user preferences with keys:
+            - "Product Item" (str): The product name or category.
+            - "Budget" (float or str): The maximum budget for the product.
+            - "Brand" (str): The preferred brand.
+            - "Product Details" (str): Specific product features or specifications.
+        n_recommendations (int, optional): The number of recommendations to generate. Defaults to 20.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the recommended product IDs and their predicted ratings.
+    """
+    
     print("SVD")
     supabase = initialising_supabase()
      # Fetch the catalogue & users data from Supabase
@@ -76,14 +115,13 @@ def svd_recommend_surprise(user_id, catalogue, user_intention_dictionary, n_reco
     # Initialize an empty DataFrame with the correct schema
     recommendations_df = pd.DataFrame(columns=['uniq_id', 'predicted_rating'])
 
-
     reader = Reader(rating_scale=(0, 5))
 
-    #print(orderdata)
-    #print(reader)
+    # Get dataset
     dataset = Dataset.load_from_df(orderdata[['User ID', 'uniq_id', 'User rating for the product']], reader)
     trainset = dataset.build_full_trainset()
 
+    # Build SVD
     svd = SVD()
     svd.fit(trainset)
 
@@ -97,26 +135,20 @@ def svd_recommend_surprise(user_id, catalogue, user_intention_dictionary, n_reco
     for product_id in unrated_products:
         pred = svd.predict(user_id, product_id)
         predictions.append((product_id, pred.est))
-    print("collab.py predictions ", predictions)
 
     # Sort predictions by estimated rating
     sorted_predictions = sorted(predictions, key=lambda x: x[1], reverse=True)
-    print("collab.py sorted predictions ", sorted_predictions)
 
     # Select top N recommendations based on sorted predictions
     recommended_product_ids = [prod[0] for prod in sorted_predictions[:n_recommendations]]
-    print("line 108", type(recommended_product_ids))
 
     # Filter catalogue based on recommended product IDs and add predicted ratings
     recommendations = catalogue[catalogue['uniq_id'].isin(recommended_product_ids)].copy()
-    print("line 112")
+
     recommendations['predicted_rating'] = recommendations['uniq_id'].map(dict(predictions))
-    print("line 114")
 
     # Return the final DataFrame with recommendations
     recommendations_df = recommendations[['uniq_id', 'predicted_rating']]
-    print("collab.py line 115: ", recommendations_df)
-    print("collab.py line 116: ", type(recommendations_df))
 
     return recommendations_df
 

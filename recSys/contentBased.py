@@ -11,20 +11,20 @@ model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 # model.save("sentenceTransformer")
 
 ''' computing embeddings '''
-# precompute product embeddings
 def precompute_product_embeddings(df, batch_size=1000, print_interval=100):
     """
-    Precomputes embeddings for product descriptions using a sentence transformer model.
-    
+    Precomputes embeddings for product descriptions using a SentenceTransformer model.
+
     Args:
-        df (pd.DataFrame): DataFrame containing product information with 'content' and 'uniq_id' columns
-        batch_size (int): Number of products to process in each batch
-        print_interval (int): Interval for printing progress updates
-    
+        df (pd.DataFrame): DataFrame containing product information with columns:
+            - 'content' (str): Text description of the product.
+            - 'uniq_id' (str): Unique identifier for each product.
+        batch_size (int, optional): Number of products to process in each batch. Default is 1000.
+        print_interval (int, optional): Interval at which progress updates are printed. Default is 100.
+
     Returns:
-        list: List of dictionaries containing product IDs and their corresponding embeddings
+        list[dict]: List of dictionaries containing product IDs and their corresponding embeddings.
     """
-    print("Starting precompute_product_embeddings")
 
     product_descriptions = df['content'].tolist()
     product_ids = df['uniq_id'].tolist()
@@ -57,18 +57,27 @@ def precompute_product_embeddings(df, batch_size=1000, print_interval=100):
 
 ''' storing data - into supabase'''
 def store_product_embeddings_in_supabase(product_embeddings):
+    """
+    Stores precomputed product embeddings into the Supabase database.
+
+    Args:
+        product_embeddings (list[dict]): List of dictionaries containing:
+            - 'product_id' (str): Unique identifier for the product.
+            - 'embedding' (torch.Tensor or list): Embedding for the product.
+
+    Returns:
+        None
+    """
+
     supabase = initialising_supabase()
 
     for entry in product_embeddings:
         pid = entry['product_id']
         embedding = entry['embedding']
-        print('pid', pid)
 
         # Convert embedding tensor to a list of floats if it's a tensor
         embedding_list = embedding.cpu().numpy().tolist() if isinstance(embedding, torch.Tensor) else embedding
         
-        print("embedding_list", embedding_list)
-
         # Convert embedding list to a string (comma-separated values)
         embedding_str = ','.join(map(str, embedding_list))
 
@@ -85,20 +94,18 @@ def store_product_embeddings_in_supabase(product_embeddings):
 
 ''' retrieving embeddings for a list of product_ids'''
 def get_product_embeddings(product_ids):
-    print("product_ids", product_ids)
-    '''
-    Fetch embeddings for the given list of product_ids from Supabase   
+    """
+    Fetches embeddings for the given product IDs from the Supabase database.
 
     Args:
-        product_ids (list of string): List of product IDs to fetch embeddings for.
-                                    Product IDs cannot be empty strings.
+        product_ids (list[str]): List of product IDs for which embeddings are to be fetched.
+                                 Product IDs cannot be empty strings.
+
     Returns:
-        pandas.DataFrame: DataFrame containing product_id and embedding_list columns.
-        Returns empty DataFrame if no matches found or if input list is empty.
-    Raises:
-        TypeError: If product_ids is not a list
-        ValueError: If any product_id in the list is not a string or is an empty string
-    '''
+        pd.DataFrame: DataFrame containing columns:
+            - 'product_id' (str): Unique identifier for the product.
+            - 'embedding_list' (list[float]): List of floats representing the embedding.
+    """
     supabase = initialising_supabase()
     
     # Input validation
@@ -116,15 +123,6 @@ def get_product_embeddings(product_ids):
     
     # Initialize response outside the loop
     response = None
-    
-    '''
-    for product_id in product_ids:
-        response = supabase.table("product_embeddings") \
-                           .select("product_id, embedding_list") \
-                           .eq("product_id", product_id) \
-                           .execute()
-    '''
-
     response = supabase.table("product_embeddings") \
                       .select("product_id, embedding_list") \
                       .in_("product_id", product_ids) \
@@ -142,9 +140,17 @@ def get_product_embeddings(product_ids):
 ''' convertion of embeddings list 'text' to 'float' (cannot save as array of 32 bits in supabase)'''
 # remove brackets from embedding list
 def remove_brackets_from_embedding_list(df):
-    if 'embedding_list' in df.columns:
-        # print('Removing brackets from embedding_list')
-        
+    """
+    Removes brackets from the 'embedding_list' column in a DataFrame.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing a column 'embedding_list' with string representations of lists.
+
+    Returns:
+        pd.DataFrame: DataFrame with the 'embedding_list' column updated to remove brackets.
+    """
+
+    if 'embedding_list' in df.columns:        
         # Remove brackets from each entry in embedding_list
         df['embedding_list'] = df['embedding_list'].str.replace('[', '', regex=False).str.replace(']', '', regex=False)
     
@@ -152,9 +158,17 @@ def remove_brackets_from_embedding_list(df):
 
 # convertion from list to float
 def convert_embedding_list_to_floats(df):
-    if 'embedding_list' in df.columns:
-        # print('Converting embedding_list to a list of floats')
-        
+    """
+    Converts a comma-separated string of numbers in the 'embedding_list' column 
+    to a list of floats.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing a column 'embedding_list' with string representations of lists.
+
+    Returns:
+        pd.DataFrame: DataFrame with the 'embedding_list' column updated to contain lists of floats.
+    """
+    if 'embedding_list' in df.columns:        
         # Convert the comma-separated string to a list of floats
         df['embedding_list'] = df['embedding_list'].apply(
             lambda x: list(map(float, x.split(',')))
@@ -162,8 +176,18 @@ def convert_embedding_list_to_floats(df):
     
     return df
 
-# checking the type of elemenets
 def check_if_embedding_list_is_float(df):
+    """
+    Checks if each entry in the 'embedding_list' column is a list of floats and 
+    adds a new column 'is_float_list' indicating the result.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing a column 'embedding_list'.
+
+    Returns:
+        pd.DataFrame: DataFrame with an additional column 'is_float_list' (bool).
+    """
+
     # Check if embedding_list is a list of floats
     if 'embedding_list' in df.columns:
         df['is_float_list'] = df['embedding_list'].apply(
@@ -173,39 +197,39 @@ def check_if_embedding_list_is_float(df):
 
 ''' recommendation function '''
 def recommend_top_products(user_query, filtered_products, top_n=20):
-    '''
-    Recommend top N products based on similarity to the user's query.
+    """
+    Recommends the top N products based on similarity to the user's query.
 
     Args:
-        user_query (str): The query input by the user, e.g., "I want a red shoe".
-                          Should be a non-empty string.
-        filtered_products (list of dict): List of dictionaries, where each dictionary contains 
-                                          product information (e.g., 'uniq_id', 'product_name', 
-                                          'retail_price', 'description'). Each dictionary must 
-                                          contain a valid 'uniq_id' as a unique identifier.
-        top_n (int, optional): Number of top recommended products to return. Default is 10.
+        user_query (str): Query input by the user (e.g., "I want a red shoe"). Must be non-empty.
+        filtered_products (list[dict]): List of dictionaries containing product information. 
+            Each dictionary must include:
+            - 'uniq_id' (str): Unique identifier for the product.
+            - 'product_name' (str): Name of the product.
+            - 'retail_price' (float): Price of the product.
+            - 'description' (str): Description of the product.
+        top_n (int, optional): Number of top recommendations to return. Default is 20.
 
     Returns:
-        pandas.DataFrame: DataFrame containing columns 'product_id', 'product_name', 
-                          'similarity_score', 'price', and 'description' for the top N recommended 
-                          products based on similarity to the user query.
-
+        pd.DataFrame: DataFrame containing the top recommended products with columns:
+            - 'uniq_id' (str): Product ID.
+            - 'similarity_score' (float): Similarity score with the user's query.
+    
     Raises:
         ValueError: If user_query is not a string or is empty.
         TypeError: If filtered_products is not a list of dictionaries, or if any dictionary 
                    does not contain a 'uniq_id'.
-    '''
+    """
+
     supabase = initialising_supabase()
 
     query_embedding = model.encode([user_query])[0]  
 
     # Get product IDs from filtered products
     product_ids = [product['uniq_id'] for product in filtered_products]
-    # print("product_ids ", product_ids)
 
     # Get specific product embeddings
     raw_product_embeddings = get_product_embeddings(product_ids)
-    print("line 260: ", raw_product_embeddings)
 
     # Converting it to float instead of string
     text_product_embeddings = remove_brackets_from_embedding_list(raw_product_embeddings)

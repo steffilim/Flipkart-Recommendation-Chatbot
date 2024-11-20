@@ -5,6 +5,8 @@ import json
 
 
 test_cases = [
+    # Test cases for evaluating the chat history and LLM response
+
     {
         "query": "I want a vase.",
         "previous_intention": "",
@@ -143,6 +145,16 @@ test_cases = [
 
 
 def get_llm_intention(test_case):
+    """
+    Retrieves the LLM output by invoking the intention chain for a test case.
+
+    Args:
+        test_case (dict): A dictionary containing user input, previous intentions, and expected results.
+
+    Returns:
+        str: The LLM's response as a string.
+    """
+
     query = test_case["query"]
     previous_intention = test_case["previous_intention"]
     follow_up_questions = test_case["follow_up_questions"]
@@ -160,10 +172,18 @@ def get_llm_intention(test_case):
     llm_output = intention_chain.invoke(prompt_variables)
     return llm_output
 
-
-
-
 def evaluate_intention(test_case, llm_function):
+    """
+    Evaluates the generated LLM output against the expected output for a given test case.
+
+    Args:
+        test_case (dict): A dictionary containing the test case details.
+        llm_function (function): A function that generates the LLM output.
+
+    Returns:
+        Tuple: A tuple containing a success flag and feedback string.
+    """
+
     llm_output = llm_function(test_case)
     
     # Convert the llm_output into a dictionary for comparison
@@ -188,20 +208,19 @@ def evaluate_intention(test_case, llm_function):
     success = similarity_score > 90 # If similarity score > 90, considered successful
     return success, feedback
 
-
-
- 
-
 def run_evaluation():
+    """
+    Runs the evaluation for all test cases and prints the results.
+
+    Returns:
+        None
+    """
+        
     for idx, test_case in enumerate(test_cases, start=1):
         print(f"Test Case {idx}:")
         success, feedback = evaluate_intention(test_case, get_llm_intention)
         print(feedback)
         print("\n" + "="*50 + "\n")  
-
-
-
-
 
 if __name__ == "__main__":
     run_evaluation()
