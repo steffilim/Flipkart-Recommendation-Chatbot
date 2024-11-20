@@ -1,34 +1,6 @@
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-import os
-from dotenv import load_dotenv
-from pymongo import MongoClient
-import pymongo
-from supabase import create_client
-from functions import initialising_supabase
-### Targeted at new customers, built on demographic filtering to resolve the cold start problem
-
-def load_order_data():
-    supabase = initialising_supabase()
-    # Load data from the flipkart_cleaned table in supabase
-    order_data = pd.DataFrame(supabase.table('synthetic_v2_2k').select('*').execute().data)
-
-    print("Successfully loaded order from Supabase")
- 
-    return order_data
-
-def load_product_data():
-    supabase = initialising_supabase()
-    # Load data from the flipkart_cleaned table in supabase
-    catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned_2k').select('*').execute().data)
-    # Create the 'content' column by concatenating 'description'
-    catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
-    # Ensure there are no NaN values which can cause issues
-    catalogue_data['content'] = catalogue_data['content']. fillna("")
-    print("Successfully loaded product data from Supabase")
-    return catalogue_data
+from functions.databaseFunctions import *
 
 def get_trending_products():
     # supabase = initialising_supabase()

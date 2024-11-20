@@ -7,7 +7,7 @@ from pymongo import DESCENDING
 
 from typing import List, Tuple
 import datetime
-from functions import initialising_mongoDB
+from functions.databaseFunctions import initialising_mongoDB
 
 load_dotenv()
 

@@ -16,10 +16,16 @@ from langchain_core.output_parsers import StrOutputParser
 from flask import Flask, render_template, request, jsonify
 from langchain_core.prompts import ChatPromptTemplate
 
-
 from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, update_past_follow_up_question_guest, get_past_conversations_to_display
 from prompt_template import refine_template, intention_template
-from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data, load_users_data, getting_user_purchase_dictionary, recommend_similar_products
+from functions.chatbotFunctions import *
+from functions.databaseFunctions import *
+from functions.keywordDetectionFunctions import *
+from functions.popularityBasedFilteringFunctions import * 
+
+'''
+from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data, load_order_data, getting_user_purchase_dictionary, recommend_similar_products
+'''
 #from recSys.contentBased import load_product_data
 
 
