@@ -47,19 +47,19 @@ function sendMessage() {
         // If the response contains clear_chat flag, clear the chat log
         if (data.clear_chat) {
             clearChatLog(); // Clear chat if no past conversations
+            if (data.session_date) {
+                appendMessage(data.session_date, 'session-date', '');
+            }
         }
 
         // If the response includes past conversations, display them
         if (data.past_conversations && data.past_conversations.length > 0) {
             displayPastConversations(data.past_conversations);
             // Append the success message after displaying past conversations
-            botSendMessage('You are now logged in! Do let me know what other product you are interested in! :)');
-        } else if (data.clear_chat && data.message) {
-            // For users with no past history, show the success message
-            botSendMessage(data.message);
+            botSendMessage(data.response, data.session_date);
         } else {
             // Display the bot's response
-            botSendMessage(data.response);
+            botSendMessage(data.response || data.message);  
         }
         // Check if the response indicates that we are still in password mode
         if (data.response && (data.response.includes('Please enter your password.') || data.response.includes('Incorrect password.'))) {
@@ -124,14 +124,28 @@ function appendMessage(message, className, sender) {
     setTimeout(() => {
         chatLog.scrollTop = chatLog.scrollHeight;
     }, 100); // Small delay to ensure the DOM is updated
+    return messageContainer;
 }
 
 /**
  * Appends a bot message to the chat log using a predefined class for bot messages.
  * @param {string} message - The message text to display.
  */
-function botSendMessage(message) {
-    appendMessage(message, 'bot-message', 'Flippey');
+function botSendMessage(message, sessionDate = null) {
+    let messageElement;
+    
+    if (sessionDate) {
+        appendMessage(sessionDate, 'session-date', '');  // Add date before welcome message
+    }
+    messageElement = appendMessage(message, 'bot-message', 'Flippey');
+
+    // Scroll to the top of welcome message
+    setTimeout(() => {
+        if (message.includes("Welcome back!")) {
+            console.log("Scrolling to Welcome Message:", messageElement); // Check if its scrolling to the correct position
+            messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 300) // Allow the DOM to render fully
 }
 
 /**
@@ -153,7 +167,15 @@ function displayPastConversations(conversations) {
     let chatLog = document.getElementById('chat-log');
     chatLog.innerHTML = ''; // Clear old messages
 
+    let displayedSessions = new Set();
+
     conversations.forEach(chat => {
+        if (!displayedSessions.has(chat.session_id)) {
+            displayedSessions.add(chat.session_id);
+            if (chat.session_date) {
+                appendMessage(chat.session_date, 'session-date', '');
+            }
+        }
         if (chat.user) {
             appendMessage(chat.user, 'user-message', 'User');
         }

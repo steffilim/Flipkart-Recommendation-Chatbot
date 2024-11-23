@@ -179,7 +179,19 @@ def get_past_conversations_to_display(user_id):
     # Loop through each session to retrieve messages
     for session in all_sessions:
         message_list = session.get("message_list", [])
-        
+        if message_list:
+            created_at = session["created_at"]
+            #session_date = f"Session started on {created_at.strftime('%d %B %Y, %-I:%M %p').lower()} ---"
+            session_date = session["created_at"].strftime("--- Session started on %d %B %Y, %H:%M ---")
+            session_id = session["session_id"]
+
+            conversation_history.append({
+                "session_id": session_id,
+                "session_date": session_date,
+                "user": None,
+                "bot": None
+            })
+                 
         for message in message_list:
             user_input = message.get("user_input", "")
             follow_up = message.get("follow up", "").strip()
@@ -203,6 +215,7 @@ def get_past_conversations_to_display(user_id):
 
             # Add structured messages to the conversation history
             conversation_history.append({
+                "session_id": session_id,
                 "user": user_input,
                 "bot": bot_message
             })
