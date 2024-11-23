@@ -1,7 +1,9 @@
 // script.js
 
-
+// Event listener for the 'Send' button to trigger the sendMessage function
 document.getElementById('send-btn').addEventListener('click', sendMessage);
+
+// Event listener for the 'Enter' key in the input field to trigger the sendMessage function
 document.getElementById('user-input').addEventListener('keypress', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault(); // Prevent new line
@@ -9,8 +11,14 @@ document.getElementById('user-input').addEventListener('keypress', function (e) 
     }
 });
 
+// Global flag to track whether the input field is in password mode (masked input)
 let isPasswordMode = false;
 
+/**
+ * Sends the user's message to the backend and handles the response.
+ * This function appends the user's message to the chat log, triggers the backend request,
+ * and processes the response, including handling password mode and past conversations.
+ */
 function sendMessage() {
     let userInput = document.getElementById('user-input').value;
     if (userInput === '') return;
@@ -18,7 +26,10 @@ function sendMessage() {
     // Mask the user input if in password mode
     let displayInput = isPasswordMode ? '*'.repeat(userInput.length) : userInput;
 
+    // Append the user's message to the chat log
     appendMessage(displayInput, 'user-message', 'User');
+
+    // Show typing indicator while waiting for the bot's response
     showTypingIndicator();
 
     // Send the user input to the backend for processing
@@ -32,17 +43,22 @@ function sendMessage() {
     .then(response => response.json())
     .then(data => {
         hideTypingIndicator();
+
+        // If the response contains clear_chat flag, clear the chat log
         if (data.clear_chat) {
             clearChatLog(); // Clear chat if no past conversations
             if (data.session_date) {
                 appendMessage(data.session_date, 'session-date', '');
             }
         }
+
+        // If the response includes past conversations, display them
         if (data.past_conversations && data.past_conversations.length > 0) {
             displayPastConversations(data.past_conversations);
             // Append the success message after displaying past conversations
             botSendMessage(data.response, data.session_date);
         } else {
+            // Display the bot's response
             botSendMessage(data.response || data.message);  
         }
         // Check if the response indicates that we are still in password mode
@@ -59,14 +75,25 @@ function sendMessage() {
         console.error('Error:', error);
     });
 
+    // Clear the input field after sending the message
     document.getElementById('user-input').value = '';
 }
 
+/**
+ * Clears the chat log by removing all the messages in the chat container.
+ */
 function clearChatLog() {
     let chatLog = document.getElementById('chat-log');
     chatLog.innerHTML = '';  // Clear the entire chat log
 }
 
+/**
+ * Appends a message to the chat log, either as a user or bot message.
+ * It creates message containers and applies appropriate classes and labels.
+ * @param {string} message - The message text to display.
+ * @param {string} className - The CSS class to apply (e.g., 'user-message' or 'bot-message').
+ * @param {string} sender - The sender label (e.g., 'User' or 'Flippey').
+ */
 function appendMessage(message, className, sender) {
     let chatLog = document.getElementById('chat-log');
 
@@ -100,6 +127,10 @@ function appendMessage(message, className, sender) {
     return messageContainer;
 }
 
+/**
+ * Appends a bot message to the chat log using a predefined class for bot messages.
+ * @param {string} message - The message text to display.
+ */
 function botSendMessage(message, sessionDate = null) {
     let messageElement;
     
@@ -117,13 +148,21 @@ function botSendMessage(message, sessionDate = null) {
     }, 300) // Allow the DOM to render fully
 }
 
-// Toggle Chat Functionality
+/**
+ * Toggles the visibility of the chat container when the header is clicked.
+ * This function folds or unfolds the chat window.
+ */
 document.getElementById('chat-header').addEventListener('click', function () {
     let chatContainer = document.getElementById('chat-container');
 
     chatContainer.classList.toggle('folded');
 });
 
+/**
+ * Displays a list of past conversations in the chat log.
+ * This will clear the existing chat log and append past user and bot messages.
+ * @param {Array} conversations - An array of conversation objects containing user and bot messages.
+ */
 function displayPastConversations(conversations) {
     let chatLog = document.getElementById('chat-log');
     chatLog.innerHTML = ''; // Clear old messages
@@ -146,6 +185,10 @@ function displayPastConversations(conversations) {
     });
 }
 
+/**
+ * Shows a typing indicator to simulate the bot typing a response.
+ * This includes an animated message that updates the "..." dots.
+ */
 function showTypingIndicator() {
     let typingIndicator = document.createElement('div');
     typingIndicator.id = 'loading-indicator';
@@ -164,6 +207,9 @@ function showTypingIndicator() {
     typingIndicator.dataset.intervalId = typingAnimation;  
 }
 
+/**
+ * Hides the typing indicator and stops its animation.
+ */
 function hideTypingIndicator() {
     let typingIndicator = document.getElementById('loading-indicator');
     if (typingIndicator) {

@@ -17,14 +17,12 @@ from langchain_core.output_parsers import StrOutputParser
 from flask import Flask, render_template, request, jsonify
 from langchain_core.prompts import ChatPromptTemplate
 
-
 from convohistory import add_chat_history_guest, get_past_conversation_guest, get_past_conversations_users, add_chat_history_user, start_new_session, update_past_follow_up_question_guest, get_past_conversations_to_display
 from prompt_template import refine_template, intention_template
-from functions import is_valid_input, getting_bot_response, get_popular_items, getting_user_intention_dictionary, initialising_mongoDB, extract_keywords, parse_user_intention, initialising_supabase, load_product_data, load_users_data, getting_user_purchase_dictionary, recommend_similar_products
-#from recSys.contentBased import load_product_data
-
-
-
+from functions.chatbotFunctions import *
+from functions.databaseFunctions import *
+from functions.keywordDetectionFunctions import *
+from functions.popularityBasedFilteringFunctions import * 
 
 
 # Initialize Flask app
@@ -48,16 +46,20 @@ past_follow_up_question_guest = "" # follow up question for guest users
 # Authenticating model
 load_dotenv()
 
-
-
-
-
-
 # initialising memory
 
 # Flask routes
 
 def initialise_app():
+    """
+    Initializes the necessary components of the application, including Supabase, MongoDB, 
+    Google Gemini model, and chatbot chains for refinement and intention extraction.
+    
+    Returns:
+        tuple: Contains supabase instance, db instance, llm instance, chatbot chains, 
+               LSA matrix file, and an empty list for guest conversation history.
+    """
+
     supabase = initialising_supabase()
     print("Supabase setup successful")
 
@@ -85,15 +87,20 @@ def initialise_app():
 
     convo_history_list_guest = [] # convo history list for guest users
 
-
     return supabase, db, llm, chain2, intention_chain, lsa_matrix, convo_history_list_guest
 
 supabase, db, llm, chain2, intention_chain, lsa_matrix, convo_history_list_guest = initialise_app()
 
-
-
 @app.route('/')
 def index():
+    """
+    Handles the GET request to the root URL, providing the appropriate welcome message 
+    based on the user's login or guest mode status.
+    
+    Returns:
+        str: HTML rendered template with the welcome message.
+    """
+
     user_id = user_states.get("user_id")  # Check if user is logged in
     guest_mode = user_states.get("guest_mode")  # Check if guest mode is active
 
@@ -110,6 +117,15 @@ def index():
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    """
+    Handles the POST request for chatbot communication. The function processes user input 
+    based on the user's login or guest status, validates input, checks for user intentions, 
+    and generates appropriate responses, including product recommendations and further questions.
+
+    Returns:
+        dict: JSON response with the chatbot's response, and optionally, clearing chat 
+              or displaying past conversations.
+    """
 
     user_data = request.get_json()
     user_input = user_data.get('message')
@@ -135,9 +151,8 @@ def chat():
     # If the user is prompted to enter a password
     if user_states.get("password_mode"):
         if user_input == "pw123":  # Hardcoded password check
-              # Start a new session for the user
-            print("line 132")
 
+              # Start a new session for the user
             user_states["session_id"] = str(uuid4())  # Generate a unique session ID            
             session_id = user_states["session_id"]
 
@@ -192,7 +207,6 @@ def chat():
     if user_states.get("guest_mode"):
         past_follow_up_question_guest = ""
      
-
         if user_input == "/login":
             user_states.pop("guest_mode", None)  # Remove guest mode flag
             user_states["login_mode"] = True  # Set login mode flag
@@ -204,10 +218,8 @@ def chat():
             return jsonify({'response': "I'm sorry, I do not understand what you meant. Please rephrase or ask about a product available in our store."})
 
         previous_intention, previous_follow_up_question, previous_items_recommended = get_past_conversation_guest(convo_history_list_guest)
-        print("previous_items: ", previous_items_recommended)
         user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, past_follow_up_question_guest, previous_items_recommended)
         user_intention_dictionary = parse_user_intention(user_intention)
-        #print("line 172:", user_intention_dictionary)
 
         # updating follow-up question
         past_follow_up_question_guest = update_past_follow_up_question_guest(user_intention_dictionary)
@@ -218,14 +230,9 @@ def chat():
             recommendations = previous_items_recommended
         
         add_chat_history_guest(user_input, user_intention_dictionary, recommendations, convo_history_list_guest)
-        print("line 189:, ", convo_history_list_guest)
-
 
         return jsonify({'response': bot_response}) 
     
-
-    
-
     # Get user state to check if ID has already been provided
     
     user_profile = []
@@ -247,7 +254,6 @@ def chat():
             return jsonify({'response': 'User ID validated. You may enter /logout to exit. Please enter your query.'})
         else:
             return jsonify({'response': 'Invalid ID. Please enter a valid numeric user ID.'})
-
 
     # Get user state to check if ID has already been provided
     user_id = user_states.get("user_id")
@@ -288,8 +294,6 @@ def chat():
     previous_intention, previous_follow_up_question, previous_items_recommended = get_past_conversations_users(user_id, session_id)    
     user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, previous_follow_up_question, previous_items_recommended)
     user_intention_dictionary = parse_user_intention(user_intention)
-    print(user_intention_dictionary)
-
 
     # Getting the bot response
     recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, db, previous_items_recommended, user_profile, user_purchases, user_id, session_id)
@@ -298,8 +302,6 @@ def chat():
     if recommendations is None:
         recommendations = previous_items_recommended
         
-
-    print(session_id)
     add_chat_history_user(session_id, user_input, user_intention_dictionary, recommendations)
 
     print("Chat history updated successfully")

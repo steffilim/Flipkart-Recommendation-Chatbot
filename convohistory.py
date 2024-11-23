@@ -1,24 +1,31 @@
 import os
 from dotenv import load_dotenv
-
 import pymongo
 from pymongo import MongoClient
 from pymongo import DESCENDING
-
 from typing import List, Tuple
 import datetime
-from functions import initialising_mongoDB
+from functions.databaseFunctions import initialising_mongoDB
 
 load_dotenv()
-
 
 """ CONVERSATION HISTORY FOR REGISTERED USERS """
 import re
 db = initialising_mongoDB()
 chat_session = db.chatSession
 
-
 def start_new_session(user_id, session_id):
+    """
+    Starts a new chat session in the database for a given user.
+
+    Args:
+        user_id (str): The unique identifier for the user.
+        session_id (str): The unique identifier for the session.
+
+    Returns:
+        None
+    """
+
     document = {
         "user_id": user_id,
         "session_id": session_id,
@@ -28,9 +35,21 @@ def start_new_session(user_id, session_id):
     chat_session.insert_one(document)
     
 def add_chat_history_user(session_id, user_input, user_intention_dictionary, items_recommended):
+    """
+    Adds the chat history of a registered user to the database.
+
+    Args:
+        session_id (str): The session identifier to find the corresponding session.
+        user_input (str): The user's message/input.
+        user_intention_dictionary (dict): The extracted user intentions.
+        items_recommended (list): List of items recommended based on user input.
+
+    Returns:
+        None
+    """
+
     # Build the dictionary to be pushed into the message list
     follow_up = user_intention_dictionary.get("Follow-Up Question")
-    print("line 31: ", follow_up)
     message_entry = {
         "user_input": user_input,
         "user_intention": user_intention_dictionary,
@@ -46,8 +65,17 @@ def add_chat_history_user(session_id, user_input, user_intention_dictionary, ite
 
     # Check the result of the update
     
-
 def get_past_conversations_users(user_id,session_id):
+    """
+    Retrieves past conversations for a registered user from the database.
+
+    Args:
+        user_id (str): The unique identifier of the user.
+        session_id (str): The session identifier to retrieve the conversation.
+
+    Returns:
+        Tuple: A tuple containing the previous user's intention, follow-up question, and recommended items.
+    """
 
     initialisation  = chat_session.find_one({"user_id": user_id, "session_id": session_id})
     if initialisation is None:
@@ -59,64 +87,87 @@ def get_past_conversations_users(user_id,session_id):
         return "", "", ""
     
     else:
-
-        #past_user_inputs = " ".join(d['user_input'] for d in past_chats)
         previous_intention = past_chats[-1]["user_intention"]
-
         previous_follow_up_question = past_chats[-1]["follow up"]
-        #previous_follow_up_match = re.search(r'- Follow-Up Question: (\w+)', previous_follow_up)
-        #previous_follow_up_question = previous_follow_up_match.group(1)
-        #print("last_bot_response: ", last_bot_response)
         previous_items_recommended = past_chats[-1]["items_recommended"]
    
 
         return previous_intention, previous_follow_up_question, previous_items_recommended
 
-
-
 """CONVERSATION HISTORY FOR GUEST USERS """
 # function to update the chat history (which is stored in a list)
 def add_chat_history_guest(user_input, user_intention_dictionary, recommendations, convo_history_list_guest):
+    """
+    Adds the chat history for a guest user to the in-memory conversation history list.
+
+    Args:
+        user_input (str): The user's input/query.
+        user_intention_dictionary (dict): The extracted user intentions.
+        recommendations (list): List of items recommended.
+        convo_history_list_guest (list): The in-memory list of conversation history for guest users.
+
+    Returns:
+        list: Updated conversation history list.
+    """
+
     # Append the current user query and bot response as a tuple to the conversation history
-    #print("Convo History List Guest before appending: ", convo_history_list_guest)
-    print("line 78: ", recommendations)
     if user_intention_dictionary.get("Related to Follow-Up Questions") == "Old":
-        #print(recommendations)
         follow_up_question = user_intention_dictionary.get("Follow-Up Question")
         convo_history_list_guest.append((user_input, user_intention_dictionary, recommendations, follow_up_question))
         convo_history_list_guest = convo_history_list_guest[1:] # removing the last element from the list
-       
-        
-       
-
     else:
         convo_history_list_guest.append((user_input, user_intention_dictionary, recommendations))
 
-    print("Convo History List Guest after appending follow-up question: ", convo_history_list_guest)
     return convo_history_list_guest
 
+def get_past_conversation_guest(memory):
+    """
+    Retrieves the past conversation details for a guest user from the in-memory conversation history.
 
-# function to get the past intention of the user
-def get_past_conversation_guest(memory) :
+    Args:
+        memory (list): The in-memory conversation history list for a guest user.
+
+    Returns:
+        Tuple: A tuple containing the previous user's intention, follow-up question, and recommended items.
+    """
+
     # Extract the last element from each tuple in the memory list
     if len(memory) == 0:
         return "", "", ""
     else: 
-        # previous_intention, previous_follow_up_question, last_bot_response, previous_items_recommended
-        print("line 106: ", memory)
         previous_intention = memory[-1][1]
         previous_follow_up_question = memory[-1][1].get("Follow-Up Question")
         previous_items_recommended = memory[-1][2]
-        print("line 107: ", previous_follow_up_question) # data type: dictionary     
         
         return previous_intention, previous_follow_up_question, previous_items_recommended
 
 def update_past_follow_up_question_guest(user_intention_dictionary):
+    """
+    Updates and retrieves the follow-up question for a guest user.
+
+    Args:
+        user_intention_dictionary (dict): The extracted user intentions.
+
+    Returns:
+        str: The follow-up question extracted from the dictionary.
+    """
+
     # function to update the follow up questions such that it can be passed on to the LLM during the next user prompt loop
     follow_up_question = user_intention_dictionary.get("Follow-Up Question")
+
     return follow_up_question
 
 def get_past_conversations_to_display(user_id):
+    """
+    Retrieves all past conversations for a registered user, sorted by timestamp.
+
+    Args:
+        user_id (str): The unique identifier for the user.
+
+    Returns:
+        list: A list of dictionaries containing the user input and bot responses formatted for display.
+    """
+    
     # Retrieve all convo history for that user, sort it by timestamp
     all_sessions = db.chatSession.find(
         {"user_id": user_id},
