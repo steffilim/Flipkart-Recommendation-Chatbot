@@ -121,8 +121,13 @@ def svd_recommend_surprise(user_id, catalogue, user_intention_dictionary, n_reco
     dataset = Dataset.load_from_df(orderdata[['User ID', 'uniq_id', 'User rating for the product']], reader)
     trainset = dataset.build_full_trainset()
 
+    #parameters from grid search
+    params = {'n_factors': 80, 'n_epochs': 5, 'lr_all': 0.002, 'reg_all': 0.6}
     # Build SVD
-    svd = SVD()
+    svd = SVD(n_factors=params['n_factors'], 
+            n_epochs=params['n_epochs'], 
+            lr_all=params['lr_all'], 
+            reg_all=params['reg_all'])
     svd.fit(trainset)
 
     filtered_products_df = fetch_filtered_products(user_intention_dictionary)
