@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y \
     libomp-dev \
     && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m nltk.downloader punkt wordnet
+
 COPY . .
 EXPOSE 8000
 CMD ["python", "gemini.py"]
