@@ -141,7 +141,7 @@ function botSendMessage(message, sessionDate = null) {
 
     // Scroll to the top of welcome message
     setTimeout(() => {
-        if (message.includes("Welcome back!")) {
+        if (message.includes("Welcome back! Here are some products you might be interested in")) {
             console.log("Scrolling to Welcome Message:", messageElement); // Check if its scrolling to the correct position
             messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
