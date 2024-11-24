@@ -56,11 +56,32 @@ intention_chain = intention_prompt | llm | StrOutputParser()
 # Flask routes
 @app.route('/')
 def index():
+    """
+    Renders the main landing page of the chatbot application.
+
+    Returns:
+        str: The rendered HTML template for the main page.
+    """
     return render_template('index.html')
 
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    """
+    Handles the chat interaction between the user and the chatbot.
+
+    - If the user has not provided a valid ID, it prompts for one.
+    - Validates the user ID and creates a session ID.
+    - If the input is valid, it processes the request to generate product recommendations based on user input.
+    - It also extracts the user’s intent and refines the response based on previous conversation history.
+
+    Args:
+        None
+    
+    Returns:
+        dict: A JSON response containing the chatbot's response to the user's query.
+    """
+
     user_data = request.get_json()
     user_input = user_data.get('message')
 
@@ -86,7 +107,6 @@ def chat():
     # Now that user ID is validated, expect further prompts
 
     # Initialising a new session ID
-    
 
     # Check if the user input is valid
     if not is_valid_input(user_input):

@@ -16,20 +16,37 @@ def initialising_supabase():
     return supabase
 
 def load_order_data():
+    """
+    Loads order data from the Supabase database.
+
+    Returns:
+        pd.DataFrame: A pandas DataFrame containing the order data.
+    """
+
     supabase = initialising_supabase()
     order_data = pd.DataFrame(supabase.table('synthetic_v2_2k').select('*').execute().data)
-    print("Successfully loaded order data from Supabase")
-    print(order_data.columns)
     return order_data
 
 order_data = load_order_data()
 
 def load_product_data():
+    """
+    Loads product catalog data from the Supabase database.
+
+    Returns:
+        pd.DataFrame: A pandas DataFrame containing the product data, 
+                      with an additional 'content' column combining 'description' 
+                      and 'product_specifications'.
+    """
+
     supabase = initialising_supabase()
+
     # Load data from the flipkart_cleaned table in supabase
     catalogue_data = pd.DataFrame(supabase.table('flipkart_cleaned_2k').select('*').execute().data)
+
     # Create the 'content' column by concatenating 'description'
     catalogue_data['content'] = catalogue_data['description'].astype(str) + ' ' + catalogue_data['product_specifications'].astype(str)
+
     # Ensure there are no NaN values which can cause issues
     catalogue_data['content'] = catalogue_data['content']. fillna("")
     print("Successfully loaded product data from Supabase")
@@ -38,6 +55,16 @@ def load_product_data():
 product_data = load_product_data()
 
 def sampling_of_users(order_data):
+    """
+    Samples a subset of user IDs from the order data.
+
+    Args:
+        order_data (pd.DataFrame): DataFrame containing the order data.
+
+    Returns:
+        list: A list of 20 randomly sampled unique user IDs.
+    """
+
     random.seed(1234)
     user_ids = order_data['User ID'].unique()
     sampled_users = random.sample(list(user_ids), 5)
