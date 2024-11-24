@@ -167,7 +167,7 @@ def chat():
                 user_id = user_states["user_id"]
 
                 recommendations = recommend_similar_products(user_id)
-                response_text = "Welcome back! Here are some products you might be interested in:\n" + "\n".join(recommendations)
+                response_text = "Welcome back! Here are some products you might be interested in:\n\n" + "\n".join(recommendations)
                 response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for. You may enter /logout to log out."
                 
                 # Clear chat and display the default login message
@@ -183,7 +183,7 @@ def chat():
                 user_id = user_states["user_id"]
 
                 recommendations = recommend_similar_products(user_id)
-                response_text = "Welcome back! Here are some products you might be interested in:\n" + "\n".join(recommendations)
+                response_text = "Welcome back! Here are some products you might be interested in:\n\n" + "\n".join(recommendations)
                 response_text += "\n\nWould you like to know more about any of these items? If not, please provide me the description of the item you are looking for. You may enter /logout to log out."
                 return jsonify({
                     'past_conversations': past_conversations,
@@ -294,7 +294,7 @@ def chat():
     previous_intention, previous_follow_up_question, previous_items_recommended = get_past_conversations_users(user_id, session_id)    
     user_intention = getting_user_intention_dictionary(user_input, intention_chain, previous_intention, previous_follow_up_question, previous_items_recommended)
     user_intention_dictionary = parse_user_intention(user_intention)
-
+    
     # Getting the bot response
     recommendations, bot_response = getting_bot_response(user_intention_dictionary, chain2, supabase, db, previous_items_recommended, user_profile, user_purchases, user_id, session_id)
 

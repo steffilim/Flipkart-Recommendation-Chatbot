@@ -39,7 +39,8 @@ Use the information from User Query, Previous Intention and Products Recommended
                      - **Default value**: "Yes" (Assume the user is willing to share unless stated otherwise).
                      - **Set to "No"** if the user explicitly states a lack of preference, such as using phrases like "I don’t have any preference," "Anything works," "No preference," "I'm not sure," or "I don’t want to share any details." 
                      - Otherwise, set to "Yes".
-                  - Fields Incompleted: Count the number of fields (Brand, Product Details, Budget) that are 'No preference'.         - To-Follow-Up: Set to 'No' if 'Fields Incompleted' is lesser than 2. Otherwise, set to 'Yes'.
+                  - Fields Incompleted: Count the number of fields (Brand, Product Details, Budget) that are 'No preference'.         
+                  - To-Follow-Up: Set to 'No' if 'Fields Incompleted' is lesser than 2. Otherwise, set to 'Yes'.
                   - Follow-Up Question: Adjust based on the fields that are incomplete:
                      - If 'Fields Incompleted' is 3 (i.e., all 'No preference') and 'Keen to Share' is 'No', ask: "I see you're interested in getting {{product_item}}. Since no specific preferences were mentioned, I will recommend some popular options for you."
                      - If 'Fields Incompleted' is 3 (i.e., all 'No preference') and 'Keen to Share' is 'Yes', ask: "I see you're interested in getting {{product_item}}. Could you please specify a brand, budget, or any other details? This will help me find the best options for you."
